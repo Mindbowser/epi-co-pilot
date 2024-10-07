@@ -43,12 +43,12 @@ export class VerticalDiffCodeLensProvider implements vscode.CodeLensProvider {
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: `Accept`,
-          command: "continue.acceptVerticalDiffBlock",
+          command: "epi-copilot.acceptVerticalDiffBlock",
           arguments: [filepath, i],
         }),
         new vscode.CodeLens(range, {
           title: `Reject`,
-          command: "continue.rejectVerticalDiffBlock",
+          command: "epi-copilot.rejectVerticalDiffBlock",
           arguments: [filepath, i],
         }),
       );

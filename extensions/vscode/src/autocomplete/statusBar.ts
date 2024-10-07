@@ -94,7 +94,7 @@ export function setupStatusBar(
     ? "$(loading~spin) Continue"
     : statusBarItemText(status);
   statusBarItem.tooltip = statusBarItemTooltip(status ?? statusBarStatus);
-  statusBarItem.command = "continue.openTabAutocompleteConfigMenu";
+  statusBarItem.command = "epi-copilot.openTabAutocompleteConfigMenu";
 
   statusBarItem.show();
   if (status !== undefined) {

@@ -115,7 +115,7 @@ class VsCodeIde implements IDE {
           .then(async (selection) => {
             if (selection === "Use API key / local model") {
               await vscode.commands.executeCommand(
-                "continue.continueGUIView.focus",
+                "epi-copilot.continueGUIView.focus",
               );
               (await this.vscodeWebviewProtocolPromise).request(
                 "openOnboardingCard",
@@ -261,7 +261,7 @@ class VsCodeIde implements IDE {
       version: vscode.version,
       remoteName: vscode.env.remoteName || "local",
       extensionVersion:
-        vscode.extensions.getExtension("continue.continue")?.packageJSON
+        vscode.extensions.getExtension("Mindbowser.epi-copilot")?.packageJSON
           .version,
     });
   }

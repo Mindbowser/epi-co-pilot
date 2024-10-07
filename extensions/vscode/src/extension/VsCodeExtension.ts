@@ -85,7 +85,7 @@ export class VsCodeExtension {
     // Sidebar
     context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(
-        "continue.continueGUIView",
+        "epi-copilot.continueGUIView",
         this.sidebar,
         {
           webviewOptions: { retainContextWhenHidden: true },

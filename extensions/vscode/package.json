@@ -1,27 +1,27 @@
 {
-  "name": "continue",
+  "name": "epi-copilot",
   "icon": "media/icon.png",
-  "author": "Continue Dev, Inc",
-  "version": "0.8.53",
+  "author": "Mindbowser",
+  "version": "0.0.5",
   "repository": {
     "type": "git",
-    "url": "https://github.com/continuedev/continue"
+    "url": "https://github.com/Mindbowser/co-pilot"
   },
   "extensionKind": [
     "ui",
     "workspace"
   ],
   "bugs": {
-    "url": "https://github.com/continuedev/continue/issues",
+    "url": "https://github.com/Mindbowser/co-pilot/issues",
     "email": "nate@continue.dev"
   },
   "homepage": "https://continue.dev",
-  "qna": "https://github.com/continuedev/continue/issues/new/choose",
+  "qna": "https://github.com/Mindbowser/co-pilot/issues/new/choose",
   "license": "Apache-2.0",
-  "displayName": "Continue - Codestral, Claude, and more",
+  "displayName": "Epi-Copilot",
   "pricing": "Free",
   "description": "The leading open-source AI code assistant",
-  "publisher": "Continue",
+  "publisher": "Mindbowser",
   "engines": {
     "vscode": "^1.70.0",
     "node": ">=20.11.0"
@@ -69,57 +69,57 @@
     "configuration": {
       "title": "Continue",
       "properties": {
-        "continue.telemetryEnabled": {
+        "epi-copilot.telemetryEnabled": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Continue collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [continue.dev › Telemetry](https://docs.continue.dev/telemetry)."
         },
-        "continue.enableContinueForTeams": {
+        "epi-copilot.enableContinueForTeams": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "_(Requires window reload)_ Enable Continue for teams beta features. To sign in, click the person icon in the bottom right of the sidebar."
         },
-        "continue.showInlineTip": {
+        "epi-copilot.showInlineTip": {
           "type": "boolean",
           "default": true,
           "description": "Show inline suggestion to use the Continue keyboard shortcuts (e.g. \"Cmd/Ctrl L to select code, Cmd/Ctrl I to edit\")."
         },
-        "continue.enableQuickActions": {
+        "epi-copilot.enableQuickActions": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable the experimental Quick Actions feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Quick Actions (experimental)](https://docs.continue.dev/features/quick-actions)"
         },
-        "continue.enableTabAutocomplete": {
+        "epi-copilot.enableTabAutocomplete": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Enable Continue's tab autocomplete feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Tab Autocomplete (beta)](https://docs.continue.dev/features/tab-autocomplete)"
         },
-        "continue.pauseTabAutocompleteOnBattery": {
+        "epi-copilot.pauseTabAutocompleteOnBattery": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's tab autocomplete feature when your battery is low."
         },
-        "continue.pauseCodebaseIndexOnStart": {
+        "epi-copilot.pauseCodebaseIndexOnStart": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's codebase index on start."
         },
-        "continue.enableDebugLogs": {
+        "epi-copilot.enableDebugLogs": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable Continue Debug Logs in the Output panel."
         },
-        "continue.remoteConfigServerUrl": {
+        "epi-copilot.remoteConfigServerUrl": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter the server URL here and your user token below to enable automatic syncing."
         },
-        "continue.userToken": {
+        "epi-copilot.userToken": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter your user token here and your server URL above to enable automatic syncing."
         },
-        "continue.remoteConfigSyncPeriod": {
+        "epi-copilot.remoteConfigSyncPeriod": {
           "type": "number",
           "default": 60,
           "description": "The period of time in minutes between automatic syncs."
@@ -128,149 +128,149 @@
     },
     "commands": [
       {
-        "command": "continue.applyCodeFromChat",
+        "command": "epi-copilot.applyCodeFromChat",
         "category": "Continue",
         "title": "Apply code from chat",
         "group": "Continue"
       },
       {
-        "command": "continue.acceptDiff",
+        "command": "epi-copilot.acceptDiff",
         "category": "Continue",
         "title": "Accept Diff",
         "group": "Continue"
       },
       {
-        "command": "continue.rejectDiff",
+        "command": "epi-copilot.rejectDiff",
         "category": "Continue",
         "title": "Reject Diff",
         "group": "Continue",
         "icon": "$(stop)"
       },
       {
-        "command": "continue.acceptVerticalDiffBlock",
+        "command": "epi-copilot.acceptVerticalDiffBlock",
         "category": "Continue",
         "title": "Accept Vertical Diff Block",
         "group": "Continue"
       },
       {
-        "command": "continue.rejectVerticalDiffBlock",
+        "command": "epi-copilot.rejectVerticalDiffBlock",
         "category": "Continue",
         "title": "Reject Vertical Diff Block",
         "group": "Continue"
       },
       {
-        "command": "continue.quickEdit",
+        "command": "epi-copilot.quickEdit",
         "category": "Continue",
         "title": "Generate Code",
         "group": "Continue"
       },
       {
-        "command": "continue.focusContinueInput",
+        "command": "epi-copilot.focusContinueInput",
         "category": "Continue",
         "title": "Add Highlighted Code to Context",
         "group": "Continue"
       },
       {
-        "command": "continue.focusContinueInputWithoutClear",
+        "command": "epi-copilot.focusContinueInputWithoutClear",
         "category": "Continue",
         "title": "Add Highlighted Code to Context",
         "group": "Continue"
       },
       {
-        "command": "continue.debugTerminal",
+        "command": "epi-copilot.debugTerminal",
         "category": "Continue",
         "title": "Debug Terminal",
         "group": "Continue"
       },
       {
-        "command": "continue.toggleFullScreen",
+        "command": "epi-copilot.toggleFullScreen",
         "category": "Continue",
         "title": "Toggle Full Screen",
         "icon": "$(fullscreen)",
         "group": "Continue"
       },
       {
-        "command": "continue.openConfigJson",
+        "command": "epi-copilot.openConfigJson",
         "category": "Continue",
         "title": "Open config.json",
         "group": "Continue"
       },
       {
-        "command": "continue.toggleTabAutocompleteEnabled",
+        "command": "epi-copilot.toggleTabAutocompleteEnabled",
         "category": "Continue",
         "title": "Toggle Autocomplete Enabled",
         "group": "Continue"
       },
       {
-        "command": "continue.selectFilesAsContext",
+        "command": "epi-copilot.selectFilesAsContext",
         "category": "Continue",
         "title": "Select Files as Context",
         "group": "Continue"
       },
       {
-        "command": "continue.newSession",
+        "command": "epi-copilot.newSession",
         "category": "Continue",
         "title": "New Session",
         "icon": "$(add)",
         "group": "Continue"
       },
       {
-        "command": "continue.viewHistory",
+        "command": "epi-copilot.viewHistory",
         "category": "Continue",
         "title": "View History",
         "icon": "$(history)",
         "group": "Continue"
       },
       {
-        "command": "continue.writeCommentsForCode",
+        "command": "epi-copilot.writeCommentsForCode",
         "category": "Continue",
         "title": "Write Comments for this Code",
         "group": "Continue"
       },
       {
-        "command": "continue.writeDocstringForCode",
+        "command": "epi-copilot.writeDocstringForCode",
         "category": "Continue",
         "title": "Write a Docstring for this Code",
         "group": "Continue"
       },
       {
-        "command": "continue.fixCode",
+        "command": "epi-copilot.fixCode",
         "category": "Continue",
         "title": "Fix this Code",
         "group": "Continue"
       },
       {
-        "command": "continue.optimizeCode",
+        "command": "epi-copilot.optimizeCode",
         "category": "Continue",
         "title": "Optimize this Code",
         "group": "Continue"
       },
       {
-        "command": "continue.fixGrammar",
+        "command": "epi-copilot.fixGrammar",
         "category": "Continue",
         "title": "Fix Grammar / Spelling",
         "group": "Continue"
       },
       {
-        "command": "continue.codebaseForceReIndex",
+        "command": "epi-copilot.codebaseForceReIndex",
         "category": "Continue",
         "title": "Codebase Force Re-Index",
         "group": "Continue"
       },
       {
-        "command": "continue.rebuildCodebaseIndex",
+        "command": "epi-copilot.rebuildCodebaseIndex",
         "category": "Continue",
         "title": "Rebuild codebase index",
         "group": "Continue"
       },
       {
-        "command": "continue.docsIndex",
+        "command": "epi-copilot.docsIndex",
         "category": "Continue",
         "title": "Docs Index",
         "group": "Continue"
       },
       {
-        "command": "continue.docsReIndex",
+        "command": "epi-copilot.docsReIndex",
         "category": "Continue",
         "title": "Docs Force Re-Index",
         "group": "Continue"
@@ -278,186 +278,186 @@
     ],
     "keybindings": [
       {
-        "command": "continue.focusContinueInput",
+        "command": "epi-copilot.focusContinueInput",
         "mac": "cmd+l",
         "key": "ctrl+l"
       },
       {
-        "command": "continue.focusContinueInputWithoutClear",
+        "command": "epi-copilot.focusContinueInputWithoutClear",
         "mac": "cmd+shift+l",
         "key": "ctrl+shift+l"
       },
       {
-        "command": "continue.acceptDiff",
+        "command": "epi-copilot.acceptDiff",
         "mac": "shift+cmd+enter",
         "key": "shift+ctrl+enter"
       },
       {
-        "command": "continue.rejectDiff",
+        "command": "epi-copilot.rejectDiff",
         "mac": "shift+cmd+backspace",
         "key": "shift+ctrl+backspace"
       },
       {
-        "command": "continue.rejectDiff",
+        "command": "epi-copilot.rejectDiff",
         "mac": "cmd+z",
         "key": "ctrl+z",
-        "when": "continue.diffVisible"
+        "when": "epi-copilot.diffVisible"
       },
       {
-        "command": "continue.quickEditHistoryUp",
+        "command": "epi-copilot.quickEditHistoryUp",
         "mac": "up",
         "key": "up",
         "when": "false && continue.quickEditHistoryFocused"
       },
       {
-        "command": "continue.quickEditHistoryDown",
+        "command": "epi-copilot.quickEditHistoryDown",
         "mac": "down",
         "key": "down",
         "when": "false && continue.quickEditHistoryFocused"
       },
       {
-        "command": "continue.acceptVerticalDiffBlock",
+        "command": "epi-copilot.acceptVerticalDiffBlock",
         "mac": "alt+cmd+y",
         "key": "alt+ctrl+y"
       },
       {
-        "command": "continue.rejectVerticalDiffBlock",
+        "command": "epi-copilot.rejectVerticalDiffBlock",
         "mac": "alt+cmd+n",
         "key": "alt+ctrl+n"
       },
       {
-        "command": "continue.quickEdit",
+        "command": "epi-copilot.quickEdit",
         "mac": "cmd+i",
         "key": "ctrl+i"
       },
       {
-        "command": "continue.debugTerminal",
+        "command": "epi-copilot.debugTerminal",
         "mac": "cmd+shift+r",
         "key": "ctrl+shift+r"
       },
       {
-        "command": "continue.toggleFullScreen",
+        "command": "epi-copilot.toggleFullScreen",
         "mac": "cmd+k cmd+m",
         "key": "ctrl+k ctrl+m",
         "when": "!terminalFocus"
       },
       {
-        "command": "continue.toggleTabAutocompleteEnabled",
+        "command": "epi-copilot.toggleTabAutocompleteEnabled",
         "mac": "cmd+k cmd+a",
         "key": "ctrl+k ctrl+a",
         "when": "!terminalFocus"
       },
       {
-        "command": "continue.applyCodeFromChat",
+        "command": "epi-copilot.applyCodeFromChat",
         "mac": "alt+a",
         "key": "alt+a"
       }
     ],
     "submenus": [
       {
-        "id": "continue.continueSubMenu",
+        "id": "epi-copilot.continueSubMenu",
         "label": "Continue"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "continue.quickEdit"
+          "command": "epi-copilot.quickEdit"
         },
         {
-          "command": "continue.focusContinueInput"
+          "command": "epi-copilot.focusContinueInput"
         },
         {
-          "command": "continue.focusContinueInputWithoutClear"
+          "command": "epi-copilot.focusContinueInputWithoutClear"
         },
         {
-          "command": "continue.debugTerminal"
+          "command": "epi-copilot.debugTerminal"
         },
         {
-          "command": "continue.toggleFullScreen"
+          "command": "epi-copilot.toggleFullScreen"
         },
         {
-          "command": "continue.newSession"
+          "command": "epi-copilot.newSession"
         }
       ],
       "editor/context": [
         {
-          "submenu": "continue.continueSubMenu",
+          "submenu": "epi-copilot.continueSubMenu",
           "group": "0_acontinue"
         }
       ],
       "editor/title/run": [
         {
-          "command": "continue.rejectDiff",
+          "command": "epi-copilot.rejectDiff",
           "group": "Continue",
-          "when": "continue.streamingDiff"
+          "when": "epi-copilot.streamingDiff"
         }
       ],
-      "continue.continueSubMenu": [
+      "epi-copilot.continueSubMenu": [
         {
-          "command": "continue.focusContinueInputWithoutClear",
+          "command": "epi-copilot.focusContinueInputWithoutClear",
           "group": "Continue",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.writeCommentsForCode",
+          "command": "epi-copilot.writeCommentsForCode",
           "group": "Continue",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.writeDocstringForCode",
+          "command": "epi-copilot.writeDocstringForCode",
           "group": "Continue",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.fixCode",
+          "command": "epi-copilot.fixCode",
           "group": "Continue",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.optimizeCode",
+          "command": "epi-copilot.optimizeCode",
           "group": "Continue",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.fixGrammar",
+          "command": "epi-copilot.fixGrammar",
           "group": "Continue",
           "when": "editorHasSelection && editorLangId == 'markdown'"
         }
       ],
       "explorer/context": [
         {
-          "command": "continue.selectFilesAsContext",
+          "command": "epi-copilot.selectFilesAsContext",
           "group": "1_debug@1"
         }
       ],
       "view/title": [
         {
-          "command": "continue.newSession",
+          "command": "epi-copilot.newSession",
           "group": "navigation@1",
           "when": "view == continue.continueGUIView"
         },
         {
-          "command": "continue.toggleFullScreen",
+          "command": "epi-copilot.toggleFullScreen",
           "group": "navigation@1",
           "when": "view == continue.continueGUIView"
         },
         {
-          "command": "continue.viewHistory",
+          "command": "epi-copilot.viewHistory",
           "group": "navigation@1",
           "when": "view == continue.continueGUIView"
         }
       ],
       "editor/title": [
         {
-          "command": "continue.toggleFullScreen",
+          "command": "epi-copilot.toggleFullScreen",
           "group": "navigation@1",
           "when": "activeWebviewPanelId == continue.continueGUIView"
         }
       ],
       "terminal/context": [
         {
-          "command": "continue.debugTerminal",
+          "command": "epi-copilot.debugTerminal",
           "group": "navigation@top"
         }
       ]
@@ -475,7 +475,7 @@
       "continue": [
         {
           "type": "webview",
-          "id": "continue.continueGUIView",
+          "id": "epi-copilot.continueGUIView",
           "name": "",
           "visibility": "visible"
         }

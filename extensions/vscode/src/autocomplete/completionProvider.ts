@@ -262,7 +262,7 @@ export class ContinueCompletionProvider
         completionRange,
         {
           title: "Log Autocomplete Outcome",
-          command: "continue.logAutocompleteOutcome",
+          command: "epi-copilot.logAutocompleteOutcome",
           arguments: [input.completionId, this.completionProvider],
         },
       );

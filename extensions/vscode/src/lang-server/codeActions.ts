@@ -32,7 +32,7 @@ class ContinueQuickFixProvider implements vscode.CodeActionProvider {
     );
 
     quickFix.command = {
-      command: "continue.quickFix",
+      command: "epi-copilot.quickFix",
       title: "Continue Quick Fix",
       arguments: [surroundingRange, diagnostic.message],
     };

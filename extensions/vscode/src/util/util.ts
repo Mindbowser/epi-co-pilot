@@ -119,7 +119,7 @@ export function getMetaKeyName() {
 }
 
 export function getExtensionVersion(): string {
-  const extension = vscode.extensions.getExtension("continue.continue");
+  const extension = vscode.extensions.getExtension("Mindbowser.epi-copilot");
   return extension?.packageJSON.version || "0.1.0";
 }
 

@@ -24,12 +24,12 @@ export class DiffViewerCodeLensProvider implements vscode.CodeLensProvider {
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: `Accept All ✅ (${getMetaKeyLabel()}⇧⏎)`,
-          command: "continue.acceptDiff",
+          command: "epi-copilot.acceptDiff",
           arguments: [document.uri.fsPath],
         }),
         new vscode.CodeLens(range, {
           title: `Reject All ❌ (${getMetaKeyLabel()}⇧⌫)`,
-          command: "continue.rejectDiff",
+          command: "epi-copilot.rejectDiff",
           arguments: [document.uri.fsPath],
         }),
       );
