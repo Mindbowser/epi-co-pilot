@@ -47,7 +47,7 @@ export function useAuth(): {
             setDialogMessage(
               <ConfirmationDialog
                 text={
-                  "Welcome to Continue for teams! Using the toggle in the bottom right, you can switch between your local profile (defined by config.json) and team profiles (defined in the Continue for teams web app). Each profile defines a set of models, slash commands, context providers, and other settings to customize Continue."
+                  "Welcome to Epi-Copilot for teams! Using the toggle in the bottom right, you can switch between your local profile (defined by config.json) and team profiles (defined in the Epi-Copilot for teams web app). Each profile defines a set of models, slash commands, context providers, and other settings to customize Epi-Copilot."
                 }
                 hideCancelButton={true}
                 confirmText="Ok"
@@ -66,7 +66,7 @@ export function useAuth(): {
       setDialogMessage(
         <ConfirmationDialog
           confirmText="Yes, log out"
-          text={"Are you sure you want to log out of Continue?"}
+          text={"Are you sure you want to log out of Epi-Copilot?"}
           onConfirm={() => {
             ideMessenger.request("logoutOfControlPlane", undefined);
           }}

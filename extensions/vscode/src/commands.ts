@@ -401,7 +401,7 @@ const commandsMap: (
       captureCommandTelemetry("viewLogs");
 
       // Open ~/.continue/continue.log
-      const logFile = path.join(os.homedir(), ".continue", "epi-copilot.log");
+      const logFile = path.join(os.homedir(), ".epi-copilot", "epi-copilot.log");
       // Make sure the file/directory exist
       if (!fs.existsSync(logFile)) {
         fs.mkdirSync(path.dirname(logFile), { recursive: true });

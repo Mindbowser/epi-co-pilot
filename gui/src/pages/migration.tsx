@@ -10,7 +10,7 @@ function MigrationPage() {
       </h1>
 
       <p>
-        Continue now uses a .json config file. We hope that this takes the
+        Epi-Copilot now uses a .json config file. We hope that this takes the
         guesswork out of setting up.
       </p>
 

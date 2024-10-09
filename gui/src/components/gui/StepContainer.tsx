@@ -110,7 +110,7 @@ function StepContainer(props: StepContainerProps) {
           {truncatedEarly && (
             <ButtonWithTooltip
               tabIndex={-1}
-              text="Continue generation"
+              text="Epi-Copilot generation"
               onClick={props.onContinueGeneration}
             >
               <BarsArrowDownIcon className="h-3.5 w-3.5 text-gray-500" />

@@ -346,13 +346,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   /**
-   * Log in to Continue
+   * Log in to Epi-Copilot
    */
   private async login(codeChallenge: string, scopes: string[] = []) {
     return await window.withProgress<string>(
       {
         location: ProgressLocation.Notification,
-        title: "Signing in to Continue...",
+        title: "Signing in to Epi-Copilot...",
         cancellable: true,
       },
       async (_, token) => {

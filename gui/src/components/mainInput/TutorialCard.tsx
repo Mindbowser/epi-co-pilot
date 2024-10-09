@@ -86,7 +86,7 @@ export function TutorialCard({ onClose }: TutorialCardProps) {
         <li className="flex items-start">
           <Cog6ToothIcon className="align-middle pr-3 h-4 w-4" />
           <span>
-            Click the gear icon in the bottom right to configure Continue
+            Click the gear icon in the bottom right to configure Epi-Copilot
           </span>
         </li>
         <li className="flex items-start">

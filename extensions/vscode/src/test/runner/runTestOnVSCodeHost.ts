@@ -18,7 +18,7 @@ const continueGlobalDir = path.resolve(
   "src",
   "test",
   "fixtures",
-  ".continue",
+  ".epi-copilot",
 );
 
 function setupTestWorkspace() {

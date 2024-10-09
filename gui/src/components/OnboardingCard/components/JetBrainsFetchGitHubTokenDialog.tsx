@@ -38,9 +38,9 @@ function JetBrainsFetchGitHubTokenDialog({
       <div className="text-center">
         <h1 className="my-0">Sign in with GitHub</h1>
         <p>
-          Continue will request read access to your GitHub email so that we can
+          Epi-Copilot will request read access to your GitHub email so that we can
           prevent abuse of the free trial. If you prefer not to sign in, you can
-          use Continue with your own API keys or local model.
+          use Epi-Copilot with your own API keys or local model.
         </p>
       </div>
 

@@ -424,7 +424,7 @@ function History() {
         </table>
         <br />
         <i className="text-sm ml-4">
-          All session data is saved in ~/.continue/sessions
+          All session data is saved in ~/.epi-copilot/sessions
         </i>
       </div>
     </div>
