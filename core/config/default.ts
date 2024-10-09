@@ -6,10 +6,10 @@ import {
 } from "../";
 
 export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription = {
-  model: "claude-3-5-sonnet-20240620",
-  provider: "anthropic",
-  apiKey: "",
-  title: "Claude 3.5 Sonnet",
+  "model": "llama3.1",
+  "provider": "ollama",
+  "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
+  "title": "MB"
 };
 
 export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {

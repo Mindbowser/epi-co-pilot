@@ -1,4 +1,4 @@
-import { FREE_TRIAL_MODELS } from "core/config/default";
+import { DEFAULT_CHAT_MODEL_CONFIG } from "core/config/default";
 import { useContext } from "react";
 import { useDispatch } from "react-redux";
 import { Button, ButtonSubtext } from "../..";
@@ -23,7 +23,7 @@ function QuickstartSubmitButton() {
 
     // Set Sonnet as the default model
     dispatch(
-      setDefaultModel({ title: FREE_TRIAL_MODELS[0].title, force: true }),
+      setDefaultModel({ title: DEFAULT_CHAT_MODEL_CONFIG[0].title, force: true }),
     );
   }
 

@@ -1,5 +1,5 @@
 import { SerializedContinueConfig } from "../";
-import { FREE_TRIAL_MODELS } from "./default";
+import { DEFAULT_CHAT_MODEL_CONFIG } from "./default";
 
 export const TRIAL_FIM_MODEL = "codestral-latest";
 export const ONBOARDING_LOCAL_MODEL_TITLE = "Ollama";
@@ -51,8 +51,7 @@ export function setupQuickstartConfig(
   return {
     ...config,
     models: [
-      ...FREE_TRIAL_MODELS,
-      ...config.models.filter((model) => model.provider !== "free-trial"),
+      DEFAULT_CHAT_MODEL_CONFIG,
     ],
     tabAutocompleteModel: {
       title: "Tab Autocomplete",
