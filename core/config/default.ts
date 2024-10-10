@@ -6,17 +6,17 @@ import {
 } from "../";
 
 export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription = {
-  "model": "llama3.1",
+  "model": "llama3.2",
   "provider": "ollama",
   "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
   "title": "MB"
 };
 
 export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {
-  title: "Codestral",
-  provider: "mistral",
-  model: "codestral-latest",
-  apiKey: "",
+  "title": "Tab Autocomplete Model",
+  "provider": "ollama",
+  "model": "llama3.2",
+  "apiBase": "https://apparently-vital-mutt.ngrok-free.app/"
 };
 
 export const FREE_TRIAL_MODELS: ModelDescription[] = [
