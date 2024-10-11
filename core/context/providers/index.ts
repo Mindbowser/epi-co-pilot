@@ -23,6 +23,7 @@ import TerminalContextProvider from "./TerminalContextProvider";
 import URLContextProvider from "./URLContextProvider";
 import RepoMapContextProvider from "./RepoMapContextProvider";
 import GreptileContextProvider from "./GreptileContextProvider";
+import AllFolderContextProvider from "./AllFolderContextProvider";
 
 /**
  * Note: We are currently omitting the following providers due to bugs:
@@ -44,6 +45,7 @@ export const Providers: (typeof BaseContextProvider)[] = [
   OSContextProvider,
   ProblemsContextProvider,
   FolderContextProvider,
+  AllFolderContextProvider,
   DocsContextProvider,
   GitLabMergeRequestContextProvider,
   JiraIssuesContextProvider,

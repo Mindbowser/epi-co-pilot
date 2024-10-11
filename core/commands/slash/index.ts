@@ -8,6 +8,8 @@ import ReviewMessageCommand from "./review";
 import ShareSlashCommand from "./share";
 import StackOverflowSlashCommand from "./stackOverflow";
 import OnboardSlashCommand from "./onboard";
+import GitAddAllCommand from "./git-add";
+import GitCommitCommand from "./git-commit";
 
 export default [
   DraftIssueCommand,
@@ -16,6 +18,8 @@ export default [
   GenerateTerminalCommand,
   EditSlashCommand,
   CommentSlashCommand,
+  GitAddAllCommand,
+  GitCommitCommand,
   HttpSlashCommand,
   CommitMessageCommand,
   ReviewMessageCommand,

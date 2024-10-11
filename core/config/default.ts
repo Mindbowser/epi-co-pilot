@@ -57,6 +57,7 @@ export const defaultContextProvidersVsCode: ContextProviderWithParams[] = [
   { name: "terminal", params: {} },
   { name: "problems", params: {} },
   { name: "folder", params: {} },
+  { name: "all-folder", params: {} },
   { name: "codebase", params: {} },
 ];
 
@@ -82,6 +83,14 @@ export const defaultSlashCommandsVscode: SlashCommandDescription[] = [
   {
     name: "cmd",
     description: "Generate a shell command",
+  },
+  {
+    name: "git:add",
+    description: "Stage all changes for the next commit",
+  },
+  {
+    name: "git:commit",
+    description: "Commit changes with a custom message",
   },
   {
     name: "commit",
