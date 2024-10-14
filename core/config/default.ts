@@ -96,6 +96,22 @@ export const defaultSlashCommandsVscode: SlashCommandDescription[] = [
     name: "commit",
     description: "Generate a git commit message",
   },
+  {
+    name: "review",
+    description: "Review code and give feedback",
+  },
+  {
+    name: "onboard",
+    description: "Familiarize yourself with the codebase",
+  },
+  {
+    name: "project-flow",
+    description: "Project Flow chart.",
+  },
+  {
+    name: "create-readme",
+    description: "Create readme file context.",
+  }
 ];
 
 export const defaultSlashCommandsJetBrains = [

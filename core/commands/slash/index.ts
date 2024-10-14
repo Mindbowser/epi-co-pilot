@@ -10,6 +10,8 @@ import StackOverflowSlashCommand from "./stackOverflow";
 import OnboardSlashCommand from "./onboard";
 import GitAddAllCommand from "./git-add";
 import GitCommitCommand from "./git-commit";
+import ProjectFlowSlashCommand from "./project-flow";
+import CreateReadmeSlashCommand from "./create-readme";
 
 export default [
   DraftIssueCommand,
@@ -24,4 +26,6 @@ export default [
   CommitMessageCommand,
   ReviewMessageCommand,
   OnboardSlashCommand,
+  ProjectFlowSlashCommand,
+  CreateReadmeSlashCommand,
 ];

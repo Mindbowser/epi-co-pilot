@@ -34,14 +34,14 @@ const LANGUAGE_DEP_MGMT_FILENAMES = [
 
 const MAX_EXPLORE_DEPTH = 2;
 
-const OnboardSlashCommand: SlashCommand = {
-  name: "onboard",
-  description: "Familiarize yourself with the codebase",
-  run: async function* ({ llm, ide }) {
+const CreateReadmeSlashCommand: SlashCommand = {
+  name: "create-readme",
+  description: "Create readme file context.",
+  run: async function* ({ llm, ide, input }) {
     const [workspaceDir] = await ide.getWorkspaceDirs();
 
     const context = await gatherProjectContext(workspaceDir, ide);
-    const prompt = createOnboardingPrompt(context);
+    const prompt = createProjectFlowPrompt(context, input);
 
     for await (const chunk of llm.streamChat([
       { role: "user", content: prompt },
@@ -112,16 +112,17 @@ async function gatherProjectContext(
   return context;
 }
 
-function createOnboardingPrompt(context: string): string {
+function createProjectFlowPrompt(context: string, input: string): string {
   return `
-    I'm a new developer joining the project.
+    Create a detailed readme.md for the project.
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
     ${context}
 
-    Can you provide a comprehensive overview of the project, including its goals, objectives, and current status? 
-    Please also explain the technologies, frameworks, and tools used, as well as any specific coding conventions or guidelines we should follow.
+    Please include all key processes.
+
+    ${input}
   `;
 }
 
-export default OnboardSlashCommand;
+export default CreateReadmeSlashCommand;

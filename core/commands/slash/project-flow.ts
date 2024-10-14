@@ -34,14 +34,14 @@ const LANGUAGE_DEP_MGMT_FILENAMES = [
 
 const MAX_EXPLORE_DEPTH = 2;
 
-const OnboardSlashCommand: SlashCommand = {
-  name: "onboard",
-  description: "Familiarize yourself with the codebase",
+const ProjectFlowSlashCommand: SlashCommand = {
+  name: "project-flow",
+  description: "Project Flow chart.",
   run: async function* ({ llm, ide }) {
     const [workspaceDir] = await ide.getWorkspaceDirs();
 
     const context = await gatherProjectContext(workspaceDir, ide);
-    const prompt = createOnboardingPrompt(context);
+    const prompt = createProjectFlowPrompt(context);
 
     for await (const chunk of llm.streamChat([
       { role: "user", content: prompt },
@@ -112,16 +112,15 @@ async function gatherProjectContext(
   return context;
 }
 
-function createOnboardingPrompt(context: string): string {
+function createProjectFlowPrompt(context: string): string {
   return `
-    I'm a new developer joining the project.
+    Create a detailed flow diagram for the project.
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
     ${context}
 
-    Can you provide a comprehensive overview of the project, including its goals, objectives, and current status? 
-    Please also explain the technologies, frameworks, and tools used, as well as any specific coding conventions or guidelines we should follow.
+    Please include all key processes, decision points, and data flows. Be sure to label each component clearly and provide a brief description of its function. The diagram should be visually appealing and easy to understand.
   `;
 }
 
-export default OnboardSlashCommand;
+export default ProjectFlowSlashCommand;
