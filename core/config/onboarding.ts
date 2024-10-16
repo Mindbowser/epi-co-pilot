@@ -51,7 +51,7 @@ export function setupQuickstartConfig(
   return {
     ...config,
     models: [
-      DEFAULT_CHAT_MODEL_CONFIG,
+      ...DEFAULT_CHAT_MODEL_CONFIG,
     ],
     tabAutocompleteModel: {
       title: "Tab Autocomplete",

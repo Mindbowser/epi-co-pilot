@@ -94,7 +94,7 @@ function InputToolbar(props: InputToolbarProps) {
         className="flex"
       >
         <div className="flex gap-2 items-center whitespace-nowrap justify-start">
-          {/* <ModelSelect /> */}
+          <ModelSelect />
           <div className="items-center hidden xs:flex gap-1 text-gray-400 transition-colors duration-200 -mb-1 -ml-2">
             {supportsImages && (
               <>

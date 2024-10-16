@@ -5,12 +5,20 @@ import {
   SlashCommandDescription,
 } from "../";
 
-export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription = {
-  "model": "llama3.2",
-  "provider": "codellama-7b",
-  "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
-  "title": "MB"
-};
+export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription[] = [
+  {
+    "model": "codellama-7b",
+    "provider": "ollama",
+    "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
+    "title": "MB 1"
+  },
+  {
+    "model": "llama3.2",
+    "provider": "ollama",
+    "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
+    "title": "MB 0"
+  },
+];
 
 export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {
   "title": "Tab Autocomplete Model",
@@ -134,7 +142,7 @@ export const defaultSlashCommandsJetBrains = [
 ];
 
 export const defaultConfig: SerializedContinueConfig = {
-  models: [DEFAULT_CHAT_MODEL_CONFIG],
+  models: [...DEFAULT_CHAT_MODEL_CONFIG],
   tabAutocompleteModel: DEFAULT_AUTOCOMPLETE_MODEL_CONFIG,
   customCommands: [
     {
@@ -149,7 +157,7 @@ export const defaultConfig: SerializedContinueConfig = {
 };
 
 export const defaultConfigJetBrains: SerializedContinueConfig = {
-  models: [DEFAULT_CHAT_MODEL_CONFIG],
+  models: [...DEFAULT_CHAT_MODEL_CONFIG],
   tabAutocompleteModel: DEFAULT_AUTOCOMPLETE_MODEL_CONFIG,
   customCommands: [
     {

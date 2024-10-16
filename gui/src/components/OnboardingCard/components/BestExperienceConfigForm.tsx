@@ -55,7 +55,7 @@ function BestExperienceConfigForm({
     };
 
     ideMessenger.post("config/deleteModel", {
-      title: DEFAULT_CHAT_MODEL_CONFIG.title,
+      title: DEFAULT_CHAT_MODEL_CONFIG[0].title,
     });
     ideMessenger.post("config/addModel", { model: chatModelConfig });
     ideMessenger.post("config/addModel", {
