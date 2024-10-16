@@ -616,6 +616,7 @@ type ModelProvider =
   | "cohere"
   | "together"
   | "ollama"
+  | "codellama-7b"
   | "huggingface-tgi"
   | "huggingface-inference-api"
   | "kindo"
