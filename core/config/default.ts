@@ -65,7 +65,7 @@ export const defaultContextProvidersVsCode: ContextProviderWithParams[] = [
   { name: "terminal", params: {} },
   { name: "problems", params: {} },
   { name: "folder", params: {} },
-  { name: "all-folder", params: {} },
+  { name: "custom-codebase", params: {} },
   { name: "codebase", params: {} },
 ];
 

@@ -2,41 +2,39 @@ import {
   ContextItem,
   ContextProviderDescription,
   ContextProviderExtras,
-  ContextSubmenuItem,
   LoadSubmenuItemsArgs,
-} from "../../index.js";
-import {
-  getBasename,
-  groupByLastNPathParts,
-  getUniqueFilePath,
-} from "../../util/index.js";
+  ContextSubmenuItem,
+} from "../../";
 import { BaseContextProvider } from "../index.js";
 import fsPromises from "fs/promises";
 import os from "os";
+import { getBasename, getUniqueFilePath, groupByLastNPathParts } from "../../util";
 
-async function listFolders(path: string): Promise<string[]> {
-    const dir = await fsPromises.readdir(path);
-    const folders: string[] = [];
-  
-  try {
-    for await (const item of dir) {
-      if ((await fsPromises.stat(path + "/" + item)).isDirectory()) {
-        // const innerFolders = await listFolders(path + "/" + item);
-        // folders.push(...innerFolders);
-        folders.push(item);
+async function listFolders(path: string, depth: number = 0): Promise<string[]> {
+  const dir = await fsPromises.readdir(path);
+  const folders: string[] = [];
+
+try {
+  for await (const item of dir) {
+    if ((await fsPromises.stat(path + "/" + item)).isDirectory()) {
+      if (depth > 0) {
+        const innerFolders = await listFolders(path + "/" + item, depth - 1);
+        folders.push(...innerFolders);
       }
+      folders.push(item);
     }
-  } catch (err) {
-    console.error(err);
   }
-  return folders;
+} catch (err) {
+  console.error(err);
+}
+return folders;
 }
 
-class AllFolderContextProvider extends BaseContextProvider {
+class CustomCodebaseContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
-    title: "all-folder",
-    displayTitle: "All Folder",
-    description: "Type to search",
+    title: "custom-codebase",
+    displayTitle: "Custom Codebase",
+    description: "Find relevant files in a specific project",
     type: "submenu",
     dependsOnIndexing: true,
   };
@@ -50,14 +48,13 @@ class AllFolderContextProvider extends BaseContextProvider {
     );
     return retrieveContextItemsFromEmbeddings(extras, this.options, query);
   }
+
   async loadSubmenuItems(
     args: LoadSubmenuItemsArgs,
   ): Promise<ContextSubmenuItem[]> {
     const homeDir = os.homedir();
-    const folders = await listFolders(homeDir);
+    const folders = await listFolders(homeDir, 5);
     const folderGroups = groupByLastNPathParts(folders, 2);
-    console.log("folders", folders);
-    console.log("folderGroups", folderGroups);
 
     return folders.map((folder) => {
       return {
@@ -69,4 +66,4 @@ class AllFolderContextProvider extends BaseContextProvider {
   }
 }
 
-export default AllFolderContextProvider;
+export default CustomCodebaseContextProvider;

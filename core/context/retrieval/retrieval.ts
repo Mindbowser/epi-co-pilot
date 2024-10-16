@@ -67,10 +67,14 @@ export async function retrieveContextItemsFromEmbeddings(
 
   if (filterDirectory) {
     // Handle relative paths
-    filterDirectory = await resolveRelativePathInWorkspace(
-      filterDirectory,
-      extras.ide,
-    );
+    try {
+      filterDirectory = await resolveRelativePathInWorkspace(
+        filterDirectory,
+        extras.ide,
+      );
+    } catch {
+      console.log("File/Folder directory not in this workspace");
+    }
   }
 
   const pipelineOptions: RetrievalPipelineOptions = {
