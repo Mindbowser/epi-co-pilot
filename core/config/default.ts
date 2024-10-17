@@ -22,8 +22,8 @@ export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription[] = [
 
 export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {
   "title": "Tab Autocomplete Model",
-  "provider": "codellama-7b",
-  "model": "llama3.2",
+  "model": "codellama-7b",
+  "provider": "ollama",
   "apiBase": "https://apparently-vital-mutt.ngrok-free.app/"
 };
 
