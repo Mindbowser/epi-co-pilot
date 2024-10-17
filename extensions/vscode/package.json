@@ -307,13 +307,13 @@
         "command": "epi-copilot.quickEditHistoryUp",
         "mac": "up",
         "key": "up",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && epi-copilot.quickEditHistoryFocused"
       },
       {
         "command": "epi-copilot.quickEditHistoryDown",
         "mac": "down",
         "key": "down",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && epi-copilot.quickEditHistoryFocused"
       },
       {
         "command": "epi-copilot.acceptVerticalDiffBlock",
@@ -435,24 +435,24 @@
         {
           "command": "epi-copilot.newSession",
           "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "when": "view == epi-copilot.continueGUIView"
         },
         {
           "command": "epi-copilot.toggleFullScreen",
           "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "when": "view == epi-copilot.continueGUIView"
         },
         {
           "command": "epi-copilot.viewHistory",
           "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "when": "view == epi-copilot.continueGUIView"
         }
       ],
       "editor/title": [
         {
           "command": "epi-copilot.toggleFullScreen",
           "group": "navigation@1",
-          "when": "activeWebviewPanelId == continue.continueGUIView"
+          "when": "activeWebviewPanelId == epi-copilot.continueGUIView"
         }
       ],
       "terminal/context": [
@@ -466,7 +466,7 @@
       "activitybar": [
         {
           "id": "continue",
-          "title": "Continue",
+          "title": "Epi-Copilot",
           "icon": "media/sidebar-icon.png"
         }
       ]
