@@ -45,12 +45,12 @@ function QuickstartSubmitButton() {
     }
   }
 
+  
+
   async function onClick() {
-    if (isJetBrains()) {
-      openJetBrainsDialog();
-    } else {
-      await fetchGitHubAuthToken();
-    }
+    const result = await ideMessenger.request("getGoogleOAuthURL", null);
+
+    console.log("result", result)
   }
 
   return (
@@ -59,9 +59,8 @@ function QuickstartSubmitButton() {
         onClick={onClick}
         className="grid grid-flow-col items-center gap-2 w-full"
       >
-        Get started using our API keys
+        Login with Google
       </Button>
-      <ButtonSubtext>Try 50 chat and 2k autocomplete requests</ButtonSubtext>
     </div>
   );
 }

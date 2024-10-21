@@ -479,7 +479,7 @@ function GUI() {
 
               {onboardingCard.show && (
                 <div className="mt-10 mx-2">
-                  <OnboardingCard activeTab={onboardingCard.activeTab} />
+                  <OnboardingCard />
                 </div>
               )}
 

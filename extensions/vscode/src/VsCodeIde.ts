@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import * as child_process from "node:child_process";
 import { exec } from "node:child_process";
 import * as path from "node:path";
@@ -34,6 +35,7 @@ import {
   uriFromFilePath,
 } from "./util/vscode";
 import { VsCodeWebviewProtocol } from "./webviewProtocol";
+import { WorkOsAuthProvider } from "./stubs/WorkOsAuthProvider";
 
 class VsCodeIde implements IDE {
   ideUtils: VsCodeIdeUtils;
@@ -77,6 +79,15 @@ class VsCodeIde implements IDE {
   private authToken: string | undefined;
   private askedForAuth = false;
 
+  async getGoogleOAuthURL(authProvider: WorkOsAuthProvider) {
+    const session = await authProvider.createSession([
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email",
+    ]);
+
+    return session;
+  }
+
   async getGitHubAuthToken(args: GetGhTokenArgs): Promise<string | undefined> {
     // Saved auth token
     if (this.authToken) {
@@ -107,43 +118,12 @@ class VsCodeIde implements IDE {
       if (!this.askedForAuth) {
         vscode.window
           .showInformationMessage(
-            "Continue will request read access to your GitHub email so that we can prevent abuse of the free trial. If you prefer not to sign in, you can use Continue with your own API keys or local model.",
+            "Epi - Copilot will request Login with Google",
             "Sign in",
-            "Use API key / local model",
             "Learn more",
           )
           .then(async (selection) => {
-            if (selection === "Use API key / local model") {
-              await vscode.commands.executeCommand(
-                "epi-copilot.continueGUIView.focus",
-              );
-              (await this.vscodeWebviewProtocolPromise).request(
-                "openOnboardingCard",
-                undefined,
-              );
-
-              // Remove free trial models
-              editConfigJson((config) => {
-                let tabAutocompleteModel = undefined;
-                if (Array.isArray(config.tabAutocompleteModel)) {
-                  tabAutocompleteModel = config.tabAutocompleteModel.filter(
-                    (model) => model.provider !== "free-trial",
-                  );
-                } else if (
-                  config.tabAutocompleteModel?.provider === "free-trial"
-                ) {
-                  tabAutocompleteModel = undefined;
-                }
-
-                return {
-                  ...config,
-                  models: config.models.filter(
-                    (model) => model.provider !== "free-trial",
-                  ),
-                  tabAutocompleteModel,
-                };
-              });
-            } else if (selection === "Learn more") {
+            if (selection === "Learn more") {
               vscode.env.openExternal(
                 vscode.Uri.parse(
                   "https://docs.continue.dev/reference/Model%20Providers/freetrial",

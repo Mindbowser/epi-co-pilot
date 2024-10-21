@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 
-const ENCRYPTION_KEY_NAME = "dev.continue.continue";
+const ENCRYPTION_KEY_NAME = "dev.Mindbowser.epi-copilot";
 
 /**
  * vscode.SecretStorage is not reliable (often loads older values for a key)

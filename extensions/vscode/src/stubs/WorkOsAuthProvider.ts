@@ -16,15 +16,14 @@ import {
 } from "vscode";
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 
-const AUTH_NAME = "Continue";
-const CLIENT_ID =
-  process.env.CONTROL_PLANE_ENV === "local"
-    ? "client_01J0FW6XCPMJMQ3CG51RB4HBZQ"
-    : "client_01J0FW6XN8N2XJAECF7NE0Y65J";
+const AUTH_NAME = "Epi-Copilot";
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+
 const APP_URL =
   process.env.CONTROL_PLANE_ENV === "local"
     ? "http://localhost:3000"
-    : "https://app.continue.dev";
+    : "http://localhost:3000";
 const SESSIONS_SECRET_KEY = `${AUTH_TYPE}.sessions`;
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
@@ -42,7 +41,7 @@ import { AUTH_TYPE } from "../util/constants";
 import { SecretStorage } from "./SecretStorage";
 
 // Function to generate a random string of specified length
-function generateRandomString(length: number): string {
+export function generateRandomString(length: number): string {
   const possibleCharacters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
   let randomString = "";
@@ -55,7 +54,7 @@ function generateRandomString(length: number): string {
 
 // Function to generate a code challenge from the code verifier
 
-async function generateCodeChallenge(verifier: string) {
+export async function generateCodeChallenge(verifier: string) {
   // Create a SHA-256 hash of the verifier
   const hash = crypto.createHash("sha256").update(verifier).digest();
 
@@ -274,24 +273,22 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     scopes: string[],
   ): Promise<ContinueAuthenticationSession> {
     try {
-      const codeVerifier = generateRandomString(64);
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
-      const token = await this.login(codeChallenge, scopes);
+      const token = await this.login(scopes);
       if (!token) {
         throw new Error(`Continue login failure`);
       }
 
-      const userInfo = (await this.getUserInfo(token, codeVerifier)) as any;
-      const { user, access_token, refresh_token } = userInfo;
+      const userInfo = (await this.getUserInfoFromToken(token)) as any;
+      const { id_token, access_token, expires_in, ...user } = userInfo;
 
       const session: ContinueAuthenticationSession = {
         id: uuidv4(),
         accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresInMs: this.getExpirationTimeMs(access_token),
+        refreshToken: token,
+        expiresInMs: expires_in,
         loginNeeded: false,
         account: {
-          label: user.first_name + " " + user.last_name,
+          label: user.name,
           id: user.email,
         },
         scopes: [],
@@ -305,10 +302,11 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         changed: [],
       });
 
-      setTimeout(
-        () => this._refreshSessions(),
-        (this.getExpirationTimeMs(session.accessToken) * 2) / 3,
-      );
+      // TODO: fix _refreshSessions as per google oAuth
+      // setTimeout(
+      //   () => this._refreshSessions(),
+      //   (expires_in * 2) / 3,
+      // );
 
       return session;
     } catch (e) {
@@ -348,7 +346,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   /**
    * Log in to Epi-Copilot
    */
-  private async login(codeChallenge: string, scopes: string[] = []) {
+  async login(scopes: string[] = []) {
     return await window.withProgress<string>(
       {
         location: ProgressLocation.Notification,
@@ -362,28 +360,21 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
         const scopeString = scopes.join(" ");
 
-        const url = new URL("https://api.workos.com/user_management/authorize");
+        const url = "https://accounts.google.com/o/oauth2/v2/auth";
         const params = {
-          response_type: "code",
-          client_id: CLIENT_ID,
           redirect_uri: this.redirectUri,
+          client_id: CLIENT_ID,
+          response_type: "code",
+          prompt: "consent",
+          scope: scopeString,
           state: stateId,
-          code_challenge: codeChallenge,
-          code_challenge_method: "S256",
-          provider: "authkit",
         };
 
-        Object.keys(params).forEach((key) =>
-          url.searchParams.append(key, params[key as keyof typeof params]),
-        );
+        const qs = new URLSearchParams(params);
 
-        const oauthUrl = url;
-        if (oauthUrl) {
-          await env.openExternal(Uri.parse(oauthUrl.toString()));
-        } else {
-          return;
-        }
+        await env.openExternal(Uri.parse(`${url}?${qs.toString()}`));
 
+        
         let codeExchangePromise = this._codeExchangePromises.get(scopeString);
         if (!codeExchangePromise) {
           codeExchangePromise = promiseFromEvent(
@@ -453,25 +444,45 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    * @param token
    * @returns
    */
-  private async getUserInfo(token: string, codeVerifier: string) {
-    const resp = await fetch(
-      "https://api.workos.com/user_management/authenticate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+  async getUserInfoFromToken(token: string) {
+    try {
+      const resp = await fetch(
+        "https://oauth2.googleapis.com/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET,
+            redirect_uri: this.redirectUri,
+            grant_type: "authorization_code",
+            code: token,
+          }),
         },
-        body: JSON.stringify({
-          client_id: CLIENT_ID,
-          code_verifier: codeVerifier,
-          grant_type: "authorization_code",
-          code: token,
-        }),
-      },
-    );
-    const text = await resp.text();
-    const data = JSON.parse(text);
-    return data;
+      );
+      const tokenText = await resp.text();
+      const { id_token, access_token, expires_in } = await JSON.parse(tokenText);
+
+      const res = await fetch(
+        `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${id_token}`,
+          },
+        }
+      );
+      const userText = await res.text();
+      const user = JSON.parse(userText);
+
+      return { ...user, id_token, access_token, expires_in };
+      
+    } catch (error: any) {
+      console.error(error, "Error fetching Google user");
+      throw new Error(error.message);
+    }
   }
 }
 
