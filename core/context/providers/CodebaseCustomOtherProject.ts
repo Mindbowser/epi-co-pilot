@@ -5,12 +5,12 @@ import {
   ContextProviderExtras,
 } from "../../"; // Adjust this import path if necessary
 import { BaseContextProvider } from "../"; // Adjust this import path if necessary
-import { retrieveContextItemsFromEmbeddings } from "../retrieval/retrieval"; // Adjust this import path if necessary
+import { retrieveContextItemsFromEmbeddings } from "../retrieval/new_retrival"; // Adjust this import path if necessary
 
-class CodebaseContextProvider extends BaseContextProvider {
+class SpecificCodebase extends BaseContextProvider {
   static description: ContextProviderDescription = {
-    title: "specific_Cuscodebase",
-    displayTitle: "specific_Cuscodebase",
+    title: "SpecificCodebase",
+    displayTitle: "SpecificCodebase",
     description: "Automatically find relevant files",
     type: "normal",
     renderInlineAs: "",
@@ -43,4 +43,4 @@ class CodebaseContextProvider extends BaseContextProvider {
   }
 }
 
-export default CodebaseContextProvider;
+export default SpecificCodebase;

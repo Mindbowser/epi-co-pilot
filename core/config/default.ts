@@ -67,6 +67,7 @@ export const defaultContextProvidersVsCode: ContextProviderWithParams[] = [
   { name: "folder", params: {} },
   { name: "custom-codebase", params: {} },
   { name: "codebase", params: {} },
+  { name: "SpecificCodebase", params: {}},
 ];
 
 export const defaultContextProvidersJetBrains: ContextProviderWithParams[] = [
