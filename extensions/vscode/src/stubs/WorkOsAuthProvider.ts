@@ -263,14 +263,11 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
   /**
    * Create a new auth session
-   * @param scopes
    * @returns
    */
-  public async createSession(
-    scopes: string[],
-  ): Promise<ContinueAuthenticationSession> {
+  public async createSession(): Promise<ContinueAuthenticationSession> {
     try {
-      const {access_token, refresh_token} = await this.login(scopes);
+      const {access_token, refresh_token} = await this.login();
       if (!access_token && !refresh_token) {
         throw new Error(`Continue login failure`);
       }

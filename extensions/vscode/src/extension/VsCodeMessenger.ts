@@ -355,7 +355,7 @@ export class VsCodeMessenger {
     );
     this.onWebviewOrCore("getAuthToken", async (msg) => {
       const authProvider = this.workOsAuthProvider;
-      ide.getAuthToken(authProvider);
+      return ide.getAuthToken(authProvider);
     });
     this.onWebviewOrCore("getControlPlaneSessionInfo", async (msg) => {
       return getControlPlaneSessionInfo(msg.data.silent);
