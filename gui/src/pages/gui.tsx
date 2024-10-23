@@ -432,14 +432,14 @@ function GUI() {
             ))}
           </StepsDiv>
 
-          <ContinueInputBox
+          {!onboardingCard.show && <ContinueInputBox
             isMainInput
             isLastUserInput={false}
             hidden={active}
             onEnter={(editorContent, modifiers) => {
               sendInput(editorContent, modifiers);
             }}
-          />
+          />}
 
           {active ? (
             <>
@@ -461,7 +461,7 @@ function GUI() {
             </div>
           ) : (
             <>
-              {getLastSessionId() ? (
+              {!onboardingCard.show && getLastSessionId() ? (
                 <div className="mt-2 hidden xs:inline">
                   <NewSessionButton
                     onClick={async () => {

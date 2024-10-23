@@ -2,7 +2,7 @@
   "name": "epi-copilot",
   "icon": "media/icon.png",
   "author": "Mindbowser",
-  "version": "0.0.15",
+  "version": "0.0.20",
   "repository": {
     "type": "git",
     "url": "https://github.com/Mindbowser/co-pilot"

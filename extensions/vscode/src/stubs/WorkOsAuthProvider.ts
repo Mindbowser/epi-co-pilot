@@ -17,8 +17,11 @@ import {
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 
 const AUTH_NAME = "Epi-Copilot";
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const CLIENT_ID =
+  process.env.CONTROL_PLANE_ENV === "local"
+    ? "xyz"
+    : "xyz";
+const CLIENT_SECRET = "xyz";
 
 const APP_URL =
   process.env.CONTROL_PLANE_ENV === "local"
@@ -81,7 +84,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   private _pendingStates: string[] = [];
   private _codeExchangePromises = new Map<
     string,
-    { promise: Promise<string>; cancel: EventEmitter<void> }
+    { promise: Promise<{access_token: string, refresh_token: string}>; cancel: EventEmitter<void> }
   >();
   private _uriHandler = new UriEventHandler();
 
@@ -175,13 +178,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   get redirectUri() {
-    if (env.uriScheme === "vscode-insiders" || env.uriScheme === "vscode") {
-      // We redirect to a page that says "you can close this page", and that page finishes the redirect
-      const url = new URL(APP_URL);
-      url.pathname = `/auth/${env.uriScheme}-redirect`;
-      return url.toString();
-    }
-    return this.ideRedirectUri;
+    return 'Mindbowser.epi-copilot';
   }
 
   async refreshSessions() {
@@ -197,6 +194,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     const finalSessions = [];
     for (const session of sessions) {
       try {
+        console.log("session", session);
         const newSession = await this._refreshSession(session.refreshToken);
         finalSessions.push({
           ...session,
@@ -243,14 +241,12 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     refreshToken: string;
     expiresInMs: number;
   }> {
-    const response = await fetch(new URL("/auth/refresh", CONTROL_PLANE_URL), {
+    const response = await fetch("https://d1d0s6p6u2lcdb.cloudfront.net/user/access-token", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${refreshToken}`,
       },
-      body: JSON.stringify({
-        refreshToken,
-      }),
     });
     if (!response.ok) {
       const text = await response.text();
@@ -260,7 +256,8 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     return {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
-      expiresInMs: this.getExpirationTimeMs(data.accessToken),
+      // expiresInMs: this.getExpirationTimeMs(data.accessToken),
+      expiresInMs: 24*60*60,
     };
   }
 
@@ -273,23 +270,23 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     scopes: string[],
   ): Promise<ContinueAuthenticationSession> {
     try {
-      const token = await this.login(scopes);
-      if (!token) {
+      const {access_token, refresh_token} = await this.login(scopes);
+      if (!access_token && !refresh_token) {
         throw new Error(`Continue login failure`);
       }
 
-      const userInfo = (await this.getUserInfoFromToken(token)) as any;
-      const { id_token, access_token, expires_in, ...user } = userInfo;
+      // const userInfo = (await this.getUserInfoFromToken(token)) as any;
+      // const { id_token, access_token, expires_in, ...user } = userInfo;
 
       const session: ContinueAuthenticationSession = {
         id: uuidv4(),
         accessToken: access_token,
-        refreshToken: token,
-        expiresInMs: expires_in,
+        refreshToken: refresh_token,
+        expiresInMs: 60*60*24,
         loginNeeded: false,
         account: {
-          label: user.name,
-          id: user.email,
+          label: "Rahul Roy",
+          id: "rahul.roy@mindbowser.com",
         },
         scopes: [],
       };
@@ -347,7 +344,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    * Log in to Epi-Copilot
    */
   async login(scopes: string[] = []) {
-    return await window.withProgress<string>(
+    return await window.withProgress<{access_token: string, refresh_token: string}>(
       {
         location: ProgressLocation.Notification,
         title: "Signing in to Epi-Copilot...",
@@ -360,14 +357,10 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
         const scopeString = scopes.join(" ");
 
-        const url = "https://accounts.google.com/o/oauth2/v2/auth";
+        const url = "https://d1d0s6p6u2lcdb.cloudfront.net/login";
         const params = {
           redirect_uri: this.redirectUri,
-          client_id: CLIENT_ID,
-          response_type: "code",
-          prompt: "consent",
-          scope: scopeString,
-          state: stateId,
+          source: "vscode",
         };
 
         const qs = new URLSearchParams(params);
@@ -415,28 +408,22 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    */
   private handleUri: (
     scopes: readonly string[],
-  ) => PromiseAdapter<Uri, string> =
+  ) => PromiseAdapter<Uri, {access_token: string, refresh_token: string}> =
     (scopes) => async (uri, resolve, reject) => {
       const query = new URLSearchParams(uri.query);
-      const access_token = query.get("code");
-      const state = query.get("state");
+      const access_token = query.get('accessToken');
+      const refresh_token = query.get('refreshToken');
 
       if (!access_token) {
-        reject(new Error("No token"));
+        reject(new Error("No access token"));
         return;
       }
-      if (!state) {
-        reject(new Error("No state"));
-        return;
-      }
-
-      // Check if it is a valid auth request started by the extension
-      if (!this._pendingStates.some((n) => n === state)) {
-        reject(new Error("State not found"));
+      if (!refresh_token) {
+        reject(new Error("No refresh state"));
         return;
       }
 
-      resolve(access_token);
+      resolve(({access_token, refresh_token}));
     };
 
   /**

@@ -51,7 +51,7 @@ export class VsCodeExtension {
   constructor(context: vscode.ExtensionContext) {
     // Register auth provider
     this.workOsAuthProvider = new WorkOsAuthProvider(context);
-    // this.workOsAuthProvider.refreshSessions();
+    this.workOsAuthProvider.refreshSessions();
     context.subscriptions.push(this.workOsAuthProvider);
 
     let resolveWebviewProtocol: any = undefined;

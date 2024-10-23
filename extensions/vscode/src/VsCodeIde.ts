@@ -79,12 +79,13 @@ class VsCodeIde implements IDE {
   private authToken: string | undefined;
   private askedForAuth = false;
 
-  async getGoogleOAuthURL(authProvider: WorkOsAuthProvider) {
+  async getAuthToken(authProvider: WorkOsAuthProvider) {
     const session = await authProvider.createSession([
       "https://www.googleapis.com/auth/userinfo.profile",
       "https://www.googleapis.com/auth/userinfo.email",
     ]);
 
+    console.log("session", session);
     return session;
   }
 

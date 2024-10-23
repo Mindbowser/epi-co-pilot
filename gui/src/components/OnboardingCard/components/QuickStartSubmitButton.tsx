@@ -48,9 +48,11 @@ function QuickstartSubmitButton() {
   
 
   async function onClick() {
-    const result = await ideMessenger.request("getGoogleOAuthURL", null);
+    const result = await ideMessenger.request("getAuthToken", null);
 
-    console.log("result", result)
+    if (result.status === "success") {
+      onComplete();
+    }
   }
 
   return (
@@ -59,7 +61,7 @@ function QuickstartSubmitButton() {
         onClick={onClick}
         className="grid grid-flow-col items-center gap-2 w-full"
       >
-        Login with Google
+        Login with Epico
       </Button>
     </div>
   );

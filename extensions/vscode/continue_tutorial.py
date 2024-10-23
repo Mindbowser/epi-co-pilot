@@ -2,7 +2,7 @@
 Chat, Edit, and Autocomplete tutorial
 """
 
-# ———————————————————— Chat [Cmd/Ctrl + L]: Ask "what sorting algorithm is this?" ————————————————————
+# ———————————————————— Chat [Ctrl/Ctrl + L]: Ask "what sorting algorithm is this?" ————————————————————
 
 def sorting_algorithm(x):
     for i in range(len(x)):
@@ -11,7 +11,7 @@ def sorting_algorithm(x):
                 x[j], x[j + 1] = x[j + 1], x[j]
     return x
 
-# —————————————————— Edit [Cmd/Ctrl + I]: Tell Continue to "make this more readable" —————————————————
+# —————————————————— Edit [Ctrl/Ctrl + I]: Tell Continue to "make this more readable" —————————————————
 
 def sorting_algorithm(x):
     for i in range(len(x)):

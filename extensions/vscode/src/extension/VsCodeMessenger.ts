@@ -353,9 +353,9 @@ export class VsCodeMessenger {
     this.onWebviewOrCore("getGitHubAuthToken", (msg) =>
       ide.getGitHubAuthToken(msg.data),
     );
-    this.onWebviewOrCore("getGoogleOAuthURL", async (msg) => {
+    this.onWebviewOrCore("getAuthToken", async (msg) => {
       const authProvider = this.workOsAuthProvider;
-      ide.getGoogleOAuthURL(authProvider);
+      ide.getAuthToken(authProvider);
     });
     this.onWebviewOrCore("getControlPlaneSessionInfo", async (msg) => {
       return getControlPlaneSessionInfo(msg.data.silent);
