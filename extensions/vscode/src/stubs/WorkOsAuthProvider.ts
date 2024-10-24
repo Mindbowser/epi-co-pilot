@@ -267,7 +267,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    */
   public async createSession(): Promise<ContinueAuthenticationSession> {
     try {
-      const {access_token, refresh_token} = await this.login();
+      const {access_token, refresh_token, name, email} = await this.login();
       if (!access_token && !refresh_token) {
         throw new Error(`Continue login failure`);
       }
@@ -282,8 +282,8 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         expiresInMs: 60*60*24,
         loginNeeded: false,
         account: {
-          label: "Rahul Roy",
-          id: "rahul.roy@mindbowser.com",
+          label: name,
+          id: email,
         },
         scopes: [],
       };
@@ -341,7 +341,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    * Log in to Epi-Copilot
    */
   async login(scopes: string[] = []) {
-    return await window.withProgress<{access_token: string, refresh_token: string}>(
+    return await window.withProgress<{access_token: string, refresh_token: string, name: string, email: string}>(
       {
         location: ProgressLocation.Notification,
         title: "Signing in to Epi-Copilot...",
@@ -405,11 +405,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    */
   private handleUri: (
     scopes: readonly string[],
-  ) => PromiseAdapter<Uri, {access_token: string, refresh_token: string}> =
+  ) => PromiseAdapter<Uri, {access_token: string, refresh_token: string, name: string, email: string}> =
     (scopes) => async (uri, resolve, reject) => {
       const query = new URLSearchParams(uri.query);
       const access_token = query.get('accessToken');
       const refresh_token = query.get('refreshToken');
+      const name = query.get('name');
+      const email = query.get('email');
 
       if (!access_token) {
         reject(new Error("No access token"));
@@ -419,8 +421,12 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         reject(new Error("No refresh state"));
         return;
       }
+      if (!email || !name) {
+        reject(new Error("No user details"));
+        return;
+      }
 
-      resolve(({access_token, refresh_token}));
+      resolve(({access_token, refresh_token, name, email}));
     };
 
   /**

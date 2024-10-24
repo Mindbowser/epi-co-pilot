@@ -153,13 +153,10 @@ const Layout = () => {
   );
 
   useEffect(() => {
-    if (
-      isNewUserOnboarding() &&
-      (location.pathname === "/" || location.pathname === "/index.html")
-    ) {
+    if (isNewUserOnboarding()) {
       onboardingCard.open("Quickstart");
     }
-  }, [location]);
+  }, []);
 
   return (
     <LayoutTopDiv>

@@ -8,13 +8,13 @@ export type OnboardingStatus = "Started" | "Completed";
 // If there is no value in local storage for "onboardingStatus",
 // it implies that the user has not begun or completed onboarding.
 export function isNewUserOnboarding() {
-  // We used to use "onboardingComplete", but switched to "onboardingStatus"
-  const onboardingCompleteLegacyValue =
-    localStorage.getItem("onboardingComplete");
+  const isLoggedIn = getLocalStorage("isLoggedIn");
 
-  if (onboardingCompleteLegacyValue === "true") {
-    setLocalStorage("onboardingStatus", "Completed");
-    localStorage.removeItem("onboardingComplete");
+  if (!isLoggedIn) {
+    setLocalStorage("inputHistory", null);
+    setLocalStorage("onboardingStatus", "Started");
+    setLocalStorage("hasDismissedOnboardingCard", false);
+    setLocalStorage("isLoggedIn", false);
   }
 
   const onboardingStatus = getLocalStorage("onboardingStatus");

@@ -21,7 +21,6 @@ function QuickstartSubmitButton() {
   function onComplete() {
     submitOnboarding();
 
-    // Set Sonnet as the default model
     dispatch(
       setDefaultModel({ title: DEFAULT_CHAT_MODEL_CONFIG[0].title, force: true }),
     );
