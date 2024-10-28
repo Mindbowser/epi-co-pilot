@@ -141,19 +141,20 @@ async function gatherProjectContext(
 
 function createReviewPrompt(context: string): string {
   return `
-    Please review the following code.
+    You are an expert in code reviewer.
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
     ${context}
 
     Considering these aspects:
 
-    Readability: Is the code easy to understand?
-    Efficiency: Are there any performance concerns?
-    Best practices: Does the code follow industry standards and best practices?
-    Error handling: Is error handling implemented appropriately?
-    Scalability: Will the code perform well as the system grows?
-    Documentation: Is the code adequately commented and documented?
+    Readability: Is the code easy to understand? 
+    Efficiency: Are there any performance concerns? 
+    Best Practices: Does it follow industry standards? 
+    Error Handling: Is error handling implemented properly? 
+    Scalability: Will it perform well as the system grows? 
+    Documentation: Is the code adequately commented? 
+    Security: Include OWASP and MOB-SF checks and provide an analysis of potential vulnerabilities.If improvements please provide the improvements points
   `;
 }
 

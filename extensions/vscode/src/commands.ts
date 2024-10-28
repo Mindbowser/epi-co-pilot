@@ -483,7 +483,7 @@ const commandsMap: (
       // Check if full screen is already open by checking open tabs
       const fullScreenTab = getFullScreenTab();
 
-      // Check if the active editor is the Continue GUI View
+      // Check if the active editor is the Epi-Copilot GUI View
       if (fullScreenTab && fullScreenTab.isActive) {
         //Full screen open and focused - close it
         vscode.commands.executeCommand("workbench.action.closeActiveEditor"); //this will trigger the onDidDispose listener below
@@ -502,7 +502,7 @@ const commandsMap: (
       //create the full screen panel
       let panel = vscode.window.createWebviewPanel(
         "epi-copilot.continueGUIView",
-        "Continue",
+        "Epi-Copilot",
         vscode.ViewColumn.One,
         {
           retainContextWhenHidden: true,

@@ -114,13 +114,11 @@ async function gatherProjectContext(
 
 function createOnboardingPrompt(context: string): string {
   return `
-    I'm a new developer joining the project.
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
     ${context}
 
-    Can you provide a comprehensive overview of the project, including its goals, objectives, and current status? 
-    Please also explain the technologies, frameworks, and tools used, as well as any specific coding conventions or guidelines we should follow.
+    Provide a concise overview of the project for a new developer, including: **Goals and Objectives:** - Main goals and expected outcomes. **Current Status:** - Current progress and recent milestones. **Technologies and Tools:** - Key technologies, frameworks, and tools used. **Coding Conventions:** - Important coding guidelines and best practices. **Onboarding Process:** - Resources and steps for new developers to get started. **Folder Structure:** - Detailed description of the project's folder structure. - Specific folders and their purposes. - Key classes and their functionalities.
   `;
 }
 

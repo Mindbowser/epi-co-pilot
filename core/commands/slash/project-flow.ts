@@ -114,12 +114,12 @@ async function gatherProjectContext(
 
 function createProjectFlowPrompt(context: string): string {
   return `
-    Create a detailed flow diagram for the project.
+    You are an expert in flow diagram creator. Create a detailed flow diagram for the project. 
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
     ${context}
 
-    Please include all key processes, decision points, and data flows. Be sure to label each component clearly and provide a brief description of its function. The diagram should be visually appealing and easy to understand.
+    Please include all key processes, decision points, and data flows. Be sure to label each component clearly and provide a brief description of its function. The diagram should be visually appealing and easy to understand. Please generate or create the flow diagram in dot forma.
   `;
 }
 
