@@ -104,7 +104,7 @@ export class DiffManager {
 
     const rightUri = uriFromFilePath(newFilepath);
     const leftUri = uriFromFilePath(originalFilepath);
-    const title = "Continue Diff";
+    const title = "Epi-Copilot Diff";
     vscode.commands.executeCommand("vscode.diff", leftUri, rightUri, title);
 
     const editor = vscode.window.activeTextEditor;

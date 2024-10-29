@@ -694,7 +694,7 @@ const commandsMap: (
       const feedback = await vscode.window.showInputBox({
         ignoreFocusOut: true,
         prompt:
-          "Please share what went wrong with the last completion. The details of the completion as well as this message will be sent to the Continue team in order to improve.",
+          "Please share what went wrong with the last completion. The details of the completion as well as this message will be sent to the Epi-Copilot team in order to improve.",
       });
       if (feedback) {
         const client = await continueServerClientPromise;

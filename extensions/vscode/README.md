@@ -1,14 +1,14 @@
 <div align="center">
 
-![Continue logo](media/readme.png)
+![Epi-Copilot logo](media/readme.png)
 
 </div>
 
-<h1 align="center">Continue</h1>
+<h1 align="center">Epi-Copilot</h1>
 
 <div align="center">
 
-**[Continue](https://docs.continue.dev) is the leading open-source AI code assistant. You can connect any models and any context to build custom autocomplete and chat experiences inside [VS Code](https://marketplace.visualstudio.com/items?itemName=Continue.continue) and [JetBrains](https://plugins.jetbrains.com/plugin/22707-continue-extension)**
+**[Epi-Copilot] is an AI code assistant, which you can connect any models and any context to build custom autocomplete and chat experiences inside VS Code**
 
 </div>
 
@@ -28,13 +28,13 @@
 
 ## Chat
 
-[Chat](https://continue.dev/docs/chat/how-to-use-it) makes it easy to ask for help from an LLM without needing to leave the IDE
+Chat makes it easy to ask for help from an LLM without needing to leave the IDE
 
 ![chat](docs/static/img/chat.gif)
 
 ## Autocomplete
 
-[Autocomplete](https://continue.dev/docs/autocomplete/how-to-use-it) provides inline code suggestions as you type
+Autocomplete provides inline code suggestions as you type
 
 ![autocomplete](docs/static/img/autocomplete.gif)
 

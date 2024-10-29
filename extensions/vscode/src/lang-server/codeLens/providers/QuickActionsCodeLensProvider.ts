@@ -92,7 +92,7 @@ export class QuickActionsCodeLensProvider implements vscode.CodeLensProvider {
   getDefaultCommand(range: vscode.Range): vscode.Command[] {
     const quickEdit: vscode.Command = {
       command: "epi-copilot.defaultQuickAction",
-      title: "Continue",
+      title: "Epi-Copilot",
       arguments: [{ range } as QuickEditShowParams],
     };
 
