@@ -1,6 +1,6 @@
 <div align="center">
 
-![Epi-Copilot logo](media/readme.png)
+![Epi-Copilot logo](media/icon.png)
 
 </div>
 
