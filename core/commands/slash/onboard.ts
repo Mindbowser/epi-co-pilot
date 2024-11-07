@@ -114,11 +114,64 @@ async function gatherProjectContext(
 
 function createOnboardingPrompt(context: string): string {
   return `
-    Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
+  As a helpful AI assistant, your task is to onboard a new developer to this project. Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview: ${context}
+  ${context}
+  Please provide an overview of the project with the following guidelines:
 
-    ${context}
+  Important Folders: Identify the most critical folders in the project (up to 10) and explain each one step-by-step:
 
-    Provide a concise overview of the project for a new developer, including: **Goals and Objectives:** - Main goals and expected outcomes. **Current Status:** - Current progress and recent milestones. **Technologies and Tools:** - Key technologies, frameworks, and tools used. **Coding Conventions:** - Important coding guidelines and best practices. **Onboarding Process:** - Resources and steps for new developers to get started. **Folder Structure:** - Detailed description of the project's folder structure. - Specific folders and their purposes. - Key classes and their functionalities.
+  Describe the primary purpose of each folder, summarizing relevant README or package.json information, if available.
+  Mention the most popular or common packages in each folder and their roles.
+  Project Architecture: After covering individual folders, provide at most 5 high-level insights on the architecture:
+
+  Explain how different parts of the codebase fit together.
+  Describe the overall architecture or design patterns used (such as MVC, Singleton, or Factory), as evident from the folder structure and dependencies.
+  Third-Party Libraries: List the main third-party libraries used and summarize their roles.
+
+  Unit Testing and Coverage: Mention the unit testing framework (if any) and describe the test coverage strategy to ensure code quality.
+
+  Coding Style: Provide an overview of the project's coding style, covering:
+
+  Formatting standards, naming conventions, code structure, documentation practices, error handling, and testing standards.
+  UI Frameworks: Describe how the UI frameworks are used in the project:
+
+  Explain the specific use cases and distinctions between MUI, Bootstrap, and Tailwind CSS, and why each one is selected in different contexts.
+  How to Run the Project: Offer detailed instructions for setting up the project environment, running the code, and essential commands to run the project successfully.
+
+  Environment Configurations: Describe the environment configurations in the project and explain how they are typically stored and accessed.
+
+  Additional Architecture Insights: Provide at most 5 additional architectural insights that weren't covered in the folder-by-folder breakdown.
+
+  Your response should be structured, clear, and focused on giving the new developer both a detailed understanding of individual components and a high-level overview of the project as a whole.
+
+  Here is an example of a valid response:
+
+  Important folders
+  /folder1
+  Description: Contains the main application logic.
+  Key packages: Express.js for routing, Mongoose for database operations.
+  /folder1/folder2
+  Project Architecture
+  Frontend: Built using React and Redux for state management.
+  Backend: A Node.js application using Express.js for routing and Mongoose for database operations.
+  Architecture Pattern: Follows a Model-View-Controller (MVC) architecture.
+  Design Patterns: Utilizes MVC with a Singleton pattern for database connections.
+  Third-Party Libraries
+  Libraries: Express for server routing, Mongoose for database manipulation, and Axios for API requests.
+  Unit Testing and Coverage
+  Framework: Uses Jest for unit testing, with a goal of 80% code coverage on core components.
+  Coding Style
+  Overview: The project follows [coding conventions] for formatting, naming, and documentation. Standards for error handling and testing are outlined to ensure code consistency and maintainability.
+  UI Frameworks
+  Use Cases: MUI is used for material design components, Bootstrap for quick, responsive layouts, and Tailwind CSS for custom utility styling.
+  How to Run the Project
+  Instructions: Set up the environment with [specific commands] and run [project entry points] to start the application.
+  Environment Configurations
+  Overview: Environment variables are stored in a .env file, managing different configurations for development, testing, and production.
+  Additional Insights
+  Structure: The project follows a monorepo layout.
+  Type Safety: TypeScript is implemented to enhance code reliability.
+  This format ensures the developer has a clear, detailed understanding of both the specifics of each component and the overall structure of the project.  
   `;
 }
 

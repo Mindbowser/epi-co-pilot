@@ -93,7 +93,7 @@ export async function retrieveContextItemsFromEmbeddings(
   const results = await pipeline.run();
 
   if (results.length === 0) {
-    throw new Error(
+    console.log(
       "Warning: No results found for @codebase context provider.",
     );
   }

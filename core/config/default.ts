@@ -119,6 +119,10 @@ export const defaultSlashCommandsVscode: SlashCommandDescription[] = [
   {
     name: "create-readme",
     description: "Create readme file context.",
+  },
+  {
+    name: "impact-analysis",
+    description: "Generate a real-time impact analysis report",
   }
 ];
 

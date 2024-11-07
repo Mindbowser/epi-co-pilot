@@ -12,6 +12,7 @@ import GitAddAllCommand from "./git-add";
 import GitCommitCommand from "./git-commit";
 import ProjectFlowSlashCommand from "./project-flow";
 import CreateReadmeSlashCommand from "./create-readme";
+import ImpactAnalysisSlashCommand from "./impact-analysis";
 
 export default [
   DraftIssueCommand,
@@ -28,4 +29,5 @@ export default [
   OnboardSlashCommand,
   ProjectFlowSlashCommand,
   CreateReadmeSlashCommand,
+  ImpactAnalysisSlashCommand,
 ];
