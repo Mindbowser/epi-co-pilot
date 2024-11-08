@@ -1,14 +1,14 @@
 <div align="center">
 
-![Epi-Copilot logo](media/icon.png)
+![Epico-Pilot logo](media/icon.png)
 
 </div>
 
-<h1 align="center">Epi-Copilot</h1>
+<h1 align="center">Epico-Pilot</h1>
 
 <div align="center">
 
-**[Epi-Copilot] is an AI code assistant, which you can connect any models and any context to build custom autocomplete and chat experiences inside VS Code**
+**[Epico-Pilot] is an AI code assistant, which you can connect any models and any context to build custom autocomplete and chat experiences inside VS Code**
 
 </div>
 

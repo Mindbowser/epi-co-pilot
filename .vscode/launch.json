@@ -37,7 +37,7 @@
       "cwd": "${workspaceFolder}/binary",
       "env": {
         "CONTINUE_DEVELOPMENT": "true",
-        "CONTINUE_GLOBAL_DIR": "${workspaceFolder}/binary/.epi-copilot"
+        "CONTINUE_GLOBAL_DIR": "${workspaceFolder}/binary/.epico-pilot"
       }
     },
     {

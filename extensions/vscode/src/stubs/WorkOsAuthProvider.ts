@@ -16,7 +16,7 @@ import {
 } from "vscode";
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 
-const AUTH_NAME = "Epi-Copilot";
+const AUTH_NAME = "Epico-Pilot";
 const CLIENT_ID =
   process.env.CONTROL_PLANE_ENV === "local"
     ? "xyz"
@@ -338,13 +338,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   /**
-   * Log in to Epi-Copilot
+   * Log in to Epico-Pilot
    */
   async login(scopes: string[] = []) {
     return await window.withProgress<{access_token: string, refresh_token: string, name: string, email: string}>(
       {
         location: ProgressLocation.Notification,
-        title: "Signing in to Epi-Copilot...",
+        title: "Signing in to Epico-Pilot...",
         cancellable: true,
       },
       async (_, token) => {

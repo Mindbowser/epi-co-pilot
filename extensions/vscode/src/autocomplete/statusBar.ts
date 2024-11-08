@@ -44,11 +44,11 @@ const statusBarItemText = (status: StatusBarStatus | undefined) => {
   switch (status) {
     case undefined:
     case StatusBarStatus.Disabled:
-      return "$(circle-slash) Epi-Copilot";
+      return "$(circle-slash) Epico-Pilot";
     case StatusBarStatus.Enabled:
-      return "$(check) Epi-Copilot";
+      return "$(check) Epico-Pilot";
     case StatusBarStatus.Paused:
-      return "$(debug-pause) Epi-Copilot";
+      return "$(debug-pause) Epico-Pilot";
   }
 };
 
@@ -91,10 +91,10 @@ export function setupStatusBar(
   }
 
   statusBarItem.text = loading
-    ? "$(loading~spin) Epi-Copilot"
+    ? "$(loading~spin) Epico-Pilot"
     : statusBarItemText(status);
   statusBarItem.tooltip = statusBarItemTooltip(status ?? statusBarStatus);
-  statusBarItem.command = "epi-copilot.openTabAutocompleteConfigMenu";
+  statusBarItem.command = "epico-pilot.openTabAutocompleteConfigMenu";
 
   statusBarItem.show();
   if (status !== undefined) {

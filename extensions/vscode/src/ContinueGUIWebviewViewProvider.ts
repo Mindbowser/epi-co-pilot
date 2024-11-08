@@ -10,7 +10,7 @@ import { VsCodeWebviewProtocol } from "./webviewProtocol";
 export class ContinueGUIWebviewViewProvider
   implements vscode.WebviewViewProvider
 {
-  public static readonly viewType = "epi-copilot.continueGUIView";
+  public static readonly viewType = "epico-pilot.continueGUIView";
   public webviewProtocol: VsCodeWebviewProtocol;
 
   private updateDebugLogsStatus() {
@@ -26,7 +26,7 @@ export class ContinueGUIWebviewViewProvider
   // Show or hide the output channel on enableDebugLogs
   private setupDebugLogsListener() {
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration("epi-copilot.enableDebugLogs")) {
+      if (event.affectsConfiguration("epico-pilot.enableDebugLogs")) {
         const settings = vscode.workspace.getConfiguration(EXTENSION_NAME);
         const enableDebugLogs = settings.get<boolean>("enableDebugLogs", false);
         if (enableDebugLogs) {
@@ -101,7 +101,7 @@ export class ContinueGUIWebviewViewProvider
     private readonly windowId: string,
     private readonly extensionContext: vscode.ExtensionContext,
   ) {
-    this.outputChannel = vscode.window.createOutputChannel("Epi-Copilot");
+    this.outputChannel = vscode.window.createOutputChannel("Epico-Pilot");
     this.enableDebugLogs = false;
     this.updateDebugLogsStatus();
     this.setupDebugLogsListener();
@@ -177,7 +177,7 @@ export class ContinueGUIWebviewViewProvider
         <script>const vscode = acquireVsCodeApi();</script>
         <link href="${styleMainUri}" rel="stylesheet">
 
-        <title>Epi-Copilot</title>
+        <title>Epico-Pilot</title>
       </head>
       <body>
         <div id="root"></div>

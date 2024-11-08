@@ -4,7 +4,7 @@ export const miscSlice = createSlice({
   name: "misc",
   initialState: {
     takenAction: false,
-    serverStatusMessage: "Epi-Copilot Server Starting",
+    serverStatusMessage: "Epico-Pilot Server Starting",
     lastControlServerBetaEnabledStatus: false,
   },
   reducers: {

@@ -27,7 +27,7 @@ async function writeFile(uri: vscode.Uri, contents: string) {
 
 // THIS IS LOCAL
 export const DIFF_DIRECTORY = path
-  .join(os.homedir(), ".epi-copilot", ".diffs")
+  .join(os.homedir(), ".epico-pilot", ".diffs")
   .replace(/^C:/, "c:");
 
 export class DiffManager {
@@ -104,7 +104,7 @@ export class DiffManager {
 
     const rightUri = uriFromFilePath(newFilepath);
     const leftUri = uriFromFilePath(originalFilepath);
-    const title = "Epi-Copilot Diff";
+    const title = "Epico-Pilot Diff";
     vscode.commands.executeCommand("vscode.diff", leftUri, rightUri, title);
 
     const editor = vscode.window.activeTextEditor;
@@ -119,7 +119,7 @@ export class DiffManager {
 
     if (
       this.extensionContext.globalState.get<boolean>(
-        "epi-copilot.showDiffInfoMessage",
+        "epico-pilot.showDiffInfoMessage",
       ) !== false
     ) {
       vscode.window
@@ -132,7 +132,7 @@ export class DiffManager {
           if (selection === "Don't show again") {
             // Get the global state
             this.extensionContext.globalState.update(
-              "epi-copilot.showDiffInfoMessage",
+              "epico-pilot.showDiffInfoMessage",
               false,
             );
           }

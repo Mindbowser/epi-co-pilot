@@ -18,7 +18,7 @@ class ContinueQuickFixProvider implements vscode.CodeActionProvider {
     const diagnostic = context.diagnostics[0];
 
     const quickFix = new vscode.CodeAction(
-      "Ask Epi-Copilot",
+      "Ask Epico-Pilot",
       vscode.CodeActionKind.QuickFix,
     );
 
@@ -32,8 +32,8 @@ class ContinueQuickFixProvider implements vscode.CodeActionProvider {
     );
 
     quickFix.command = {
-      command: "epi-copilot.quickFix",
-      title: "Epi-Copilot Quick Fix",
+      command: "epico-pilot.quickFix",
+      title: "Epico-Pilot Quick Fix",
       arguments: [surroundingRange, diagnostic.message],
     };
 

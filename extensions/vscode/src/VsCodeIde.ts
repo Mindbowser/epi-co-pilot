@@ -116,7 +116,7 @@ class VsCodeIde implements IDE {
       if (!this.askedForAuth) {
         vscode.window
           .showInformationMessage(
-            "Epi - Copilot will request Login with Google",
+            "Epico - Pilot will request Login with Google",
             "Sign in",
             "Learn more",
           )
@@ -239,7 +239,7 @@ class VsCodeIde implements IDE {
       version: vscode.version,
       remoteName: vscode.env.remoteName || "local",
       extensionVersion:
-        vscode.extensions.getExtension("Mindbowser.epi-copilot")?.packageJSON
+        vscode.extensions.getExtension("Mindbowser.epico-pilot")?.packageJSON
           .version,
     });
   }

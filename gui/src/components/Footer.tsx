@@ -65,7 +65,7 @@ function Footer() {
         <ButtonWithTooltip
           tooltipPlacement="top-end"
           onClick={onClickSettings}
-          text="Configure Epi-Copilot"
+          text="Configure Epico-Pilot"
         >
           <Cog6ToothIcon className="w-4 h-4" />
         </ButtonWithTooltip>

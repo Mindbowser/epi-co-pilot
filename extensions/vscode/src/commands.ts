@@ -38,7 +38,7 @@ let fullScreenPanel: vscode.WebviewPanel | undefined;
 function getFullScreenTab() {
   const tabs = vscode.window.tabGroups.all.flatMap((tabGroup) => tabGroup.tabs);
   return tabs.find((tab) =>
-    (tab.input as any)?.viewType?.endsWith("epi-copilot.continueGUIView"),
+    (tab.input as any)?.viewType?.endsWith("epico-pilot.continueGUIView"),
   );
 }
 
@@ -231,7 +231,7 @@ const commandsMap: (
   }
 
   return {
-    "epi-copilot.acceptDiff": async (newFilepath?: string | vscode.Uri) => {
+    "epico-pilot.acceptDiff": async (newFilepath?: string | vscode.Uri) => {
       captureCommandTelemetry("acceptDiff");
 
       let fullPath = newFilepath;
@@ -245,7 +245,7 @@ const commandsMap: (
       verticalDiffManager.clearForFilepath(fullPath, true);
       await diffManager.acceptDiff(fullPath);
     },
-    "epi-copilot.rejectDiff": async (newFilepath?: string | vscode.Uri) => {
+    "epico-pilot.rejectDiff": async (newFilepath?: string | vscode.Uri) => {
       captureCommandTelemetry("rejectDiff");
 
       let fullPath = newFilepath;
@@ -259,15 +259,15 @@ const commandsMap: (
       verticalDiffManager.clearForFilepath(fullPath, false);
       await diffManager.rejectDiff(fullPath);
     },
-    "epi-copilot.acceptVerticalDiffBlock": (filepath?: string, index?: number) => {
+    "epico-pilot.acceptVerticalDiffBlock": (filepath?: string, index?: number) => {
       captureCommandTelemetry("acceptVerticalDiffBlock");
       verticalDiffManager.acceptRejectVerticalDiffBlock(true, filepath, index);
     },
-    "epi-copilot.rejectVerticalDiffBlock": (filepath?: string, index?: number) => {
+    "epico-pilot.rejectVerticalDiffBlock": (filepath?: string, index?: number) => {
       captureCommandTelemetry("rejectVerticalDiffBlock");
       verticalDiffManager.acceptRejectVerticalDiffBlock(false, filepath, index);
     },
-    "epi-copilot.quickFix": async (
+    "epico-pilot.quickFix": async (
       range: vscode.Range,
       diagnosticMessage: string,
     ) => {
@@ -277,14 +277,14 @@ const commandsMap: (
 
       addCodeToContextFromRange(range, sidebar.webviewProtocol, prompt);
 
-      vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+      vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
     },
     // Passthrough for telemetry purposes
-    "epi-copilot.defaultQuickAction": async (args: QuickEditShowParams) => {
+    "epico-pilot.defaultQuickAction": async (args: QuickEditShowParams) => {
       captureCommandTelemetry("defaultQuickAction");
-      vscode.commands.executeCommand("epi-copilot.quickEdit", args);
+      vscode.commands.executeCommand("epico-pilot.quickEdit", args);
     },
-    "epi-copilot.customQuickActionSendToChat": async (
+    "epico-pilot.customQuickActionSendToChat": async (
       prompt: string,
       range: vscode.Range,
     ) => {
@@ -292,9 +292,9 @@ const commandsMap: (
 
       addCodeToContextFromRange(range, sidebar.webviewProtocol, prompt);
 
-      vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+      vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
     },
-    "epi-copilot.customQuickActionStreamInlineEdit": async (
+    "epico-pilot.customQuickActionStreamInlineEdit": async (
       prompt: string,
       range: vscode.Range,
     ) => {
@@ -302,23 +302,23 @@ const commandsMap: (
 
       streamInlineEdit("docstring", prompt, false, range);
     },
-    "epi-copilot.codebaseForceReIndex": async () => {
+    "epico-pilot.codebaseForceReIndex": async () => {
       core.invoke("index/forceReIndex", undefined);
     },
-    "epi-copilot.rebuildCodebaseIndex": async () => {
+    "epico-pilot.rebuildCodebaseIndex": async () => {
       core.invoke("index/forceReIndex", { shouldClearIndexes: true });
     },
-    "epi-copilot.docsIndex": async () => {
+    "epico-pilot.docsIndex": async () => {
       core.invoke("context/indexDocs", { reIndex: false });
     },
-    "epi-copilot.docsReIndex": async () => {
+    "epico-pilot.docsReIndex": async () => {
       core.invoke("context/indexDocs", { reIndex: true });
     },
-    "epi-copilot.focusContinueInput": async () => {
+    "epico-pilot.focusContinueInput": async () => {
       const fullScreenTab = getFullScreenTab();
       if (!fullScreenTab) {
         // focus sidebar
-        vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+        vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
       } else {
         // focus fullscreen
         fullScreenPanel?.reveal();
@@ -326,7 +326,7 @@ const commandsMap: (
       sidebar.webviewProtocol?.request("focusContinueInput", undefined);
       await addHighlightedCodeToContext(sidebar.webviewProtocol);
     },
-    "epi-copilot.focusContinueInputWithoutClear": async () => {
+    "epico-pilot.focusContinueInputWithoutClear": async () => {
       const fullScreenTab = getFullScreenTab();
 
       const isContinueInputFocused = await sidebar.webviewProtocol.request(
@@ -343,7 +343,7 @@ const commandsMap: (
         // Handle opening the GUI otherwise
         if (!fullScreenTab) {
           // focus sidebar
-          vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+          vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
         } else {
           // focus fullscreen
           fullScreenPanel?.reveal();
@@ -357,11 +357,11 @@ const commandsMap: (
         await addHighlightedCodeToContext(sidebar.webviewProtocol);
       }
     },
-    "epi-copilot.quickEdit": async (args: QuickEditShowParams) => {
+    "epico-pilot.quickEdit": async (args: QuickEditShowParams) => {
       captureCommandTelemetry("quickEdit");
       quickEdit.show(args);
     },
-    "epi-copilot.writeCommentsForCode": async () => {
+    "epico-pilot.writeCommentsForCode": async () => {
       captureCommandTelemetry("writeCommentsForCode");
 
       streamInlineEdit(
@@ -369,7 +369,7 @@ const commandsMap: (
         "Write comments for this code. Do not change anything about the code itself.",
       );
     },
-    "epi-copilot.writeDocstringForCode": async () => {
+    "epico-pilot.writeDocstringForCode": async () => {
       captureCommandTelemetry("writeDocstringForCode");
 
       streamInlineEdit(
@@ -378,7 +378,7 @@ const commandsMap: (
         true,
       );
     },
-    "epi-copilot.fixCode": async () => {
+    "epico-pilot.fixCode": async () => {
       captureCommandTelemetry("fixCode");
 
       streamInlineEdit(
@@ -386,22 +386,22 @@ const commandsMap: (
         "Fix this code. If it is already 100% correct, simply rewrite the code.",
       );
     },
-    "epi-copilot.optimizeCode": async () => {
+    "epico-pilot.optimizeCode": async () => {
       captureCommandTelemetry("optimizeCode");
       streamInlineEdit("optimize", "Optimize this code");
     },
-    "epi-copilot.fixGrammar": async () => {
+    "epico-pilot.fixGrammar": async () => {
       captureCommandTelemetry("fixGrammar");
       streamInlineEdit(
         "fixGrammar",
         "If there are any grammar or spelling mistakes in this writing, fix them. Do not make other large changes to the writing.",
       );
     },
-    "epi-copilot.viewLogs": async () => {
+    "epico-pilot.viewLogs": async () => {
       captureCommandTelemetry("viewLogs");
 
       // Open ~/.continue/continue.log
-      const logFile = path.join(os.homedir(), ".epi-copilot", "epi-copilot.log");
+      const logFile = path.join(os.homedir(), ".epico-pilot", "epico-pilot.log");
       // Make sure the file/directory exist
       if (!fs.existsSync(logFile)) {
         fs.mkdirSync(path.dirname(logFile), { recursive: true });
@@ -411,40 +411,40 @@ const commandsMap: (
       const uri = vscode.Uri.file(logFile);
       await vscode.window.showTextDocument(uri);
     },
-    "epi-copilot.debugTerminal": async () => {
+    "epico-pilot.debugTerminal": async () => {
       captureCommandTelemetry("debugTerminal");
 
       const terminalContents = await ide.getTerminalContents();
 
-      vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+      vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
 
       sidebar.webviewProtocol?.request("userInput", {
         input: `I got the following error, can you please help explain how to fix it?\n\n${terminalContents.trim()}`,
       });
     },
-    "epi-copilot.hideInlineTip": () => {
+    "epico-pilot.hideInlineTip": () => {
       vscode.workspace
         .getConfiguration(EXTENSION_NAME)
         .update("showInlineTip", false, vscode.ConfigurationTarget.Global);
     },
 
     // Commands without keyboard shortcuts
-    "epi-copilot.addModel": () => {
+    "epico-pilot.addModel": () => {
       captureCommandTelemetry("addModel");
 
-      vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+      vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
       sidebar.webviewProtocol?.request("addModel", undefined);
     },
-    "epi-copilot.openSettingsUI": () => {
-      vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+    "epico-pilot.openSettingsUI": () => {
+      vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
       sidebar.webviewProtocol?.request("openSettings", undefined);
     },
-    "epi-copilot.sendMainUserInput": (text: string) => {
+    "epico-pilot.sendMainUserInput": (text: string) => {
       sidebar.webviewProtocol?.request("userInput", {
         input: text,
       });
     },
-    "epi-copilot.selectRange": (startLine: number, endLine: number) => {
+    "epico-pilot.selectRange": (startLine: number, endLine: number) => {
       if (!vscode.window.activeTextEditor) {
         return;
       }
@@ -455,7 +455,7 @@ const commandsMap: (
         0,
       );
     },
-    "epi-copilot.foldAndUnfold": (
+    "epico-pilot.foldAndUnfold": (
       foldSelectionLines: number[],
       unfoldSelectionLines: number[],
     ) => {
@@ -466,24 +466,24 @@ const commandsMap: (
         selectionLines: foldSelectionLines,
       });
     },
-    "epi-copilot.sendToTerminal": (text: string) => {
+    "epico-pilot.sendToTerminal": (text: string) => {
       captureCommandTelemetry("sendToTerminal");
       ide.runCommand(text);
     },
-    "epi-copilot.newSession": () => {
+    "epico-pilot.newSession": () => {
       sidebar.webviewProtocol?.request("newSession", undefined);
     },
-    "epi-copilot.viewHistory": () => {
+    "epico-pilot.viewHistory": () => {
       sidebar.webviewProtocol?.request("viewHistory", undefined);
     },
-    "epi-copilot.applyCodeFromChat": () => {
+    "epico-pilot.applyCodeFromChat": () => {
       sidebar.webviewProtocol.request("applyCodeFromChat", undefined);
     },
-    "epi-copilot.toggleFullScreen": () => {
+    "epico-pilot.toggleFullScreen": () => {
       // Check if full screen is already open by checking open tabs
       const fullScreenTab = getFullScreenTab();
 
-      // Check if the active editor is the Epi-Copilot GUI View
+      // Check if the active editor is the Epico-Pilot GUI View
       if (fullScreenTab && fullScreenTab.isActive) {
         //Full screen open and focused - close it
         vscode.commands.executeCommand("workbench.action.closeActiveEditor"); //this will trigger the onDidDispose listener below
@@ -501,8 +501,8 @@ const commandsMap: (
 
       //create the full screen panel
       let panel = vscode.window.createWebviewPanel(
-        "epi-copilot.continueGUIView",
-        "Epi-Copilot",
+        "epico-pilot.continueGUIView",
+        "Epico-Pilot",
         vscode.ViewColumn.One,
         {
           retainContextWhenHidden: true,
@@ -523,16 +523,16 @@ const commandsMap: (
       panel.onDidDispose(
         () => {
           sidebar.resetWebviewProtocolWebview();
-          vscode.commands.executeCommand("epi-copilot.focusContinueInput");
+          vscode.commands.executeCommand("epico-pilot.focusContinueInput");
         },
         null,
         extensionContext.subscriptions,
       );
     },
-    "epi-copilot.openConfigJson": () => {
+    "epico-pilot.openConfigJson": () => {
       ide.openFile(getConfigJsonPath());
     },
-    "epi-copilot.selectFilesAsContext": async (
+    "epico-pilot.selectFilesAsContext": async (
       firstUri: vscode.Uri,
       uris: vscode.Uri[],
     ) => {
@@ -540,7 +540,7 @@ const commandsMap: (
         throw new Error("No files were selected");
       }
 
-      vscode.commands.executeCommand("epi-copilot.continueGUIView.focus");
+      vscode.commands.executeCommand("epico-pilot.continueGUIView.focus");
 
       for (const uri of uris) {
         // If it's a folder, add the entire folder contents recursively by using walkDir (to ignore ignored files)
@@ -560,13 +560,13 @@ const commandsMap: (
         }
       }
     },
-    "epi-copilot.logAutocompleteOutcome": (
+    "epico-pilot.logAutocompleteOutcome": (
       completionId: string,
       completionProvider: CompletionProvider,
     ) => {
       completionProvider.accept(completionId);
     },
-    "epi-copilot.toggleTabAutocompleteEnabled": () => {
+    "epico-pilot.toggleTabAutocompleteEnabled": () => {
       captureCommandTelemetry("toggleTabAutocompleteEnabled");
 
       const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
@@ -602,7 +602,7 @@ const commandsMap: (
         }
       }
     },
-    "epi-copilot.openTabAutocompleteConfigMenu": async () => {
+    "epico-pilot.openTabAutocompleteConfigMenu": async () => {
       captureCommandTelemetry("openTabAutocompleteConfigMenu");
 
       const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
@@ -684,17 +684,17 @@ const commandsMap: (
           );
           configHandler.reloadConfig();
         } else if (selectedOption === "$(feedback) Give feedback") {
-          vscode.commands.executeCommand("epi-copilot.giveAutocompleteFeedback");
+          vscode.commands.executeCommand("epico-pilot.giveAutocompleteFeedback");
         }
         quickPick.dispose();
       });
       quickPick.show();
     },
-    "epi-copilot.giveAutocompleteFeedback": async () => {
+    "epico-pilot.giveAutocompleteFeedback": async () => {
       const feedback = await vscode.window.showInputBox({
         ignoreFocusOut: true,
         prompt:
-          "Please share what went wrong with the last completion. The details of the completion as well as this message will be sent to the Epi-Copilot team in order to improve.",
+          "Please share what went wrong with the last completion. The details of the completion as well as this message will be sent to the Epico-Pilot team in order to improve.",
       });
       if (feedback) {
         const client = await continueServerClientPromise;

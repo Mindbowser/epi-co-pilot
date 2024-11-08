@@ -146,7 +146,7 @@ function ProfileSwitcher() {
         !lastControlServerBetaEnabledStatus && enableControlServerBeta;
 
       if (shouldShowPopup) {
-        ideMessenger.ide.showToast("info", "Epi-Copilot for Teams enabled");
+        ideMessenger.ide.showToast("info", "Epico-Pilot for Teams enabled");
       }
 
       setControlServerBetaEnabled(enableControlServerBeta);
@@ -246,7 +246,7 @@ function ProfileSwitcher() {
         ) : (
           <ButtonWithTooltip
             tooltipPlacement="top-end"
-            text="Click to login to Epi-Copilot"
+            text="Click to login to Epico-Pilot"
             onClick={login}
           >
             <UserCircleIconOutline className="w-4 h-4" />

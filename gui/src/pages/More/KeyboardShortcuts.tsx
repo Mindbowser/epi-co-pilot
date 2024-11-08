@@ -125,7 +125,7 @@ const vscodeShortcuts: KeyboardShortcutProps[] = [
   {
     mac: "⌥ ⌘ L",
     windows: "Alt ⌃ L",
-    description: "Toggle Epi-Copilot Sidebar",
+    description: "Toggle Epico-Pilot Sidebar",
   },
   {
     mac: "⌘ ⇧ R",

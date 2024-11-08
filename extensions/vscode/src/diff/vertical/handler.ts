@@ -240,7 +240,7 @@ export class VerticalDiffHandler implements vscode.Disposable {
   async clear(accept: boolean) {
     vscode.commands.executeCommand(
       "setContext",
-      "epi-copilot.streamingDiff",
+      "epico-pilot.streamingDiff",
       false,
     );
     const rangesToDelete = accept

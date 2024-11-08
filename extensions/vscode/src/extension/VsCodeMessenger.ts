@@ -115,7 +115,7 @@ export class VsCodeMessenger {
     });
     this.onWebview("toggleDevTools", (msg) => {
       vscode.commands.executeCommand("workbench.action.toggleDevTools");
-      vscode.commands.executeCommand("epi-copilot.viewLogs");
+      vscode.commands.executeCommand("epico-pilot.viewLogs");
     });
     this.onWebview("reloadWindow", (msg) => {
       vscode.commands.executeCommand("workbench.action.reloadWindow");
@@ -124,7 +124,7 @@ export class VsCodeMessenger {
       vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
     });
     this.onWebview("toggleFullScreen", (msg) => {
-      vscode.commands.executeCommand("epi-copilot.toggleFullScreen");
+      vscode.commands.executeCommand("epico-pilot.toggleFullScreen");
     });
     // History
     this.onWebview("saveFile", async (msg) => {
@@ -142,11 +142,11 @@ export class VsCodeMessenger {
     });
 
     webviewProtocol.on("acceptDiff", async ({ data: { filepath } }) => {
-      await vscode.commands.executeCommand("epi-copilot.acceptDiff", filepath);
+      await vscode.commands.executeCommand("epico-pilot.acceptDiff", filepath);
     });
 
     webviewProtocol.on("rejectDiff", async ({ data: { filepath } }) => {
-      await vscode.commands.executeCommand("epi-copilot.rejectDiff", filepath);
+      await vscode.commands.executeCommand("epico-pilot.rejectDiff", filepath);
     });
 
     this.onWebview("applyToCurrentFile", async (msg) => {

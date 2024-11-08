@@ -9,8 +9,8 @@ export class ConfigPyCodeLensProvider implements vscode.CodeLensProvider {
     const codeLenses: vscode.CodeLens[] = [];
 
     if (
-      !document.uri.fsPath.endsWith(".epi-copilot/config.json") &&
-      !document.uri.fsPath.endsWith(".epi-copilot\\config.json")
+      !document.uri.fsPath.endsWith(".epico-pilot/config.json") &&
+      !document.uri.fsPath.endsWith(".epico-pilot\\config.json")
     ) {
       return codeLenses;
     }
@@ -34,7 +34,7 @@ export class ConfigPyCodeLensProvider implements vscode.CodeLensProvider {
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: "✏️ Edit in UI",
-          command: "epi-copilot.openSettingsUI",
+          command: "epico-pilot.openSettingsUI",
         }),
       );
     }

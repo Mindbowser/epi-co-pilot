@@ -102,7 +102,7 @@ function AddModelForm({
           {!hideFreeTrialLimitMessage && hasPassedFTL() && (
             <p className="text-sm text-gray-500">
               You've reached the free trial limit of {FREE_TRIAL_LIMIT_REQUESTS}{" "}
-              free inputs. To keep using Epi-Copilot, you can either use your own
+              free inputs. To keep using Epico-Pilot, you can either use your own
               API key, or use a local LLM. To read more about the options, see
               our{" "}
               <a

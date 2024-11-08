@@ -11,8 +11,8 @@ import { BaseContextProvider } from "../index.js";
 class ContinueProxyContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "continue-proxy",
-    displayTitle: "Epi-Copilot Proxy",
-    description: "Retrieve a context item from a Epi-Copilot for Teams add-on",
+    displayTitle: "Epico-Pilot Proxy",
+    description: "Retrieve a context item from a Epico-Pilot for Teams add-on",
     type: "submenu",
   };
 

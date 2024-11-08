@@ -52,7 +52,7 @@ function MorePage() {
           <div className="flex flex-col gap-5">
             <MoreHelpRow
               title="Documentation"
-              description="Learn how to configure and use Epi-Copilot"
+              description="Learn how to configure and use Epico-Pilot"
               Icon={ArrowTopRightOnSquareIcon}
               onClick={() =>
                 ideMessenger.post("openUrl", "https://docs.continue.dev/")

@@ -78,12 +78,12 @@ export class QuickActionsCodeLensProvider implements vscode.CodeLensProvider {
       return sendToChat
         ? {
             title,
-            command: "epi-copilot.customQuickActionSendToChat",
+            command: "epico-pilot.customQuickActionSendToChat",
             arguments: [prompt, range],
           }
         : {
             title,
-            command: "epi-copilot.customQuickActionStreamInlineEdit",
+            command: "epico-pilot.customQuickActionStreamInlineEdit",
             arguments: [prompt, range],
           };
     });
@@ -91,8 +91,8 @@ export class QuickActionsCodeLensProvider implements vscode.CodeLensProvider {
 
   getDefaultCommand(range: vscode.Range): vscode.Command[] {
     const quickEdit: vscode.Command = {
-      command: "epi-copilot.defaultQuickAction",
-      title: "Epi-Copilot",
+      command: "epico-pilot.defaultQuickAction",
+      title: "Epico-Pilot",
       arguments: [{ range } as QuickEditShowParams],
     };
 

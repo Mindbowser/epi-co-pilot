@@ -10,7 +10,7 @@ function MigrationPage() {
       </h1>
 
       <p>
-        Epi-Copilot now uses a .json config file. We hope that this takes the
+        Epico-Pilot now uses a .json config file. We hope that this takes the
         guesswork out of setting up.
       </p>
 

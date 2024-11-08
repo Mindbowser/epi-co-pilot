@@ -235,7 +235,7 @@ function GUI() {
           dispatch(
             setDialogMessage(
               <div className="text-center p-4">
-                👋 Thanks for using Epi-Copilot. We are always trying to improve
+                👋 Thanks for using Epico-Pilot. We are always trying to improve
                 and love hearing from users. If you're interested in speaking,
                 enter your name and email. We won't use this information for
                 anything other than reaching out.
@@ -413,7 +413,7 @@ function GUI() {
                                 messageType: "userInput",
                                 data: {
                                   input:
-                                    "Epi-Copilot your response exactly where you left off:",
+                                    "Epico-Pilot your response exactly where you left off:",
                                 },
                               },
                               "*",

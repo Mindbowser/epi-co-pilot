@@ -1,8 +1,8 @@
 {
-  "name": "epi-copilot",
+  "name": "epico-pilot",
   "icon": "media/icon.png",
   "author": "Mindbowser",
-  "version": "0.0.63",
+  "version": "0.0.68",
   "repository": {
     "type": "git",
     "url": "https://github.com/Mindbowser/co-pilot"
@@ -18,7 +18,7 @@
   "homepage": "https://continue.dev",
   "qna": "https://github.com/Mindbowser/co-pilot/issues/new/choose",
   "license": "Apache-2.0",
-  "displayName": "Epi-Copilot",
+  "displayName": "Epico-Pilot",
   "pricing": "Free",
   "description": "The leading open-source AI code assistant",
   "publisher": "Mindbowser",
@@ -67,59 +67,59 @@
       }
     ],
     "configuration": {
-      "title": "Epi-Copilot",
+      "title": "Epico-Pilot",
       "properties": {
-        "epi-copilot.telemetryEnabled": {
+        "epico-pilot.telemetryEnabled": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Continue collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [continue.dev › Telemetry](https://docs.continue.dev/telemetry)."
         },
-        "epi-copilot.enableContinueForTeams": {
+        "epico-pilot.enableContinueForTeams": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "_(Requires window reload)_ Enable Continue for teams beta features. To sign in, click the person icon in the bottom right of the sidebar."
         },
-        "epi-copilot.showInlineTip": {
+        "epico-pilot.showInlineTip": {
           "type": "boolean",
           "default": true,
           "description": "Show inline suggestion to use the Continue keyboard shortcuts (e.g. \"Cmd/Ctrl L to select code, Cmd/Ctrl I to edit\")."
         },
-        "epi-copilot.enableQuickActions": {
+        "epico-pilot.enableQuickActions": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable the experimental Quick Actions feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Quick Actions (experimental)](https://docs.continue.dev/features/quick-actions)"
         },
-        "epi-copilot.enableTabAutocomplete": {
+        "epico-pilot.enableTabAutocomplete": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Enable Continue's tab autocomplete feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Tab Autocomplete (beta)](https://docs.continue.dev/features/tab-autocomplete)"
         },
-        "epi-copilot.pauseTabAutocompleteOnBattery": {
+        "epico-pilot.pauseTabAutocompleteOnBattery": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's tab autocomplete feature when your battery is low."
         },
-        "epi-copilot.pauseCodebaseIndexOnStart": {
+        "epico-pilot.pauseCodebaseIndexOnStart": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's codebase index on start."
         },
-        "epi-copilot.enableDebugLogs": {
+        "epico-pilot.enableDebugLogs": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable Continue Debug Logs in the Output panel."
         },
-        "epi-copilot.remoteConfigServerUrl": {
+        "epico-pilot.remoteConfigServerUrl": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter the server URL here and your user token below to enable automatic syncing."
         },
-        "epi-copilot.userToken": {
+        "epico-pilot.userToken": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter your user token here and your server URL above to enable automatic syncing."
         },
-        "epi-copilot.remoteConfigSyncPeriod": {
+        "epico-pilot.remoteConfigSyncPeriod": {
           "type": "number",
           "default": 60,
           "description": "The period of time in minutes between automatic syncs."
@@ -128,336 +128,336 @@
     },
     "commands": [
       {
-        "command": "epi-copilot.applyCodeFromChat",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.applyCodeFromChat",
+        "category": "Epico-Pilot",
         "title": "Apply code from chat",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.acceptDiff",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.acceptDiff",
+        "category": "Epico-Pilot",
         "title": "Accept Diff",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.rejectDiff",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.rejectDiff",
+        "category": "Epico-Pilot",
         "title": "Reject Diff",
-        "group": "Epi-Copilot",
+        "group": "Epico-Pilot",
         "icon": "$(stop)"
       },
       {
-        "command": "epi-copilot.acceptVerticalDiffBlock",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.acceptVerticalDiffBlock",
+        "category": "Epico-Pilot",
         "title": "Accept Vertical Diff Block",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.rejectVerticalDiffBlock",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.rejectVerticalDiffBlock",
+        "category": "Epico-Pilot",
         "title": "Reject Vertical Diff Block",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.quickEdit",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.quickEdit",
+        "category": "Epico-Pilot",
         "title": "Generate Code",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.focusContinueInput",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.focusContinueInput",
+        "category": "Epico-Pilot",
         "title": "Add Highlighted Code to Context",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.focusContinueInputWithoutClear",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.focusContinueInputWithoutClear",
+        "category": "Epico-Pilot",
         "title": "Add Highlighted Code to Context",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.debugTerminal",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.debugTerminal",
+        "category": "Epico-Pilot",
         "title": "Debug Terminal",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.toggleFullScreen",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.toggleFullScreen",
+        "category": "Epico-Pilot",
         "title": "Toggle Full Screen",
         "icon": "$(fullscreen)",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.openConfigJson",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.openConfigJson",
+        "category": "Epico-Pilot",
         "title": "Open config.json",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.toggleTabAutocompleteEnabled",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.toggleTabAutocompleteEnabled",
+        "category": "Epico-Pilot",
         "title": "Toggle Autocomplete Enabled",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.selectFilesAsContext",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.selectFilesAsContext",
+        "category": "Epico-Pilot",
         "title": "Select Files as Context",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.newSession",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.newSession",
+        "category": "Epico-Pilot",
         "title": "New Session",
         "icon": "$(add)",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.viewHistory",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.viewHistory",
+        "category": "Epico-Pilot",
         "title": "View History",
         "icon": "$(history)",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.writeCommentsForCode",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.writeCommentsForCode",
+        "category": "Epico-Pilot",
         "title": "Write Comments for this Code",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.writeDocstringForCode",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.writeDocstringForCode",
+        "category": "Epico-Pilot",
         "title": "Write a Docstring for this Code",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.fixCode",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.fixCode",
+        "category": "Epico-Pilot",
         "title": "Fix this Code",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.optimizeCode",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.optimizeCode",
+        "category": "Epico-Pilot",
         "title": "Optimize this Code",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.fixGrammar",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.fixGrammar",
+        "category": "Epico-Pilot",
         "title": "Fix Grammar / Spelling",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.codebaseForceReIndex",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.codebaseForceReIndex",
+        "category": "Epico-Pilot",
         "title": "Codebase Force Re-Index",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.rebuildCodebaseIndex",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.rebuildCodebaseIndex",
+        "category": "Epico-Pilot",
         "title": "Rebuild codebase index",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.docsIndex",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.docsIndex",
+        "category": "Epico-Pilot",
         "title": "Docs Index",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.docsReIndex",
-        "category": "Epi-Copilot",
+        "command": "epico-pilot.docsReIndex",
+        "category": "Epico-Pilot",
         "title": "Docs Force Re-Index",
-        "group": "Epi-Copilot"
+        "group": "Epico-Pilot"
       }
     ],
     "keybindings": [
       {
-        "command": "epi-copilot.focusContinueInput",
+        "command": "epico-pilot.focusContinueInput",
         "mac": "cmd+l",
         "key": "ctrl+l"
       },
       {
-        "command": "epi-copilot.focusContinueInputWithoutClear",
+        "command": "epico-pilot.focusContinueInputWithoutClear",
         "mac": "cmd+shift+l",
         "key": "ctrl+shift+l"
       },
       {
-        "command": "epi-copilot.acceptDiff",
+        "command": "epico-pilot.acceptDiff",
         "mac": "shift+cmd+enter",
         "key": "shift+ctrl+enter"
       },
       {
-        "command": "epi-copilot.rejectDiff",
+        "command": "epico-pilot.rejectDiff",
         "mac": "shift+cmd+backspace",
         "key": "shift+ctrl+backspace"
       },
       {
-        "command": "epi-copilot.rejectDiff",
+        "command": "epico-pilot.rejectDiff",
         "mac": "cmd+z",
         "key": "ctrl+z",
-        "when": "epi-copilot.diffVisible"
+        "when": "epico-pilot.diffVisible"
       },
       {
-        "command": "epi-copilot.quickEditHistoryUp",
+        "command": "epico-pilot.quickEditHistoryUp",
         "mac": "up",
         "key": "up",
-        "when": "false && epi-copilot.quickEditHistoryFocused"
+        "when": "false && epico-pilot.quickEditHistoryFocused"
       },
       {
-        "command": "epi-copilot.quickEditHistoryDown",
+        "command": "epico-pilot.quickEditHistoryDown",
         "mac": "down",
         "key": "down",
-        "when": "false && epi-copilot.quickEditHistoryFocused"
+        "when": "false && epico-pilot.quickEditHistoryFocused"
       },
       {
-        "command": "epi-copilot.acceptVerticalDiffBlock",
+        "command": "epico-pilot.acceptVerticalDiffBlock",
         "mac": "alt+cmd+y",
         "key": "alt+ctrl+y"
       },
       {
-        "command": "epi-copilot.rejectVerticalDiffBlock",
+        "command": "epico-pilot.rejectVerticalDiffBlock",
         "mac": "alt+cmd+n",
         "key": "alt+ctrl+n"
       },
       {
-        "command": "epi-copilot.quickEdit",
+        "command": "epico-pilot.quickEdit",
         "mac": "cmd+i",
         "key": "ctrl+i"
       },
       {
-        "command": "epi-copilot.debugTerminal",
+        "command": "epico-pilot.debugTerminal",
         "mac": "cmd+shift+r",
         "key": "ctrl+shift+r"
       },
       {
-        "command": "epi-copilot.toggleFullScreen",
+        "command": "epico-pilot.toggleFullScreen",
         "mac": "cmd+k cmd+m",
         "key": "ctrl+k ctrl+m",
         "when": "!terminalFocus"
       },
       {
-        "command": "epi-copilot.toggleTabAutocompleteEnabled",
+        "command": "epico-pilot.toggleTabAutocompleteEnabled",
         "mac": "cmd+k cmd+a",
         "key": "ctrl+k ctrl+a",
         "when": "!terminalFocus"
       },
       {
-        "command": "epi-copilot.applyCodeFromChat",
+        "command": "epico-pilot.applyCodeFromChat",
         "mac": "alt+a",
         "key": "alt+a"
       }
     ],
     "submenus": [
       {
-        "id": "epi-copilot.continueSubMenu",
-        "label": "Epi-Copilot"
+        "id": "epico-pilot.continueSubMenu",
+        "label": "Epico-Pilot"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "epi-copilot.quickEdit"
+          "command": "epico-pilot.quickEdit"
         },
         {
-          "command": "epi-copilot.focusContinueInput"
+          "command": "epico-pilot.focusContinueInput"
         },
         {
-          "command": "epi-copilot.focusContinueInputWithoutClear"
+          "command": "epico-pilot.focusContinueInputWithoutClear"
         },
         {
-          "command": "epi-copilot.debugTerminal"
+          "command": "epico-pilot.debugTerminal"
         },
         {
-          "command": "epi-copilot.toggleFullScreen"
+          "command": "epico-pilot.toggleFullScreen"
         },
         {
-          "command": "epi-copilot.newSession"
+          "command": "epico-pilot.newSession"
         }
       ],
       "editor/context": [
         {
-          "submenu": "epi-copilot.continueSubMenu",
+          "submenu": "epico-pilot.continueSubMenu",
           "group": "0_acontinue"
         }
       ],
       "editor/title/run": [
         {
-          "command": "epi-copilot.rejectDiff",
-          "group": "Epi-Copilot",
-          "when": "epi-copilot.streamingDiff"
+          "command": "epico-pilot.rejectDiff",
+          "group": "Epico-Pilot",
+          "when": "epico-pilot.streamingDiff"
         }
       ],
-      "epi-copilot.continueSubMenu": [
+      "epico-pilot.continueSubMenu": [
         {
-          "command": "epi-copilot.focusContinueInputWithoutClear",
-          "group": "Epi-Copilot",
+          "command": "epico-pilot.focusContinueInputWithoutClear",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.writeCommentsForCode",
-          "group": "Epi-Copilot",
+          "command": "epico-pilot.writeCommentsForCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.writeDocstringForCode",
-          "group": "Epi-Copilot",
+          "command": "epico-pilot.writeDocstringForCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.fixCode",
-          "group": "Epi-Copilot",
+          "command": "epico-pilot.fixCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.optimizeCode",
-          "group": "Epi-Copilot",
+          "command": "epico-pilot.optimizeCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.fixGrammar",
-          "group": "Epi-Copilot",
+          "command": "epico-pilot.fixGrammar",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection && editorLangId == 'markdown'"
         }
       ],
       "explorer/context": [
         {
-          "command": "epi-copilot.selectFilesAsContext",
+          "command": "epico-pilot.selectFilesAsContext",
           "group": "1_debug@1"
         }
       ],
       "view/title": [
         {
-          "command": "epi-copilot.newSession",
+          "command": "epico-pilot.newSession",
           "group": "navigation@1",
-          "when": "view == epi-copilot.continueGUIView"
+          "when": "view == epico-pilot.continueGUIView"
         },
         {
-          "command": "epi-copilot.toggleFullScreen",
+          "command": "epico-pilot.toggleFullScreen",
           "group": "navigation@1",
-          "when": "view == epi-copilot.continueGUIView"
+          "when": "view == epico-pilot.continueGUIView"
         },
         {
-          "command": "epi-copilot.viewHistory",
+          "command": "epico-pilot.viewHistory",
           "group": "navigation@1",
-          "when": "view == epi-copilot.continueGUIView"
+          "when": "view == epico-pilot.continueGUIView"
         }
       ],
       "editor/title": [
         {
-          "command": "epi-copilot.toggleFullScreen",
+          "command": "epico-pilot.toggleFullScreen",
           "group": "navigation@1",
-          "when": "activeWebviewPanelId == epi-copilot.continueGUIView"
+          "when": "activeWebviewPanelId == epico-pilot.continueGUIView"
         }
       ],
       "terminal/context": [
         {
-          "command": "epi-copilot.debugTerminal",
+          "command": "epico-pilot.debugTerminal",
           "group": "navigation@top"
         }
       ]
@@ -466,7 +466,7 @@
       "activitybar": [
         {
           "id": "continue",
-          "title": "Epi-Copilot",
+          "title": "Epico-Pilot",
           "icon": "media/sidebar-icon.png"
         }
       ]
@@ -475,7 +475,7 @@
       "continue": [
         {
           "type": "webview",
-          "id": "epi-copilot.continueGUIView",
+          "id": "epico-pilot.continueGUIView",
           "name": "",
           "visibility": "visible"
         }

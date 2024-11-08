@@ -21,7 +21,7 @@ async function dynamicImportAndActivate(context: vscode.ExtensionContext) {
       )
       .then((selection) => {
         if (selection === "View Logs") {
-          vscode.commands.executeCommand("epi-copilot.viewLogs");
+          vscode.commands.executeCommand("epico-pilot.viewLogs");
         } else if (selection === "Retry") {
           // Reload VS Code window
           vscode.commands.executeCommand("workbench.action.reloadWindow");

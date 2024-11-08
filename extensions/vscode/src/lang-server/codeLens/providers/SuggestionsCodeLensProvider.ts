@@ -21,12 +21,12 @@ export class SuggestionsCodeLensProvider implements vscode.CodeLensProvider {
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: "Accept",
-          command: "epi-copilot.acceptSuggestion",
+          command: "epico-pilot.acceptSuggestion",
           arguments: [suggestion],
         }),
         new vscode.CodeLens(range, {
           title: "Reject",
-          command: "epi-copilot.rejectSuggestion",
+          command: "epico-pilot.rejectSuggestion",
           arguments: [suggestion],
         }),
       );
