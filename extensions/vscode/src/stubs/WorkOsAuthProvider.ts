@@ -178,7 +178,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   get redirectUri() {
-    return 'Mindbowser.epi-copilot';
+    return 'Mindbowser.epico-pilot';
   }
 
   async refreshSessions() {
@@ -354,7 +354,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
         const scopeString = scopes.join(" ");
 
-        const url = "https://d1d0s6p6u2lcdb.cloudfront.net/login";
+        const url = "https://mindbowser.epico.ai/login";
         const params = {
           redirect_uri: this.redirectUri,
           source: "vscode",
