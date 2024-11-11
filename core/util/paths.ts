@@ -25,7 +25,7 @@ export function getContinueUtilsPath(): string {
 }
 
 export function getContinueGlobalPath(): string {
-  // This is ~/.continue on mac/linux
+  // This is ~/.epico-pilot on mac/linux
   const continuePath = CONTINUE_GLOBAL_DIR;
   if (!fs.existsSync(continuePath)) {
     fs.mkdirSync(continuePath);
@@ -69,9 +69,9 @@ export function getConfigJsonPath(ideType: IdeType = "vscode"): string {
   const p = path.join(getContinueGlobalPath(), "config.json");
   if (!fs.existsSync(p)) {
     if (ideType === "jetbrains") {
-      fs.writeFileSync(p, JSON.stringify(defaultConfigJetBrains, null, 2));
+        fs.writeFileSync(p, JSON.stringify(defaultConfigJetBrains, null, 2));
     } else {
-      fs.writeFileSync(p, JSON.stringify(defaultConfig, null, 2));
+        fs.writeFileSync(p, JSON.stringify(defaultConfig, null, 2));
     }
   }
   return p;
