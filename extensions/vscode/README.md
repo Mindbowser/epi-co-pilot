@@ -1,6 +1,6 @@
 <div align="center">
 
-![Epico-Pilot logo](media/icon.png)
+![Epico-Pilot logo](media/Logo-Epico-Pilot.png)
 
 </div>
 
@@ -37,6 +37,12 @@ Autocomplete provides inline code suggestions as you type
 Edit is a convenient way to modify code without leaving your current file
 
 ![edit](/docs/static/img/edit.gif)
+
+## Actions
+
+There are many actions which can be performed to modify code without leaving your current file
+
+![actions](/docs/static/img/actions.gif)
 
 </div>
 

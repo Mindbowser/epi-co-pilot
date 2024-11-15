@@ -43,8 +43,8 @@ export class LanceDbIndex implements CodebaseIndex {
 
   constructor(
     private readonly embeddingsProvider: EmbeddingsProvider,
-    private readonly readFile: (filepath: string) => Promise<string>,
-    private readonly pathSep: string,
+    private readonly readFile?: (filepath: string) => Promise<string>,
+    private readonly pathSep?: string,
     private readonly continueServerClient?: IContinueServerClient,
   ) {}
 
@@ -121,14 +121,16 @@ export class LanceDbIndex implements CodebaseIndex {
 
     for (const item of items) {
       try {
-        const content = await this.readFile(item.path);
-
-        if (!shouldChunk(this.pathSep, item.path, content)) {
-          continue;
+        if (this.readFile && this.pathSep) {
+          const content = await this.readFile(item.path);
+  
+          if (!shouldChunk(this.pathSep, item.path, content)) {
+            continue;
+          }
+  
+          const chunks = await this.getChunks(item, content);
+          chunkMap.set(item.path, { item, chunks });
         }
-
-        const chunks = await this.getChunks(item, content);
-        chunkMap.set(item.path, { item, chunks });
       } catch (err) {
         console.log(`LanceDBIndex, skipping ${item.path}: ${err}`);
       }

@@ -28,7 +28,7 @@ class Calculator {
 
   mod(number) {
     if (number === 0) {
-      throw new Error("Cannot divide by zero");
+      throw new Error("Cannot find the remainder of a division by zero");
     }
     this.result %= number;
     return this;
