@@ -24,6 +24,7 @@ import URLContextProvider from "./URLContextProvider";
 import RepoMapContextProvider from "./RepoMapContextProvider";
 import GreptileContextProvider from "./GreptileContextProvider";
 import CustomCodebaseContextProvider from "./CustomCodebaseContextProvider";
+import RemoteCodebaseContextProvider from "./RemoteCodebaseContextProvider";
 
 /**
  * Note: We are currently omitting the following providers due to bugs:
@@ -57,6 +58,7 @@ export const Providers: (typeof BaseContextProvider)[] = [
   RepoMapContextProvider,
   GreptileContextProvider,
   CustomCodebaseContextProvider,
+  RemoteCodebaseContextProvider,
 ];
 
 export function contextProviderClassFromName(

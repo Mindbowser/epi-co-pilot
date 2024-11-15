@@ -1713,6 +1713,7 @@
                 "problems",
                 "folder",
                 "custom-codebase",
+                "remote-codebase",
                 "issue",
                 "docs",
                 "tree",

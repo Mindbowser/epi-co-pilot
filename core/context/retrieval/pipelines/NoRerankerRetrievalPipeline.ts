@@ -16,7 +16,7 @@ export default class NoRerankerRetrievalPipeline extends BaseRetrievalPipeline {
     let retrievalResults: Chunk[] = [];
 
     const ftsChunks = await this.retrieveFts(input, ftsNFinal);
-
+    
     const embeddingsChunks = await this.retrieveEmbeddings(
       input,
       embeddingsNFinal,

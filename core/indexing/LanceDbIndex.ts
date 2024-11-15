@@ -11,7 +11,7 @@ import {
   IndexingProgressUpdate,
 } from "../index.js";
 import { getBasename } from "../util/index.js";
-import { getLanceDbPath, migrate } from "../util/paths.js";
+import { getLanceDbPath, getRemoteLanceDbPath, migrate } from "../util/paths.js";
 import { chunkDocument, shouldChunk } from "./chunk/chunk.js";
 import { DatabaseConnection, SqliteDb, tagToString } from "./refreshIndex.js";
 import {
@@ -43,8 +43,8 @@ export class LanceDbIndex implements CodebaseIndex {
 
   constructor(
     private readonly embeddingsProvider: EmbeddingsProvider,
-    private readonly readFile: (filepath: string) => Promise<string>,
-    private readonly pathSep: string,
+    private readonly readFile?: (filepath: string) => Promise<string>,
+    private readonly pathSep?: string,
     private readonly continueServerClient?: IContinueServerClient,
   ) {}
 
@@ -121,14 +121,16 @@ export class LanceDbIndex implements CodebaseIndex {
 
     for (const item of items) {
       try {
-        const content = await this.readFile(item.path);
-
-        if (!shouldChunk(this.pathSep, item.path, content)) {
-          continue;
+        if (this.readFile) {
+          const content = await this.readFile(item.path);
+  
+          if (this.pathSep && !shouldChunk(this.pathSep, item.path, content)) {
+            continue;
+          }
+  
+          const chunks = await this.getChunks(item, content);
+          chunkMap.set(item.path, { item, chunks });
         }
-
-        const chunks = await this.getChunks(item, content);
-        chunkMap.set(item.path, { item, chunks });
       } catch (err) {
         console.log(`LanceDBIndex, skipping ${item.path}: ${err}`);
       }
@@ -434,9 +436,14 @@ export class LanceDbIndex implements CodebaseIndex {
     n: number,
     tags: BranchAndDir[],
     filterDirectory: string | undefined,
+    remote: boolean = false,
   ): Promise<Chunk[]> {
     const [vector] = await this.embeddingsProvider.embed([query]);
-    const db = await lance.connect(getLanceDbPath());
+    let lanceDbPath = "";
+    if (remote) { lanceDbPath= getRemoteLanceDbPath(); }
+    else { lanceDbPath = getLanceDbPath(); }
+
+    const db = await lance.connect(lanceDbPath);
 
     let allResults = [];
     for (const tag of tags) {

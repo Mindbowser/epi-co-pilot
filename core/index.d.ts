@@ -573,6 +573,7 @@ type ContextProviderName =
   | "problems"
   | "folder"
   | "custom-codebase"
+  | "remote-codebase"
   | "jira"
   | "postgres"
   | "database"

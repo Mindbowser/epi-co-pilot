@@ -12,6 +12,8 @@ dotenv.config();
 const CONTINUE_GLOBAL_DIR =
   process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".epico-pilot");
 
+const REMOTE_LANCE_DB_URL = process.env.REMOTE_LANCE_DB_URL ?? "s3://epico-pilot-lance-db/lancedb/";
+
 export function getChromiumPath(): string {
   return path.join(getContinueUtilsPath(), ".chromium-browser-snapshots");
 }
@@ -240,6 +242,10 @@ export function getIndexSqlitePath(): string {
 
 export function getLanceDbPath(): string {
   return path.join(getIndexFolderPath(), "lancedb");
+}
+
+export function getRemoteLanceDbPath(): string {
+  return REMOTE_LANCE_DB_URL;
 }
 
 export function getTabAutocompleteCacheSqlitePath(): string {
