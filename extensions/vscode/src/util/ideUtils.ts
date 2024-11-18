@@ -1,6 +1,9 @@
-import type { FileEdit, RangeInFile, Thread } from "core";
 import path from "node:path";
+
+import { EXTENSION_NAME } from "core/control-plane/env";
+import _ from "lodash";
 import * as vscode from "vscode";
+
 import { threadStopped } from "../debug/debug";
 import { VsCodeExtension } from "../extension/VsCodeExtension";
 import { GitExtension, Repository } from "../otherExtensions/git";
@@ -11,14 +14,15 @@ import {
   rejectSuggestionCommand,
   showSuggestion as showSuggestionInEditor,
 } from "../suggestions";
+
 import {
   getUniqueId,
   openEditorAndRevealRange,
   uriFromFilePath,
 } from "./vscode";
 
-import _ from "lodash";
-import { EXTENSION_NAME } from "./constants";
+
+import type { FileEdit, RangeInFile, Thread } from "core";
 
 const util = require("node:util");
 const asyncExec = util.promisify(require("node:child_process").exec);
@@ -136,9 +140,7 @@ export class VsCodeIdeUtils {
     );
   }
 
-  private async resolveAbsFilepathInWorkspace(
-    filepath: string,
-  ): Promise<string> {
+  async resolveAbsFilepathInWorkspace(filepath: string): Promise<string> {
     // If the filepath is already absolute, return it as is
     if (this.path.isAbsolute(filepath)) {
       return filepath;
@@ -158,7 +160,7 @@ export class VsCodeIdeUtils {
 
   async openFile(filepath: string, range?: vscode.Range) {
     // vscode has a builtin open/get open files
-    return openEditorAndRevealRange(
+    return await openEditorAndRevealRange(
       await this.resolveAbsFilepathInWorkspace(filepath),
       range,
       vscode.ViewColumn.One,
@@ -179,8 +181,7 @@ export class VsCodeIdeUtils {
     vscode.workspace
       .openTextDocument(
         vscode.Uri.parse(
-          `${
-            VsCodeExtension.continueVirtualDocumentScheme
+          `${VsCodeExtension.continueVirtualDocumentScheme
           }:${encodeURIComponent(name)}?${encodeURIComponent(contents)}`,
         ),
       )
@@ -233,7 +234,7 @@ export class VsCodeIdeUtils {
   // In some cases vscode.window.visibleTextEditors can return non-code editors
   // e.g. terminal editors in side-by-side mode
   private documentIsCode(uri: vscode.Uri) {
-    return uri.scheme === "file";
+    return uri.scheme === "file" || uri.scheme === "vscode-remote";
   }
 
   getOpenFiles(): string[] {
@@ -293,56 +294,6 @@ export class VsCodeIdeUtils {
     }
   }
 
-  private static MAX_BYTES = 100000;
-
-  async readFile(filepath: string): Promise<string> {
-    try {
-      filepath = this.getAbsolutePath(filepath);
-      const uri = uriFromFilePath(filepath);
-
-      // First, check whether it's a notebook document
-      // Need to iterate over the cells to get full contents
-      const notebook =
-        vscode.workspace.notebookDocuments.find(
-          (doc) => doc.uri.toString() === uri.toString(),
-        ) ??
-        (uri.fsPath.endsWith("ipynb")
-          ? await vscode.workspace.openNotebookDocument(uri)
-          : undefined);
-      if (notebook) {
-        return notebook
-          .getCells()
-          .map((cell) => cell.document.getText())
-          .join("\n\n");
-      }
-
-      // Check whether it's an open document
-      const openTextDocument = vscode.workspace.textDocuments.find(
-        (doc) => doc.uri.fsPath === uri.fsPath,
-      );
-      if (openTextDocument !== undefined) {
-        return openTextDocument.getText();
-      }
-
-      const fileStats = await vscode.workspace.fs.stat(
-        uriFromFilePath(filepath),
-      );
-      if (fileStats.size > 10 * VsCodeIdeUtils.MAX_BYTES) {
-        return "";
-      }
-
-      const bytes = await vscode.workspace.fs.readFile(uri);
-
-      // Truncate the buffer to the first MAX_BYTES
-      const truncatedBytes = bytes.slice(0, VsCodeIdeUtils.MAX_BYTES);
-      const contents = new TextDecoder().decode(truncatedBytes);
-      return contents;
-    } catch (e) {
-      console.warn("Error reading file", e);
-      return "";
-    }
-  }
-
   async readRangeInFile(
     filepath: string,
     range: vscode.Range,
@@ -354,8 +305,8 @@ export class VsCodeIdeUtils {
     return `${lines
       .slice(range.start.line, range.end.line)
       .join("\n")}\n${lines[
-      range.end.line < lines.length - 1 ? range.end.line : lines.length - 1
-    ].slice(0, range.end.character)}`;
+        range.end.line < lines.length - 1 ? range.end.line : lines.length - 1
+      ].slice(0, range.end.character)}`;
   }
 
   async getTerminalContents(commands = -1): Promise<string> {
@@ -619,7 +570,7 @@ export class VsCodeIdeUtils {
     return repo?.state?.HEAD?.name || "NONE";
   }
 
-  async getDiff(): Promise<string> {
+  async getDiff(includeUnstaged: boolean): Promise<string> {
     let diffs: string[] = [];
     let repos = [];
 
@@ -630,17 +581,13 @@ export class VsCodeIdeUtils {
       }
 
       repos.push(repo.state.HEAD?.name);
-      // Staged changes
-      // const a = await repo.diffIndexWithHEAD();
+
       const staged = await repo.diff(true);
-      // Un-staged changes
-      // const b = await repo.diffWithHEAD();
-      const unstaged = await repo.diff(false);
-      // All changes
-      // const e = await repo.diffWith("HEAD");
-      // Only staged
-      // const f = await repo.diffIndexWith("HEAD");
-      diffs.push(`${staged}\n${unstaged}`);
+      diffs.push(`${staged}`);
+      if (includeUnstaged) {
+        const unstaged = await repo.diff(false);
+        diffs.push(`\n${unstaged}`);
+      }
     }
 
     const fullDiff = diffs.join("\n\n");

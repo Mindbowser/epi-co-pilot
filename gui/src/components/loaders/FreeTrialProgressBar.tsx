@@ -1,5 +1,4 @@
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
-import ReactDOM from "react-dom";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import AddModelForm from "../../forms/AddModelForm";
@@ -20,8 +19,6 @@ function FreeTrialProgressBar({ completed, total }: FreeTrialProgressBarProps) {
   const navigate = useNavigate();
   const fillPercentage = Math.min(100, Math.max(0, (completed / total) * 100));
 
-  const tooltipPortalDiv = document.getElementById("tooltip-portal-div");
-
   function onClick() {
     dispatch(setShowDialog(true));
     dispatch(
@@ -40,19 +37,16 @@ function FreeTrialProgressBar({ completed, total }: FreeTrialProgressBarProps) {
     return (
       <>
         <div
-          className="flex items-center gap-1 cursor-default"
+          className="flex cursor-default items-center gap-1"
           data-tooltip-id="usage_progress_bar"
         >
           <ExclamationCircleIcon width="18px" height="18px" color="red" />
           Trial limit reached
         </div>
-        {tooltipPortalDiv &&
-          ReactDOM.createPortal(
-            <ToolTip id="usage_progress_bar" place="top">
-              Configure a model above in order to continue
-            </ToolTip>,
-            tooltipPortalDiv,
-          )}
+
+        <ToolTip id="usage_progress_bar" place="top">
+          Configure a model above in order to continue
+        </ToolTip>
       </>
     );
   }
@@ -60,11 +54,11 @@ function FreeTrialProgressBar({ completed, total }: FreeTrialProgressBarProps) {
   return (
     <>
       <div
-        className="flex flex-col cursor-pointer text-gray-400 text-[10px]"
+        className="flex cursor-pointer flex-col text-[10px] text-gray-400"
         data-tooltip-id="usage_progress_bar"
         onClick={onClick}
       >
-        <div className="hidden xs:flex justify-between mb-0">
+        <div className="xs:flex mb-0 hidden justify-between">
           <span>
             Free trial <span className="hidden sm:inline">requests</span>
           </span>
@@ -74,9 +68,9 @@ function FreeTrialProgressBar({ completed, total }: FreeTrialProgressBarProps) {
           </span>
         </div>
 
-        <div className="w-[40vw] h-1.5 rounded-md border border-gray-400 border-solid my-1.5 flex">
+        <div className="my-1.5 flex h-1.5 w-[40vw] rounded-md border border-solid border-gray-400">
           <div
-            className={`transition-all duration-200 ease-in-out h-full rounded-lg ${
+            className={`h-full rounded-lg transition-all duration-200 ease-in-out ${
               completed / total > 0.75 ? "bg-amber-500" : "bg-stone-500"
             }`}
             style={{
@@ -85,14 +79,9 @@ function FreeTrialProgressBar({ completed, total }: FreeTrialProgressBarProps) {
           />
         </div>
       </div>
-
-      {tooltipPortalDiv &&
-        ReactDOM.createPortal(
-          <ToolTip id="usage_progress_bar" place="top">
-            {`Click to use your own API key or local LLM (required after ${FREE_TRIAL_LIMIT_REQUESTS} inputs)`}
-          </ToolTip>,
-          tooltipPortalDiv,
-        )}
+      <ToolTip id="usage_progress_bar" place="top">
+        {`Click to use your own API key or local LLM (required after ${FREE_TRIAL_LIMIT_REQUESTS} inputs)`}
+      </ToolTip>
     </>
   );
 }

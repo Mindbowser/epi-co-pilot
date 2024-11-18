@@ -1,5 +1,7 @@
-import { Analytics } from "@continuedev/config-types";
 import os from "node:os";
+
+import { Analytics } from "@continuedev/config-types";
+
 import ContinueProxyAnalyticsProvider from "./analytics/ContinueProxyAnalyticsProvider.js";
 import {
   ControlPlaneProxyInfo,
@@ -32,7 +34,7 @@ export class TeamAnalytics {
   static extensionVersion: string | undefined = undefined;
 
   static async capture(event: string, properties: { [key: string]: any }) {
-    TeamAnalytics.provider?.capture(event, {
+    void TeamAnalytics.provider?.capture(event, {
       ...properties,
       os: TeamAnalytics.os,
       extensionVersion: TeamAnalytics.extensionVersion,

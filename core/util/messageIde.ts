@@ -1,3 +1,9 @@
+import {
+  GetGhTokenArgs,
+  ToIdeFromWebviewOrCoreProtocol,
+} from "../protocol/ide.js";
+import { FromIdeProtocol } from "../protocol/index.js";
+
 import type {
   ContinueRcJson,
   FileType,
@@ -11,11 +17,6 @@ import type {
   RangeInFile,
   Thread,
 } from "../index.js";
-import {
-  GetGhTokenArgs,
-  ToIdeFromWebviewOrCoreProtocol,
-} from "../protocol/ide.js";
-import { FromIdeProtocol } from "../protocol/index.js";
 
 export class MessageIde implements IDE {
   constructor(
@@ -27,7 +28,7 @@ export class MessageIde implements IDE {
       messageType: T,
       callback: (data: FromIdeProtocol[T][0]) => FromIdeProtocol[T][1],
     ) => void,
-  ) {}
+  ) { }
 
   pathSep(): Promise<string> {
     return this.request("pathSep", undefined);
@@ -108,8 +109,8 @@ export class MessageIde implements IDE {
     return this.request("getWorkspaceConfigs", undefined);
   }
 
-  async getDiff() {
-    return await this.request("getDiff", undefined);
+  async getDiff(includeUnstaged: boolean) {
+    return await this.request("getDiff", { includeUnstaged });
   }
 
   async getTerminalContents() {
@@ -177,7 +178,7 @@ export class MessageIde implements IDE {
     return this.request("getOpenFiles", undefined);
   }
 
-  getCurrentFile(): Promise<string | undefined> {
+  getCurrentFile() {
     return this.request("getCurrentFile", undefined);
   }
 
@@ -193,8 +194,8 @@ export class MessageIde implements IDE {
     return this.request("getProblems", { filepath });
   }
 
-  subprocess(command: string): Promise<[string, string]> {
-    return this.request("subprocess", { command });
+  subprocess(command: string, cwd?: string): Promise<[string, string]> {
+    return this.request("subprocess", { command, cwd });
   }
 
   async getBranch(dir: string): Promise<string> {

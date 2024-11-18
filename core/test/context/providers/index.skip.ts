@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+
 import {
   ContextProviderExtras,
   ContextProviderWithParams,
@@ -13,7 +14,7 @@ import { TEST_DIR } from "../../util/testDir";
 const CONTEXT_PROVIDERS_TO_TEST: ContextProviderWithParams[] = [
   { name: "diff", params: {} },
   { name: "currentFile", params: {} },
-  { name: "locals", params: {} },
+  { name: "debugger", params: {} },
   { name: "open", params: {} },
   { name: "os", params: {} },
   { name: "problems", params: {} },

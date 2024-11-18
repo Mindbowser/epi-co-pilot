@@ -15,10 +15,11 @@ class Gemini extends BaseLLM {
   static defaultOptions: Partial<LLMOptions> = {
     model: "gemini-pro",
     apiBase: "https://generativelanguage.googleapis.com/v1beta/",
+    maxStopWords: 5,
   };
 
   // Function to convert completion options to Gemini format
-  private _convertArgs(options: CompletionOptions) {
+  public convertArgs(options: CompletionOptions) {  // should be public for use within VertexAI
     const finalOptions: any = {}; // Initialize an empty object
 
     // Map known options
@@ -35,7 +36,9 @@ class Gemini extends BaseLLM {
       finalOptions.maxOutputTokens = options.maxTokens;
     }
     if (options.stop) {
-      finalOptions.stopSequences = options.stop.filter((x) => x.trim() !== "");
+      finalOptions.stopSequences = options.stop
+        .filter((x) => x.trim() !== "")
+        .slice(0, this.maxStopWords ?? Gemini.defaultOptions.maxStopWords);
     }
 
     return { generationConfig: finalOptions }; // Wrap options under 'generationConfig'
@@ -53,7 +56,7 @@ class Gemini extends BaseLLM {
     }
   }
 
-  private removeSystemMessage(messages: ChatMessage[]) {
+  public removeSystemMessage(messages: ChatMessage[]) { // should be public for use within VertexAI
     const msgs = [...messages];
 
     if (msgs[0]?.role === "system") {
@@ -100,7 +103,7 @@ class Gemini extends BaseLLM {
     }
   }
 
-  private _continuePartToGeminiPart(part: MessagePart) {
+  continuePartToGeminiPart(part: MessagePart) {
     return part.type === "text"
       ? {
           text: part.text,
@@ -139,13 +142,13 @@ class Gemini extends BaseLLM {
           parts:
             typeof msg.content === "string"
               ? [{ text: msg.content }]
-              : msg.content.map(this._continuePartToGeminiPart),
+              : msg.content.map(this.continuePartToGeminiPart),
         };
       })
       .filter((c) => c !== null);
 
     const body = {
-      ...this._convertArgs(options),
+      ...this.convertArgs(options),
       contents,
       // if this.systemMessage is defined, reformat it for Gemini API
       ...(this.systemMessage &&
@@ -190,16 +193,10 @@ class Gemini extends BaseLLM {
         if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           // Incrementally stream the content to make it smoother
           const content = data.candidates[0].content.parts[0].text;
-          const words = content.split(/(\s+)/);
-          const delaySeconds = Math.min(4.0 / (words.length + 1), 0.1);
-          while (words.length > 0) {
-            const wordsToYield = Math.min(3, words.length);
-            yield {
-              role: "assistant",
-              content: words.splice(0, wordsToYield).join(""),
-            };
-            await delay(delaySeconds);
-          }
+          yield {
+            role: "assistant",
+            content,
+          };
         } else {
           // Handle the case where the expected data structure is not found
           console.warn("Unexpected response format:", data);

@@ -5,21 +5,6 @@ import {
   SlashCommandDescription,
 } from "core";
 
-const TEST_SLASH_COMMANDS = [
-  {
-    name: "edit",
-    description: "Edit the code",
-  },
-  {
-    name: "cmd",
-    description: "Generate a command",
-  },
-  {
-    name: "help",
-    description: "Get help",
-  },
-];
-
 type ServerState = {
   meilisearchUrl: string | undefined;
   slashCommands: SlashCommandDescription[];
@@ -53,7 +38,6 @@ export const serverStateSlice = createSlice({
       state.slashCommands = [
         ...action.payload,
         { name: "codebase", description: "Retrieve codebase context" },
-        { name: "so", description: "Search StackOverflow" },
       ];
     },
     setContextProviders: (

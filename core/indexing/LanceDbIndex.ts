@@ -2,6 +2,7 @@
 import { RunResult } from "sqlite3";
 import { v4 as uuidv4 } from "uuid";
 import lance, { Table } from "vectordb";
+
 import { IContinueServerClient } from "../continueServer/interface.js";
 import {
   BranchAndDir,

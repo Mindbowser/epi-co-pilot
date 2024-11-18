@@ -11,15 +11,15 @@ import {
   vscEditorBackground,
   vscForeground,
 } from "..";
-import { getFontSize } from "../../util";
+import { getFontSize, isJetBrains } from "../../util";
 import "./katex.css";
-import FilenameLink from "./FilenameLink";
 import "./markdown.css";
-import PreWithToolbar from "./PreWithToolbar";
-import { SyntaxHighlightedPre } from "./SyntaxHighlightedPre";
-import { useSelector } from "react-redux";
-import { memoizedContextItemsSelector } from "../../redux/slices/stateSlice";
 import { ctxItemToRifWithContents } from "core/commands/util";
+import FilenameLink from "./FilenameLink";
+import StepContainerPreToolbar from "./StepContainerPreToolbar";
+import { SyntaxHighlightedPre } from "./SyntaxHighlightedPre";
+import StepContainerPreActionButtons from "./StepContainerPreActionButtons";
+import { ContextItemWithId } from "core";
 
 const StyledMarkdown = styled.div<{
   fontSize?: number;
@@ -53,9 +53,19 @@ const StyledMarkdown = styled.div<{
   }
 
   background-color: ${vscBackground};
-  font-family: var(--vscode-font-family), system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-    "Open Sans", "Helvetica Neue", sans-serif;
+  font-family:
+    var(--vscode-font-family),
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Open Sans",
+    "Helvetica Neue",
+    sans-serif;
   font-size: ${(props) => props.fontSize || getFontSize()}px;
   padding-left: 8px;
   padding-right: 8px;
@@ -80,8 +90,9 @@ const StyledMarkdown = styled.div<{
 interface StyledMarkdownPreviewProps {
   source?: string;
   className?: string;
-  showCodeBorder?: boolean;
+  isRenderingInStepContainer?: boolean; // Currently only used to control the rendering of codeblocks
   scrollLocked?: boolean;
+  contextItems?: ContextItemWithId[];
 }
 
 const HLJS_LANGUAGE_CLASSNAME_PREFIX = "language-";
@@ -105,7 +116,8 @@ function getCodeChildrenContent(children: any) {
   } else if (
     Array.isArray(children) &&
     children.length > 0 &&
-    typeof children[0] === "string"
+    typeof children[0] === "string" &&
+    children[0] !== ""
   ) {
     return children[0];
   }
@@ -113,32 +125,35 @@ function getCodeChildrenContent(children: any) {
   return undefined;
 }
 
+function processCodeBlocks(tree: any) {
+  const lastNode = tree.children[tree.children.length - 1];
+  const lastCodeNode = lastNode.type === "code" ? lastNode : null;
+
+  visit(tree, "code", (node: any) => {
+    if (!node.lang) {
+      node.lang = "javascript";
+    } else if (node.lang.includes(".")) {
+      node.lang = node.lang.split(".").slice(-1)[0];
+    }
+
+    node.data = node.data || {};
+    node.data.hProperties = node.data.hProperties || {};
+    node.data.hProperties.codeBlockContent = node.value;
+    node.data.hProperties.isGeneratingCodeBlock = lastCodeNode === node;
+
+    if (node.meta) {
+      let meta = node.meta.split(" ");
+      node.data.hProperties.filepath = meta[0];
+      node.data.hProperties.range = meta[1];
+    }
+  });
+}
+
 const StyledMarkdownPreview = memo(function StyledMarkdownPreview(
   props: StyledMarkdownPreviewProps,
 ) {
-  const contextItems = useSelector(memoizedContextItemsSelector);
-
   const [reactContent, setMarkdownSource] = useRemark({
-    remarkPlugins: [
-      remarkMath,
-      () => {
-        return (tree) => {
-          visit(tree, "code", (node: any) => {
-            if (!node.lang) {
-              node.lang === "javascript";
-            } else if (node.lang.includes(".")) {
-              node.lang = node.lang.split(".").slice(-1)[0];
-            }
-
-            if (node.meta) {
-              node.data = node.data || {};
-              node.data.hProperties = node.data.hProperties || {};
-              node.data.hProperties.filepath = node.meta;
-            }
-          });
-        };
-      },
-    ],
+    remarkPlugins: [remarkMath, () => processCodeBlocks],
     rehypePlugins: [
       rehypeKatex as any,
       {},
@@ -164,38 +179,69 @@ const StyledMarkdownPreview = memo(function StyledMarkdownPreview(
     ],
     rehypeReactOptions: {
       components: {
-        a: ({ node, ...props }) => {
+        a: ({ node, ...aProps }) => {
           return (
-            <a {...props} target="_blank">
-              {props.children}
+            <a {...aProps} target="_blank">
+              {aProps.children}
             </a>
           );
         },
         pre: ({ node, ...preProps }) => {
-          const { className, filepath } = preProps?.children?.[0]?.props;
+          const {
+            className,
+            filepath,
+            isGeneratingCodeBlock,
+            codeBlockContent,
+            range,
+          } = preProps?.children?.[0]?.props;
 
-          return props.showCodeBorder ? (
-            <PreWithToolbar
+          if (!props.isRenderingInStepContainer) {
+            return <SyntaxHighlightedPre {...preProps} />;
+          }
+
+          const language = getLanuageFromClassName(className);
+
+          // If we don't have a filepath show the more basic toolbar
+          // that is just action buttons on hover.
+          // We also use this in JB since we haven't yet implemented
+          // the logic for lazy apply.
+          if (!filepath || isJetBrains()) {
+            return (
+              <StepContainerPreActionButtons
+                language={language}
+                codeBlockContent={codeBlockContent}
+                codeBlockIndex={preProps.codeBlockIndex}
+              >
+                <SyntaxHighlightedPre {...preProps} />
+              </StepContainerPreActionButtons>
+            );
+          }
+
+          // We use a custom toolbar for codeblocks in the step container
+          return (
+            <StepContainerPreToolbar
+              codeBlockContent={codeBlockContent}
               codeBlockIndex={preProps.codeBlockIndex}
-              language={getLanuageFromClassName(className)}
+              language={language}
               filepath={filepath}
+              isGeneratingCodeBlock={isGeneratingCodeBlock}
+              range={range}
             >
-              <SyntaxHighlightedPre {...preProps}></SyntaxHighlightedPre>
-            </PreWithToolbar>
-          ) : (
-            <SyntaxHighlightedPre {...preProps}></SyntaxHighlightedPre>
+              <SyntaxHighlightedPre {...preProps} />
+            </StepContainerPreToolbar>
           );
         },
         code: ({ node, ...codeProps }) => {
           const content = getCodeChildrenContent(codeProps.children);
 
-          const ctxItem = contextItems.find((ctxItem) =>
-            ctxItem.uri?.value.includes(content),
-          );
-
-          if (ctxItem) {
-            const rif = ctxItemToRifWithContents(ctxItem);
-            return <FilenameLink rif={rif} />;
+          if (props.contextItems) {
+            const ctxItem = props.contextItems.find((ctxItem) =>
+              ctxItem.uri?.value.includes(content),
+            );
+            if (ctxItem) {
+              const rif = ctxItemToRifWithContents(ctxItem);
+              return <FilenameLink rif={rif} />;
+            }
           }
 
           return <code {...codeProps}>{codeProps.children}</code>;

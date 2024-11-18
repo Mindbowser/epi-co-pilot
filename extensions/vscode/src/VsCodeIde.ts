@@ -3,6 +3,28 @@ import * as child_process from "node:child_process";
 import { exec } from "node:child_process";
 import * as path from "node:path";
 
+import { Range } from "core";
+import { EXTENSION_NAME } from "core/control-plane/env";
+import { walkDir } from "core/indexing/walkDir";
+import { GetGhTokenArgs } from "core/protocol/ide";
+import {
+  editConfigJson,
+  getConfigJsonPath,
+  getContinueGlobalPath,
+} from "core/util/paths";
+import * as vscode from "vscode";
+
+import { executeGotoProvider } from "./autocomplete/lsp";
+import { DiffManager } from "./diff/horizontal";
+import { Repository } from "./otherExtensions/git";
+import { VsCodeIdeUtils } from "./util/ideUtils";
+import {
+  getExtensionUri,
+  openEditorAndRevealRange,
+  uriFromFilePath,
+} from "./util/vscode";
+import { VsCodeWebviewProtocol } from "./webviewProtocol";
+
 import type {
   ContinueRcJson,
   FileType,
@@ -15,26 +37,6 @@ import type {
   RangeInFile,
   Thread,
 } from "core";
-import { Range } from "core";
-import { walkDir } from "core/indexing/walkDir";
-import { GetGhTokenArgs } from "core/protocol/ide";
-import {
-  editConfigJson,
-  getConfigJsonPath,
-  getContinueGlobalPath,
-} from "core/util/paths";
-import * as vscode from "vscode";
-import { executeGotoProvider } from "./autocomplete/lsp";
-import { DiffManager } from "./diff/horizontal";
-import { Repository } from "./otherExtensions/git";
-import { EXTENSION_NAME } from "./util/constants";
-import { VsCodeIdeUtils } from "./util/ideUtils";
-import {
-  getExtensionUri,
-  openEditorAndRevealRange,
-  uriFromFilePath,
-} from "./util/vscode";
-import { VsCodeWebviewProtocol } from "./webviewProtocol";
 import { WorkOsAuthProvider } from "./stubs/WorkOsAuthProvider";
 
 class VsCodeIde implements IDE {
@@ -51,7 +53,8 @@ class VsCodeIde implements IDE {
     return Promise.resolve(this.ideUtils.path.sep);
   }
   async fileExists(filepath: string): Promise<boolean> {
-    return vscode.workspace.fs.stat(uriFromFilePath(filepath)).then(
+    const absPath = await this.ideUtils.resolveAbsFilepathInWorkspace(filepath);
+    return vscode.workspace.fs.stat(uriFromFilePath(absPath)).then(
       () => true,
       () => false,
     );
@@ -96,6 +99,7 @@ class VsCodeIde implements IDE {
     const session = await vscode.authentication.getSession("github", [], {
       silent: true,
     });
+
     if (session) {
       this.authToken = session.accessToken;
       return this.authToken;
@@ -232,6 +236,7 @@ class VsCodeIde implements IDE {
 
     return tags;
   }
+
   getIdeInfo(): Promise<IdeInfo> {
     return Promise.resolve({
       ideType: "vscode",
@@ -243,6 +248,7 @@ class VsCodeIde implements IDE {
           .version,
     });
   }
+
   readRangeInFile(filepath: string, range: Range): Promise<string> {
     return this.ideUtils.readRangeInFile(
       filepath,
@@ -282,8 +288,8 @@ class VsCodeIde implements IDE {
     return Promise.resolve(vscode.env.machineId);
   }
 
-  async getDiff(): Promise<string> {
-    return await this.ideUtils.getDiff();
+  async getDiff(includeUnstaged: boolean): Promise<string> {
+    return await this.ideUtils.getDiff(includeUnstaged);
   }
 
   async getTerminalContents(): Promise<string> {
@@ -319,7 +325,7 @@ class VsCodeIde implements IDE {
             type === vscode.FileType.SymbolicLink) &&
           filename === ".continuerc.json"
         ) {
-          const contents = await this.ideUtils.readFile(
+          const contents = await this.readFile(
             vscode.Uri.joinPath(workspaceDir, filename).fsPath,
           );
           configs.push(JSON.parse(contents));
@@ -361,7 +367,7 @@ class VsCodeIde implements IDE {
   }
 
   async openFile(path: string): Promise<void> {
-    this.ideUtils.openFile(path);
+    await this.ideUtils.openFile(path);
   }
 
   async showLines(
@@ -398,8 +404,55 @@ class VsCodeIde implements IDE {
   async saveFile(filepath: string): Promise<void> {
     await this.ideUtils.saveFile(filepath);
   }
+
+  private static MAX_BYTES = 100000;
+
   async readFile(filepath: string): Promise<string> {
-    return await this.ideUtils.readFile(filepath);
+    try {
+      filepath = this.ideUtils.getAbsolutePath(filepath);
+      const uri = uriFromFilePath(filepath);
+
+      // First, check whether it's a notebook document
+      // Need to iterate over the cells to get full contents
+      const notebook =
+        vscode.workspace.notebookDocuments.find(
+          (doc) => doc.uri.toString() === uri.toString(),
+        ) ??
+        (uri.fsPath.endsWith("ipynb")
+          ? await vscode.workspace.openNotebookDocument(uri)
+          : undefined);
+      if (notebook) {
+        return notebook
+          .getCells()
+          .map((cell) => cell.document.getText())
+          .join("\n\n");
+      }
+
+      // Check whether it's an open document
+      const openTextDocument = vscode.workspace.textDocuments.find(
+        (doc) => doc.uri.fsPath === uri.fsPath,
+      );
+      if (openTextDocument !== undefined) {
+        return openTextDocument.getText();
+      }
+
+      const fileStats = await vscode.workspace.fs.stat(
+        uriFromFilePath(filepath),
+      );
+      if (fileStats.size > 10 * VsCodeIde.MAX_BYTES) {
+        return "";
+      }
+
+      const bytes = await vscode.workspace.fs.readFile(uri);
+
+      // Truncate the buffer to the first MAX_BYTES
+      const truncatedBytes = bytes.slice(0, VsCodeIde.MAX_BYTES);
+      const contents = new TextDecoder().decode(truncatedBytes);
+      return contents;
+    } catch (e) {
+      console.warn("Error reading file", e);
+      return "";
+    }
   }
   async showDiff(
     filepath: string,
@@ -413,8 +466,15 @@ class VsCodeIde implements IDE {
     return await this.ideUtils.getOpenFiles();
   }
 
-  async getCurrentFile(): Promise<string | undefined> {
-    return vscode.window.activeTextEditor?.document.uri.fsPath;
+  async getCurrentFile() {
+    if (!vscode.window.activeTextEditor) {
+      return undefined;
+    }
+    return {
+      isUntitled: vscode.window.activeTextEditor.document.isUntitled,
+      path: vscode.window.activeTextEditor.document.uri.fsPath,
+      contents: vscode.window.activeTextEditor.document.getText(),
+    };
   }
 
   async getPinnedFiles(): Promise<string[]> {
@@ -489,9 +549,9 @@ class VsCodeIde implements IDE {
     });
   }
 
-  async subprocess(command: string): Promise<[string, string]> {
+  async subprocess(command: string, cwd?: string): Promise<[string, string]> {
     return new Promise((resolve, reject) => {
-      exec(command, (error, stdout, stderr) => {
+      exec(command, { cwd }, (error, stdout, stderr) => {
         if (error) {
           console.warn(error);
           reject(stderr);

@@ -35,7 +35,7 @@ function EditorInset() {
       if (!elementRef.current) return;
 
       console.log("Height: ", elementRef.current.clientHeight);
-      ideMessenger.request("jetbrains/editorInsetHeight", {
+      ideMessenger.post("jetbrains/editorInsetHeight", {
         height: elementRef.current.clientHeight,
       });
     });
@@ -52,6 +52,7 @@ function EditorInset() {
         onEnter={(e, modifiers) => {
           console.log("Enter: ", e, modifiers);
         }}
+        historyKey="chat"
       ></TipTapEditor>
     </EditorInsetDiv>
   );

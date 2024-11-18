@@ -1,5 +1,6 @@
 import { IDE } from "../index.js";
 import { ToIdeFromWebviewOrCoreProtocol } from "../protocol/ide.js";
+
 import { Message } from "./messenger.js";
 
 export class ReverseMessageIde {
@@ -100,8 +101,8 @@ export class ReverseMessageIde {
       return this.ide.getIdeSettings();
     });
 
-    this.on("getDiff", () => {
-      return this.ide.getDiff();
+    this.on("getDiff", (data) => {
+      return this.ide.getDiff(data.includeUnstaged);
     });
 
     this.on("getTerminalContents", () => {
@@ -182,7 +183,7 @@ export class ReverseMessageIde {
     });
 
     this.on("subprocess", (data) => {
-      return this.ide.subprocess(data.command);
+      return this.ide.subprocess(data.command, data.cwd);
     });
 
     this.on("getBranch", (data) => {

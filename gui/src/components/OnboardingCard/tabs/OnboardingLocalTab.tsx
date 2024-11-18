@@ -57,11 +57,11 @@ function OnboardingLocalTab() {
   useEffect(() => {
     const fetchDownloadedModels = async () => {
       try {
-        const result = (await ideMessenger.request("llm/listModels", {
+        const result = await ideMessenger.request("llm/listModels", {
           title: ONBOARDING_LOCAL_MODEL_TITLE,
-        })) as any;
+        })
 
-        if (result.status === "success" && Array.isArray(result.content)) {
+        if (result.status === "success") {
           setDownloadedOllamaModels(result.content);
           setIsOllamaConnected(true);
         } else {
@@ -78,7 +78,7 @@ function OnboardingLocalTab() {
       OLLAMA_CHECK_INTERVAL_MS,
     );
 
-    fetchDownloadedModels();
+    void fetchDownloadedModels();
 
     return () => clearInterval(intervalId);
   }, []);
@@ -86,7 +86,7 @@ function OnboardingLocalTab() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col">
-        <p className="text-lg font-bold leading-tight mb-2">Install Ollama</p>
+        <p className="mb-2 text-lg font-bold leading-tight">Install Ollama</p>
         <OllamaStatus isOllamaConnected={isOllamaConnected} />
       </div>
 

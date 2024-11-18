@@ -15,11 +15,11 @@
   - [🧑‍💻 Contributing Code](#-contributing-code)
     - [Environment Setup](#environment-setup)
       - [Pre-requisites](#pre-requisites)
-      - [Fork the Continue Repository with All Branches](#fork-the-continue-repository-with-all-branches)
+      - [Fork the Continue Repository with All Branches](#fork-the-continue-repository)
       - [VS Code](#vs-code)
         - [Debugging](#debugging)
       - [JetBrains](#jetbrains)
-        - [Debugging](#debugging-1)
+    - [Our Git Workflow](#our-git-workflow)
     - [Formatting](#formatting)
     - [Writing Slash Commands](#writing-slash-commands)
     - [Writing Context Providers](#writing-context-providers)
@@ -68,7 +68,7 @@ You can run the documentation server locally using either of the following metho
 
 #### Method 1: NPM Script
 
-1. Open your terminal and navigate to the `docs` subdirectory of the project.  The `docusaurus.config.js` file you'll see there is a sign you're in the right place.
+1. Open your terminal and navigate to the `docs` subdirectory of the project. The `docusaurus.config.js` file you'll see there is a sign you're in the right place.
 
 2. Run the following command to install the necessary dependencies for the documentation server:
 
@@ -94,8 +94,6 @@ This will start a local server and you can see the documentation rendered in you
 
 ## 🧑‍💻 Contributing Code
 
-> Please make PRs to the `dev` branch. We use this to first test changes in a pre-release version of the extension.
-
 ### Environment Setup
 
 #### Pre-requisites
@@ -106,15 +104,15 @@ You should have Node.js version 20.11.0 (LTS) or higher installed. You can get i
 nvm use
 ```
 
-#### Fork the Continue Repository with All Branches
+#### Fork the Continue Repository
 
-1. Go to the [Continue GitHub repository](https://github.com/continuedev/continue) and fork it to your GitHub account. **Ensure all branches are included in the fork**.
+1. Go to the [Continue GitHub repository](https://github.com/continuedev/continue) and fork it to your GitHub account.
 
 2. Clone your forked repository to your local machine. Use: `git clone https://github.com/YOUR_USERNAME/continue.git`
 
-3. Navigate to the cloned directory and switch to the **dev** branch. Execute: `git checkout dev`, then create your feature/fix branch from there, like so: `git checkout -b 123-my-feature-branch`
+3. Navigate to the cloned directory and make sure you are on the main branch. Create your feature/fix branch from there, like so: `git checkout -b 123-my-feature-branch`
 
-4. When you're ready to submit your changes, send your pull request specifically to the **dev** branch.
+4. Send your pull request to the main branch.
 
 #### VS Code
 
@@ -141,37 +139,11 @@ Similarly, any changes to `core` or `extensions/vscode` will be automatically in
 
 #### JetBrains
 
-Pre-requisite: You should use the Intellij IDE, which can be downloaded [here](https://www.jetbrains.com/idea/download). Either Ultimate or Community (free) will work. Continue is built with JDK version 17, as specified in `extensions/intellij/build.gradle.kts`. You should also ensure that you have the Gradle plugin installed.
-
-1. Clone the repository
-2. Run `scripts/install-dependencies.sh` or `scripts/install-dependencies.ps1` on Windows. This will install and build all of the necessary dependencies.
-3. To test the plugin, select the "Run Plugin" Gradle configuration and click the "Run" or "Debug" button as shown in this screenshot:
-   ![img](./media/IntelliJRunPluginScreenshot.png)
-4. To package the extension, run `./gradlew build` (or `./gradlew.bat build` on Windows) from the `extensions/intellij` directory. This will generate a .zip file in `extensions/intellij/build/distributions` with the version defined in `extensions/intellij/gradle.properties`.
-5. If you make changes, you may need to re-build before running the "Build Plugin" configuration
-
-   a. If you change code from the `core` or `binary` directories, make sure to run `npm run build` from the `binary` directory to create a new binary.
-
-   b. If you change code from the `gui` directory, make sure to run `npm run build` from the `gui` directory to create a new bundle.
-
-   c. Any changes to the Kotlin coded in the `extensions/intellij` directory will be automatically included when you run "Build Plugin"
-
-##### Debugging
-
-Continue's JetBrains extension shares much of the code with the VS Code extension by utilizing shared code in the `core` directory and packaging it in a binary in the `binary` directory. The JetBrains extension (written in Kotlin) is then able to communicate over stdin/stdout in the [CoreMessenger.kt](./extensions/intellij/src/main/kotlin/com/github/continuedev/continueintellijextension/continue/CoreMessenger.kt) file.
-
-For the sake of rapid development, it is also possible to configure this communication to happen over local TCP sockets:
-
-1. In [CoreMessenger.kt](./extensions/intellij/src/main/kotlin/com/github/continuedev/continueintellijextension/continue/CoreMessenger.kt), change the `useTcp` variable to `true`.
-2. Open a VS Code window (we recommend this for a preconfigured Typescript debugging experience) with the `continue` repository. Select the "Core Binary" debug configuration and press play.
-3. Run the "Run Plugin" Gradle configuration.
-4. You can now set breakpoints in any of the TypeScript files in VS Code. If you make changes to the code, restart the "Core Binary" debug configuration and reload the _Host IntelliJ_ window.
-
-If you make changes to Kotlin code, they can often be hot-reloaded with "Run -> Debugging Actions -> Reload Changed Classes".
+See the [`CONTRIBUTING.md`](./extensions/intellij/CONTRIBUTING.md) for the JetBrains extension.
 
 ### Our Git Workflow
 
-We keep two permanent branches: `main` and `dev`. All contributions should be made as pull requests to the `dev` branch. When we are ready to create a "pre-release" version, we create a tag on the `dev` branch, which automatically triggers the workflow in [preview.yaml](./.github/workflows/preview.yaml), which builds and releases a version of the VS Code extension. When a release has been sufficiently tested, we will merge its tag into the `main` branch. Creating a tag on the `main` branch will then trigger a similar workflow in [main.yaml](./.github/workflows/main.yaml), which will build and release a main release of the VS Code extension. Any hotfixes can be made by creating a feature branch from the tag for the release in question.
+We keep a single permanent branch: `main`. When we are ready to create a "pre-release" version, we create a tag on the `main` branch titled `v0.9.x-vscode`, which automatically triggers the workflow in [preview.yaml](./.github/workflows/preview.yaml), which builds and releases a version of the VS Code extension. When a release has been sufficiently tested, we will create a new release titled `v0.8.x-vscode`, triggering a similar workflow in [main.yaml](./.github/workflows/main.yaml), which will build and release a main release of the VS Code extension. Any hotfixes can be made by creating a feature branch from the tag for the release in question. This workflow is well explained by http://releaseflow.org.
 
 ### Formatting
 
@@ -226,10 +198,9 @@ Continue has support for more than a dozen different LLM "providers", making it 
 While any model that works with a supported provider can be used with Continue, we keep a list of recommended models that can be automatically configured from the UI or `config.json`. The following files should be updated when adding a model:
 
 - [config_schema.json](./extensions/vscode/config_schema.json) - This is the JSON Schema definition that is used to validate `config.json`. You'll notice a number of rules defined in "definitions.ModelDescription.allOf". Here is where you write rules that can specify something like "for the provider 'anthropic', only models 'claude-2' and 'claude-instant-1' are allowed. Look through all of these rules and make sure that your model is included for providers that support it.
-- [modelData.ts](./gui/src/util/modelData.ts) - This file defines that information that is shown in the model selection UI in the side bar. To add a new model:
-  1. create a `ModelPackage` object, following the lead of the many examples near the top of the file
-  2. add the `ModelPackage` to the `MODEL_INFO` array if you would like it to be displayed in the "Models" tab
-  3. if you would like it to be displayed as an option under any of the providers, go to the `PROVIDER_INFO` object and add it to the `packages` array for each provider that you want it to be displayed under. If it is an OS model that should be valid for most providers offering OS models, you might just be able to add it to the `osModels` array as shorthand.
+- [AddNewModel page](./gui/src/pages/AddNewModel) - This directory defines which model options are shown in the side bar model selection UI. To add a new model:
+  1. Add a `ModelPackage` entry for the model into [configs/models.ts](./gui/src/pages/AddNewModel/configs/models.ts), following the lead of the many examples near the top of the file
+  2. Add the model within its provider's array to [AddNewModel.tsx](./gui/src/pages/AddNewModel/AddNewModel.tsx) (add provider if needed)
 - [index.d.ts](./core/index.d.ts) - This file defines the TypeScript types used throughout Continue. You'll find a `ModelName` type. Be sure to add the name of your model to this.
 - LLM Providers: Since many providers use their own custom strings to identify models, you'll have to add the translation from Continue's model name (the one you added to `index.d.ts`) and the model string for each of these providers: [Ollama](./core/llm/llms/Ollama.ts), [Together](./core/llm/llms/Together.ts), and [Replicate](./core/llm/llms/Replicate.ts). You can find their full model lists here: [Ollama](https://ollama.ai/library), [Together](https://docs.together.ai/docs/inference-models), [Replicate](https://replicate.com/collections/streaming-language-models).
 - [Prompt Templates](./core/llm/index.ts) - In this file you'll find the `autodetectTemplateType` function. Make sure that for the model name you just added, this function returns the correct template type. This is assuming that the chat template for that model is already built in Continue. If not, you will have to add the template type and corresponding edit and chat templates.

@@ -1,6 +1,6 @@
 import { TRIAL_FIM_MODEL } from "../../config/onboarding.js";
 import { getHeaders } from "../../continueServer/stubs/headers.js";
-import { constants } from "../../deploy/constants.js";
+import { TRIAL_PROXY_URL } from "../../control-plane/client.js";
 import { ChatMessage, CompletionOptions, ModelProvider } from "../../index.js";
 import { BaseLLM } from "../index.js";
 import { streamResponse } from "../stream.js";
@@ -66,7 +66,7 @@ class FreeTrial extends BaseLLM {
 
     await this._countTokens(prompt, args.model, true);
 
-    const response = await this.fetch(`${constants.a}/stream_complete`, {
+    const response = await this.fetch(`${TRIAL_PROXY_URL}/stream_complete`, {
       method: "POST",
       headers: await this._getHeaders(),
       body: JSON.stringify({
@@ -113,7 +113,7 @@ class FreeTrial extends BaseLLM {
       true,
     );
 
-    const response = await this.fetch(`${constants.a}/stream_chat`, {
+    const response = await this.fetch(`${TRIAL_PROXY_URL}/stream_chat`, {
       method: "POST",
       headers: await this._getHeaders(),
       body: JSON.stringify({
@@ -143,28 +143,38 @@ class FreeTrial extends BaseLLM {
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const args = this._convertArgs(this.collectArgs(options));
-    const resp = await this.fetch(`${constants.a}/stream_fim`, {
-      method: "POST",
-      headers: await this._getHeaders(),
-      body: JSON.stringify({
-        prefix,
-        suffix,
-        ...args,
-      }),
-    });
 
-    let completion = "";
-    for await (const value of streamResponse(resp)) {
-      yield value;
-      completion += value;
+    try {
+      const resp = await this.fetch(`${TRIAL_PROXY_URL}/stream_fim`, {
+        method: "POST",
+        headers: await this._getHeaders(),
+        body: JSON.stringify({
+          prefix,
+          suffix,
+          ...args,
+        }),
+      });
+
+      let completion = "";
+      for await (const value of streamResponse(resp)) {
+        yield value;
+        completion += value;
+      }
+      this._countTokens(completion, args.model, false);
+    } catch (e: any) {
+      if (e.message.startsWith("HTTP 429")) {
+        throw new Error(
+          "You have reached the 2000 request limit for the autocomplete free trial. To continue using autocomplete, please set up a local model or your own Codestral API key.",
+        );
+      }
+      throw e;
     }
-    this._countTokens(completion, args.model, false);
   }
 
   async listModels(): Promise<string[]> {
     return [
       "codestral-latest",
-      "claude-3-5-sonnet-20240620",
+      "claude-3-5-sonnet-latest",
       "llama3.1-405b",
       "llama3.1-70b",
       "gpt-4o",

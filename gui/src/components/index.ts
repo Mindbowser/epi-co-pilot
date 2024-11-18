@@ -18,6 +18,10 @@ export const VSC_INPUT_BORDER_FOCUS_VAR = "--vscode-focusBorder";
 export const VSC_BADGE_BACKGROUND_VAR = "--vscode-badge-background";
 export const VSC_BADGE_FOREGROUND_VAR = "--vscode-badge-foreground";
 export const VSC_SIDEBAR_BORDER_VAR = "--vscode-sideBar-border";
+export const VSC_DIFF_REMOVED_LINE_BACKGROUND_VAR =
+  "--vscode-diffEditor-removedLineBackground";
+export const VSC_DIFF_INSERTED_LINE_BACKGROUND_VAR =
+  "--vscode-diffEditor-insertedLineBackground";
 
 export const VSC_THEME_COLOR_VARS = [
   VSC_INPUT_BACKGROUND_VAR,
@@ -35,6 +39,8 @@ export const VSC_THEME_COLOR_VARS = [
   VSC_BADGE_BACKGROUND_VAR,
   VSC_SIDEBAR_BORDER_VAR,
   VSC_BADGE_FOREGROUND_VAR,
+  VSC_DIFF_REMOVED_LINE_BACKGROUND_VAR,
+  VSC_DIFF_INSERTED_LINE_BACKGROUND_VAR,
 ];
 
 export const defaultBorderRadius = "5px";
@@ -56,6 +62,8 @@ export const vscInputBorderFocus = `var(${VSC_INPUT_BORDER_FOCUS_VAR}, ${lightGr
 export const vscBadgeBackground = `var(${VSC_BADGE_BACKGROUND_VAR}, #1bbe84)`;
 export const vscBadgeForeground = `var(${VSC_BADGE_FOREGROUND_VAR}, #fff)`;
 export const vscSidebarBorder = `var(${VSC_SIDEBAR_BORDER_VAR}, transparent)`;
+export const vscDiffRemovedLineBackground = `var(${VSC_DIFF_REMOVED_LINE_BACKGROUND_VAR}, #808080)`;
+export const vscDiffInsertedLineBackground = `var(${VSC_DIFF_INSERTED_LINE_BACKGROUND_VAR}, #28a745)`;
 
 if (typeof document !== "undefined") {
   for (const colorVar of VSC_THEME_COLOR_VARS) {
@@ -104,17 +112,21 @@ export function parseColorForHex(colorVar: string): string {
     return value.slice(0, 7);
   }
 
-  // Parse rgb
-  const rgb = value
-    .slice(4, -1)
+  // Parse rgb/rgba
+  const rgbValues = value
+    .slice(value.startsWith("rgba") ? 5 : 4, -1)
     .split(",")
+    .map((x) => x.trim())
+    .filter((_, i) => i < 3) // Only take the first 3 values (RGB, ignore alpha)
     .map((x) => parseInt(x, 10));
+
   let hex =
     "#" +
-    rgb
+    rgbValues
       .map((x) => x.toString(16))
       .map((x) => (x.length === 1 ? "0" + x : x))
       .join("");
+
   return hex;
 }
 
@@ -172,6 +184,7 @@ export const ButtonSubtext = styled.span`
   margin-top: 0;
   text-align: center;
   color: ${lightGray};
+  font-size: 0.75rem;
 `;
 
 export const CustomScrollbarDiv = styled.div`
@@ -304,12 +317,12 @@ export const Label = styled.label<{ fontSize?: number }>`
 `;
 
 const spin = keyframes`
-  from {
-    -webkit-transform: rotate(0deg);
-  }
-  to {
-    -webkit-transform: rotate(360deg);
-  }
+    from {
+        -webkit-transform: rotate(0deg);
+    }
+    to {
+        -webkit-transform: rotate(360deg);
+    }
 `;
 
 export const Loader = styled.div`
@@ -362,9 +375,10 @@ export const HeaderButton = styled.button<{
   &:hover {
     background-color: ${({ inverted, hoverBackgroundColor }) =>
       typeof inverted === "undefined" || inverted
-        ? hoverBackgroundColor ?? vscInputBackground
+        ? (hoverBackgroundColor ?? vscInputBackground)
         : "transparent"};
   }
+
   display: flex;
   align-items: center;
   justify-content: center;

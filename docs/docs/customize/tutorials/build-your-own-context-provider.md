@@ -104,11 +104,20 @@ const ReadMeContextProvider: CustomContextProvider = {
   loadSubmenuItems: async (
     args: LoadSubmenuItemsArgs,
   ): Promise<ContextSubmenuItem[]> => {
+    const { ide } = args;
+
     // Filter all workspace files for READMEs
-    const allFiles = await args.ide.listWorkspaceContents();
-    const readmes = allFiles.filter((filepath) =>
-      filepath.endsWith("README.md"),
+    const workspaceDirs = await ide.getWorkspaceDirs()
+
+    const allFiles = await Promise.all(
+      workspaceDirs.map(dir => ide.subprocess(`find ${dir} -name "README.md"`)),
     );
+
+    // 'readmes' now contains an array of file paths for each README.md file found in the workspace,
+    // excluding those in 'node_modules'
+    const readmes = allFiles
+      .flatMap(mds => mds[0].split("\n"))
+      .filter(file => file.trim() !== '' && !file.includes("/node_modules/"))
 
     // Return the items that will be shown in the dropdown
     return readmes.map((filepath) => {
@@ -180,37 +189,62 @@ If you'd like to write a context provider in a language other than TypeScript, y
     "url": "https://myserver.com/context-provider",
     "title": "http",
     "description": "Custom HTTP Context Provider",
-    "displayTitle": "My Custom Context"
+    "displayTitle": "My Custom Context",
+    "options": {}
   }
 }
 ```
 
-<!-- Then, create a server that responds to requests as are made from [HttpContextProvider.ts](../../../core/context/providers/HttpContextProvider.ts). See the `hello` endpoint in [context_provider_server.py](../../../core/context/providers/context_provider_server.py) for an example that uses FastAPI. -->
+Then, create a server that responds to requests as are made from [HttpContextProvider.ts](../../../../core/context/providers/HttpContextProvider.ts). See the `hello` endpoint in [context_provider_server.py](../../../../core/context/providers/context_provider_server.py) for an example that uses FastAPI.
+
+The `"options"` property can be used to send additional parameters to your endpoint, which will be included in the request body.
 
 ## Extension API for VSCode
 
 Continue exposes an API for registering context providers from a 3rd party VSCode extension. This is useful if you have a VSCode extension that provides some additional context that you would like to use in Continue. To use this API, add the following to your `package.json`:
 
-```json
+```json title="package.json"
 {
   "extensionDependencies": ["continue.continue"]
 }
 ```
 
-Or copy `~/.continue/type/core/index.d.ts` to your extension repository.
+Or install the Continue Core module from npm:
+
+```bash
+npm i @continuedev/core
+```
+
+You can add the Continue core module as a dev dependency in your `package.json`:
+
+```json title="package.json"
+{
+  "devDependencies": {
+    "@continuedev/core": "^0.0.1"
+  }
+}
+```
 
 Then, you can use the `registerCustomContextProvider` function to register your context provider. Your custom context provider must implement the `IContextProvider` interface.
 Here is an example:
 
-```typescript
+```typescript title="myCustomContextProvider.ts"
 import * as vscode from "vscode";
+import {
+  IContextProvider,
+  ContextProviderDescription,
+  ContextProviderExtras,
+  ContextItem,
+  LoadSubmenuItemsArgs,
+  ContextSubmenuItem,
+} from "@continuedev/core";
 
 class MyCustomProvider implements IContextProvider {
   get description(): ContextProviderDescription {
     return {
-      title: "custom",
+      title: "Custom",
       displayTitle: "Custom",
-      description: "Custom description",
+      description: "my custom context provider",
       type: "normal",
     };
   }
@@ -239,7 +273,7 @@ class MyCustomProvider implements IContextProvider {
 const customProvider = new MyCustomProvider();
 
 // get Continue extension using vscode API
-const continueExt = vscode.extensions.getExtension("continue.continue");
+const continueExt = vscode.extensions.getExtension("Continue.continue");
 
 // get the API from the extension
 const continueApi = continueExt?.exports;
@@ -247,3 +281,7 @@ const continueApi = continueExt?.exports;
 // register your custom provider
 continueApi?.registerCustomContextProvider(customProvider);
 ```
+
+This will register `MyCustomProvider` with Continue!
+
+![alt text](./assets/image.png)

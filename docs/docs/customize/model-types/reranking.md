@@ -22,7 +22,7 @@ Voyage AI offers the best reranking model for code with their `rerank-2` model. 
   "reranker": {
     "name": "voyage",
     "params": {
-      "model": "rerank-1",
+      "model": "rerank-2",
       "apiKey": "<VOYAGE_API_KEY>"
     }
   }
@@ -72,6 +72,7 @@ The `"modelTitle"` field must match one of the models in your "models" array in 
     "name": "huggingface-tei",
     "params": {
       "apiBase": "http://localhost:8080",
+      "apiKey": "<TEI_API_KEY>",
       "truncate": true,
       "truncation_direction": "Right"
     }

@@ -1,6 +1,7 @@
 import { open, type Database } from "sqlite";
 import sqlite3 from "sqlite3";
 import lancedb, { Connection } from "vectordb";
+
 import {
   Chunk,
   ContinueConfig,
@@ -13,6 +14,7 @@ import { ConfigHandler } from "../../config/ConfigHandler";
 import { addContextProvider } from "../../config/util";
 import DocsContextProvider from "../../context/providers/DocsContextProvider";
 import { FromCoreProtocol, ToCoreProtocol } from "../../protocol";
+import { fetchFavicon, getFaviconBase64 } from "../../util/fetchFavicon";
 import { GlobalContext } from "../../util/GlobalContext";
 import { IMessenger } from "../../util/messenger";
 import {
@@ -22,6 +24,7 @@ import {
 } from "../../util/paths";
 import { Telemetry } from "../../util/posthog";
 import TransformersJsEmbeddingsProvider from "../embeddings/TransformersJsEmbeddingsProvider";
+
 import { Article, chunkArticle, pageToArticle } from "./article";
 import DocsCrawler from "./DocsCrawler";
 import { runLanceMigrations, runSqliteMigrations } from "./migrations";
@@ -32,7 +35,6 @@ import {
   SiteIndexingResults,
 } from "./preIndexed";
 import preIndexedDocs from "./preIndexedDocs";
-import { fetchFavicon, getFaviconBase64 } from "../../util/fetchFavicon";
 
 // Purposefully lowercase because lancedb converts
 export interface LanceDbDocsRow {
@@ -155,7 +157,7 @@ export default class DocsService {
         params: {},
       });
 
-      await this.ide.showToast(
+      void this.ide.showToast(
         "info",
         "Successfuly added docs context provider",
       );
@@ -181,7 +183,7 @@ export default class DocsService {
       while (!(await generator.next()).done) {}
     }
 
-    await this.ide.showToast("info", "Docs indexing completed");
+    void this.ide.showToast("info", "Docs indexing completed");
   }
 
   async list() {
@@ -252,6 +254,8 @@ export default class DocsService {
       if (processedPages === maxKnownPages) {
         maxKnownPages *= 2;
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
     void Telemetry.capture("docs_pages_crawled", {
@@ -360,11 +364,16 @@ export default class DocsService {
       isPreIndexedDoc: !!preIndexedDocs[startUrl],
     });
 
-    const docs: LanceDbDocsRow[] = await table
-      .search(vector)
-      .limit(nRetrieve)
-      .where(`starturl = '${startUrl}'`)
-      .execute();
+    let docs: LanceDbDocsRow[] = [];
+    try {
+      docs = await table
+        .search(vector)
+        .limit(nRetrieve)
+        .where(`starturl = '${startUrl}'`)
+        .execute();
+    } catch (e: any) {
+      console.error("Error retrieving chunks from LanceDB", e);
+    }
 
     const hasIndexedDoc = await this.hasIndexedDoc(startUrl);
 
@@ -404,12 +413,15 @@ export default class DocsService {
 
   async getFavicon(startUrl: string) {
     const db = await this.getOrCreateSqliteDb();
-    const { favicon } = await db.get(
+    const result = await db.get(
       `SELECT favicon FROM ${DocsService.sqlitebTableName} WHERE startUrl = ?`,
       startUrl,
     );
 
-    return favicon;
+    if (!result) {
+      return;
+    }
+    return result.favicon;
   }
 
   private async init(configHandler: ConfigHandler) {
@@ -420,25 +432,28 @@ export default class DocsService {
 
     this.globalContext.update("curEmbeddingsProviderId", embeddingsProvider.id);
 
-    configHandler.onConfigUpdate(async (newConfig) => {
-      const oldConfig = this.config;
+    configHandler.onConfigUpdate(async ({ config: newConfig }) => {
+      if (newConfig) {
+        const oldConfig = this.config;
 
-      // Need to update class property for config at the beginning of this callback
-      // to ensure downstream methods have access to the latest config.
-      this.config = newConfig;
+        // Need to update class property for config at the beginning of this callback
+        // to ensure downstream methods have access to the latest config.
+        this.config = newConfig;
 
-      if (oldConfig.docs !== newConfig.docs) {
-        await this.syncConfigAndSqlite();
-      }
+        if (oldConfig.docs !== newConfig.docs) {
+          await this.syncConfigAndSqlite();
+        }
 
-      const shouldReindex = await this.shouldReindexDocsOnNewEmbeddingsProvider(
-        newConfig.embeddingsProvider.id,
-      );
+        const shouldReindex =
+          await this.shouldReindexDocsOnNewEmbeddingsProvider(
+            newConfig.embeddingsProvider.id,
+          );
 
-      if (shouldReindex) {
-        await this.reindexDocsOnNewEmbeddingsProvider(
-          newConfig.embeddingsProvider,
-        );
+        if (shouldReindex) {
+          await this.reindexDocsOnNewEmbeddingsProvider(
+            newConfig.embeddingsProvider,
+          );
+        }
       }
     });
   }
@@ -534,20 +549,23 @@ export default class DocsService {
     await table.delete(`title = '${mockRowTitle}'`);
   }
 
-  private removeInvalidLanceTableNameChars(tableName: string) {
-    return tableName.replace(/:/g, "");
+  /**
+   * From Lance: Table names can only contain alphanumeric characters,
+   * underscores, hyphens, and periods
+   */
+  private sanitizeLanceTableName(name: string) {
+    return name.replace(/[^a-zA-Z0-9_.-]/g, "_");
   }
 
   private async getLanceTableNameFromEmbeddingsProvider(
     isPreIndexedDoc: boolean,
   ) {
-    const embeddingsProvider = await this.getEmbeddingsProvider(
-      isPreIndexedDoc,
+    const embeddingsProvider =
+      await this.getEmbeddingsProvider(isPreIndexedDoc);
+
+    const tableName = this.sanitizeLanceTableName(
+      `${DocsService.lanceTableName}${embeddingsProvider.id}`,
     );
-    const embeddingsProviderId = this.removeInvalidLanceTableNameChars(
-      embeddingsProvider.id,
-    );
-    const tableName = `${DocsService.lanceTableName}${embeddingsProviderId}`;
 
     return tableName;
   }
@@ -725,7 +743,7 @@ export default class DocsService {
 
     if (isJetBrainsAndPreIndexedDocsProvider) {
       // A bit noisy for teams users whom have no choice if their admin is the one who didn't setup an embeddingsProvider
-      // this.ide.showToast(
+      // void this.ide.showToast(
       //   "error",
       //   "The 'transformers.js' embeddings provider currently cannot be used to index " +
       //     "documentation in JetBrains. To enable documentation indexing, you can use " +

@@ -1,15 +1,17 @@
 import { Dispatch } from "@reduxjs/toolkit";
 import { PersistedSessionInfo, SessionInfo } from "core";
 
-import { llmCanGenerateInParallel } from "core/llm/autodetect";
 import { stripImages } from "core/llm/images";
-import { useContext } from "react";
+import { useCallback, useContext } from "react";
 import { useSelector } from "react-redux";
 import { IdeMessengerContext } from "../context/IdeMessenger";
+import { useLastSessionContext } from "../context/LastSessionContext";
 import { defaultModelSelector } from "../redux/selectors/modelSelectors";
 import { newSession } from "../redux/slices/stateSlice";
 import { RootState } from "../redux/store";
 import { getLocalStorage, setLocalStorage } from "../util/localStorage";
+
+const MAX_TITLE_LENGTH = 100;
 
 function truncateText(text: string, maxLength: number) {
   if (text.length > maxLength) {
@@ -21,10 +23,13 @@ function truncateText(text: string, maxLength: number) {
 function useHistory(dispatch: Dispatch) {
   const state = useSelector((state: RootState) => state.state);
   const defaultModel = useSelector(defaultModelSelector);
-  const disableSessionTitles = useSelector(
-    (store: RootState) => store.state.config.disableSessionTitles,
-  );
   const ideMessenger = useContext(IdeMessengerContext);
+  const { lastSessionId, setLastSessionId } = useLastSessionContext();
+
+  const updateLastSessionId = useCallback((sessionId: string) => {
+    setLastSessionId(sessionId);
+    setLocalStorage("lastSessionId", sessionId);
+  }, []);
 
   async function getHistory(
     offset?: number,
@@ -37,13 +42,40 @@ function useHistory(dispatch: Dispatch) {
     return result.status === "success" ? result.content : [];
   }
 
-  async function saveSession() {
+  async function getChatTitle(message?: string): Promise<string | undefined> {
+    const result = await ideMessenger.request(
+      "chatDescriber/describe",
+      message,
+    );
+    return result.status === "success" ? result.content : undefined;
+  }
+
+  async function saveSession(openNewSession: boolean = true) {
     if (state.history.length === 0) return;
 
     const stateCopy = { ...state };
-    dispatch(newSession());
+    if (openNewSession) {
+      dispatch(newSession());
+      updateLastSessionId(stateCopy.sessionId);
+    }
     await new Promise((resolve) => setTimeout(resolve, 10));
 
+    if (state.config?.ui?.getChatTitles && stateCopy.title === "New Session") {
+      try {
+        // Check if we have first assistant response
+        let assistantResponse = stateCopy.history
+          ?.filter((h) => h.message.role === "assistant")[0]
+          ?.message?.content?.toString();
+
+        if (assistantResponse) {
+          stateCopy.title = await getChatTitle(assistantResponse);
+        }
+      } catch (e) {
+        throw new Error("Unable to get chat title");
+      }
+    }
+
+    // Fallback if we get an error above or if the user has not set getChatTitles
     let title =
       stateCopy.title === "New Session"
         ? truncateText(
@@ -51,33 +83,11 @@ function useHistory(dispatch: Dispatch) {
               .split("\n")
               .filter((l) => l.trim() !== "")
               .slice(-1)[0] || "",
-            50,
+            MAX_TITLE_LENGTH,
           )
-        : (await getSession(stateCopy.sessionId)).title; // to ensure titles are synced with updates from history page.
-
-    if (
-      false && // Causing maxTokens to be set to 20 for main requests sometimes, so disabling until resolved
-      !disableSessionTitles &&
-      llmCanGenerateInParallel(defaultModel.provider, defaultModel.model)
-    ) {
-      // let fullContent = "";
-      // for await (const { content } of llmStreamChat(
-      //   defaultModel.title,
-      //   undefined,
-      //   [
-      //     ...stateCopy.history.map((item) => item.message),
-      //     {
-      //       role: "user",
-      //       content:
-      //         "Give a maximum 40 character title to describe this conversation so far. The title should help me recall the conversation if I look for it later. DO NOT PUT QUOTES AROUND THE TITLE",
-      //     },
-      //   ],
-      //   { maxTokens: 20 }
-      // )) {
-      //   fullContent += content;
-      // }
-      // title = stripImages(fullContent);
-    }
+        : stateCopy.title?.length > 0
+          ? stateCopy.title
+          : (await getSession(stateCopy.sessionId)).title; // to ensure titles are synced with updates from history page.
 
     const sessionInfo: PersistedSessionInfo = {
       history: stateCopy.history,
@@ -85,7 +95,7 @@ function useHistory(dispatch: Dispatch) {
       sessionId: stateCopy.sessionId,
       workspaceDirectory: window.workspacePaths?.[0] || "",
     };
-    setLocalStorage("lastSessionId", stateCopy.sessionId);
+
     return await ideMessenger.request("history/save", sessionInfo);
   }
 
@@ -106,14 +116,14 @@ function useHistory(dispatch: Dispatch) {
   }
 
   async function loadSession(id: string): Promise<PersistedSessionInfo> {
-    setLocalStorage("lastSessionId", state.sessionId);
+    updateLastSessionId(state.sessionId);
     const result = await ideMessenger.request("history/load", { id });
     if (result.status === "error") {
       throw new Error(result.error);
     }
-    const json = result.content;
-    dispatch(newSession(json));
-    return json;
+    const persistedSessionInfo = result.content;
+    dispatch(newSession(persistedSessionInfo));
+    return persistedSessionInfo;
   }
 
   async function loadLastSession(): Promise<PersistedSessionInfo | undefined> {
@@ -136,6 +146,7 @@ function useHistory(dispatch: Dispatch) {
     getLastSessionId,
     updateSession,
     getSession,
+    lastSessionId,
   };
 }
 

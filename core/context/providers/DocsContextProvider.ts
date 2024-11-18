@@ -1,4 +1,3 @@
-import { INSTRUCTIONS_BASE_ITEM } from "./utils";
 import { BaseContextProvider } from "../";
 import {
   Chunk,
@@ -11,6 +10,8 @@ import {
 import DocsService from "../../indexing/docs/DocsService";
 import preIndexedDocs from "../../indexing/docs/preIndexedDocs";
 import { Telemetry } from "../../util/posthog";
+
+import { INSTRUCTIONS_BASE_ITEM } from "./utils";
 
 class DocsContextProvider extends BaseContextProvider {
   static nRetrieve = 30;
@@ -91,7 +92,7 @@ class DocsContextProvider extends BaseContextProvider {
       await docsService.isJetBrainsAndPreIndexedDocsProvider();
 
     if (isJetBrainsAndPreIndexedDocsProvider) {
-      await extras.ide.showToast(
+      void extras.ide.showToast(
         "error",
         `${DocsService.preIndexedDocsEmbeddingsProvider.id} is configured as ` +
           "the embeddings provider, but it cannot be used with JetBrains. " +

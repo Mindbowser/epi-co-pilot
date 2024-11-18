@@ -9,6 +9,7 @@ import { createTransform, persistReducer, persistStore } from "redux-persist";
 import { createFilter } from "redux-persist-transform-filter";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import storage from "redux-persist/lib/storage";
+import editModeStateReducer from "./slices/editModeState";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -21,6 +22,7 @@ const rootReducer = combineReducers({
   misc: miscReducer,
   uiState: uiStateReducer,
   serverState: serverStateReducer,
+  editModeState: editModeStateReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
@@ -38,12 +40,7 @@ const windowIDTransform = (windowID: string) =>
   );
 
 const saveSubsetFilters = [
-  createFilter("state", [
-    "history",
-    "contextItems",
-    "sessionId",
-    "defaultModelTitle",
-  ]),
+  createFilter("state", ["history", "sessionId", "defaultModelTitle"]),
 ];
 
 const persistConfig = {
@@ -58,13 +55,17 @@ const persistConfig = {
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-export const store = configureStore({
-  reducer: persistedReducer,
-  // reducer: rootReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
-    }),
-});
+export function setupStore() {
+  return configureStore({
+    reducer: persistedReducer,
+    // reducer: rootReducer,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware({
+        serializableCheck: false,
+      }),
+  });
+}
+
+export const store = setupStore();
 
 export const persistor = persistStore(store);

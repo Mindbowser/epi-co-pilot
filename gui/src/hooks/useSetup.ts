@@ -1,5 +1,5 @@
 import { Dispatch } from "@reduxjs/toolkit";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { VSC_THEME_COLOR_VARS } from "../components";
 import { IdeMessengerContext } from "../context/IdeMessenger";
@@ -7,6 +7,7 @@ import { setVscMachineId } from "../redux/slices/configSlice";
 import {
   addContextItemsAtIndex,
   setConfig,
+  setConfigError,
   setInactive,
   setSelectedProfileId,
   setTTSActive,
@@ -20,11 +21,10 @@ import useChatHandler from "./useChatHandler";
 import { useWebviewListener } from "./useWebviewListener";
 
 function useSetup(dispatch: Dispatch<any>) {
-  const [configLoaded, setConfigLoaded] = useState<boolean>(false);
-
   const ideMessenger = useContext(IdeMessengerContext);
 
-  const loadConfig = async () => {
+  const initialConfigLoad = useRef(false);
+  const loadConfig = useCallback(async () => {
     const result = await ideMessenger.request(
       "config/getSerializedProfileInfo",
       undefined,
@@ -35,7 +35,7 @@ function useSetup(dispatch: Dispatch<any>) {
     const { config, profileId } = result.content;
     dispatch(setConfig(config));
     dispatch(setSelectedProfileId(profileId));
-    setConfigLoaded(true);
+    initialConfigLoad.current = true;
     setLocalStorage("disableIndexing", config.disableIndexing || false);
 
     // Perform any actions needed with the config
@@ -43,13 +43,13 @@ function useSetup(dispatch: Dispatch<any>) {
       setLocalStorage("fontSize", config.ui.fontSize);
       document.body.style.fontSize = `${config.ui.fontSize}px`;
     }
-  };
+  }, [dispatch, ideMessenger, initialConfigLoad]);
 
   // Load config from the IDE
   useEffect(() => {
     loadConfig();
     const interval = setInterval(() => {
-      if (configLoaded) {
+      if (initialConfigLoad.current) {
         clearInterval(interval);
         return;
       }
@@ -57,7 +57,7 @@ function useSetup(dispatch: Dispatch<any>) {
     }, 2_000);
 
     return () => clearInterval(interval);
-  }, [configLoaded]);
+  }, [initialConfigLoad, loadConfig]);
 
   useEffect(() => {
     // Override persisted state
@@ -86,6 +86,15 @@ function useSetup(dispatch: Dispatch<any>) {
   );
 
   // IDE event listeners
+  const history = useSelector((store: RootState) => store.state.history);
+  useWebviewListener(
+    "getWebviewHistoryLength",
+    async () => {
+      return history.length;
+    },
+    [history],
+  );
+
   useWebviewListener("setInactive", async () => {
     dispatch(setInactive());
   });
@@ -102,7 +111,7 @@ function useSetup(dispatch: Dispatch<any>) {
   });
 
   const debouncedIndexDocs = debounce(() => {
-    ideMessenger.request("context/indexDocs", { reIndex: false });
+    ideMessenger.post("context/indexDocs", { reIndex: false });
   }, 1000);
 
   useWebviewListener("configUpdate", async () => {
@@ -111,6 +120,10 @@ function useSetup(dispatch: Dispatch<any>) {
     if (!isJetBrains && !getLocalStorage("disableIndexing")) {
       debouncedIndexDocs();
     }
+  });
+
+  useWebviewListener("configError", async (error) => {
+    dispatch(setConfigError(error));
   });
 
   useWebviewListener("submitMessage", async (data) => {

@@ -18,8 +18,8 @@ fun getOs(): Os {
 fun getMetaKeyLabel(): String {
     return when (getOs()) {
         Os.MAC -> "⌘"
-        Os.WINDOWS -> "Ctrl"
-        Os.LINUX -> "Ctrl"
+        Os.WINDOWS -> "^"
+        Os.LINUX -> "^"
     }
 }
 
@@ -28,5 +28,12 @@ fun getAltKeyLabel(): String {
         Os.MAC -> "⌥"
         Os.WINDOWS -> "Alt"
         Os.LINUX -> "Alt"
+    }
+}
+
+fun getShiftKeyLabel(): String {
+    return when (getOs()) {
+        Os.MAC -> "⇧"
+        Os.WINDOWS, Os.LINUX -> "↑"
     }
 }

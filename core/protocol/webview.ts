@@ -1,7 +1,10 @@
+import { ConfigValidationError } from "../config/validation.js";
+
 import type { ContextItemWithId, IndexingProgressUpdate } from "../index.js";
 
 export type ToWebviewFromIdeOrCoreProtocol = {
   configUpdate: [undefined, void];
+  configError: [ConfigValidationError[] | undefined, void];
   getDefaultModelTitle: [undefined, string];
   indexProgress: [IndexingProgressUpdate, void];
   refreshSubmenuItems: [undefined, void];
@@ -14,4 +17,5 @@ export type ToWebviewFromIdeOrCoreProtocol = {
     void,
   ];
   setTTSActive: [boolean, void];
+  getWebviewHistoryLength: [undefined, number];
 };

@@ -14,20 +14,12 @@ import {
   UriHandler,
   window,
 } from "vscode";
+
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 
 const AUTH_NAME = "Epico-Pilot";
-const CLIENT_ID =
-  process.env.CONTROL_PLANE_ENV === "local"
-    ? "xyz"
-    : "xyz";
-const CLIENT_SECRET = "xyz";
 
-const APP_URL =
-  process.env.CONTROL_PLANE_ENV === "local"
-    ? "http://localhost:3000"
-    : "http://localhost:3000";
-const SESSIONS_SECRET_KEY = `${AUTH_TYPE}.sessions`;
+const SESSIONS_SECRET_KEY = `${controlPlaneEnv.AUTH_TYPE}.sessions`;
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   public handleUri(uri: Uri) {
@@ -35,12 +27,11 @@ class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   }
 }
 
-import {
-  CONTROL_PLANE_URL,
-  ControlPlaneSessionInfo,
-} from "core/control-plane/client";
+import { ControlPlaneSessionInfo } from "core/control-plane/client";
+import { controlPlaneEnv } from "core/control-plane/env";
+
 import crypto from "crypto";
-import { AUTH_TYPE } from "../util/constants";
+
 import { SecretStorage } from "./SecretStorage";
 
 // Function to generate a random string of specified length
@@ -95,7 +86,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   constructor(private readonly context: ExtensionContext) {
     this._disposable = Disposable.from(
       authentication.registerAuthenticationProvider(
-        AUTH_TYPE,
+        controlPlaneEnv.AUTH_TYPE,
         AUTH_NAME,
         this,
         { supportsMultipleAccounts: false },
@@ -106,47 +97,42 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     this.secretStorage = new SecretStorage(context);
   }
 
-  private decodeJwt(jwt: string): any {
-    const decodedToken = JSON.parse(
-      Buffer.from(jwt.split(".")[1], "base64").toString(),
-    );
-    return decodedToken;
+  private decodeJwt(jwt: string): Record<string, any> | null {
+    try {
+      const decodedToken = JSON.parse(
+        Buffer.from(jwt.split(".")[1], "base64").toString(),
+      );
+      return decodedToken;
+    } catch (e: any) {
+      console.warn(`Error decoding JWT: ${e}`);
+      return null;
+    }
   }
 
   private getExpirationTimeMs(jwt: string): number {
     const decodedToken = this.decodeJwt(jwt);
+    if (!decodedToken) {
+      return WorkOsAuthProvider.EXPIRATION_TIME_MS;
+    }
     return decodedToken.exp && decodedToken.iat
       ? (decodedToken.exp - decodedToken.iat) * 1000
       : WorkOsAuthProvider.EXPIRATION_TIME_MS;
   }
 
-  private jwtIsExpired(jwt: string): boolean {
+  private jwtIsExpiredOrInvalid(jwt: string): boolean {
     const decodedToken = this.decodeJwt(jwt);
+    if (!decodedToken) {
+      return true;
+    }
     return decodedToken.exp * 1000 < Date.now();
   }
 
-  private async serverThinksAccessTokenIsValid(
-    accessToken: string,
-  ): Promise<boolean> {
-    const url = new URL(CONTROL_PLANE_URL);
-    url.pathname = "/hello-secure";
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    return response.status === 200;
-  }
-
   private async debugAccessTokenValidity(jwt: string, refreshToken: string) {
-    const expired = this.jwtIsExpired(jwt);
-    const serverThinksInvalid = await this.serverThinksAccessTokenIsValid(jwt);
-    if (expired || serverThinksInvalid) {
-      console.debug(`Invalid JWT: ${expired}, ${serverThinksInvalid}`);
+    const expiredOrInvalid = this.jwtIsExpiredOrInvalid(jwt);
+    if (expiredOrInvalid) {
+      console.debug("Invalid JWT");
     } else {
-      console.debug(`Valid JWT: ${expired}, ${serverThinksInvalid}`);
+      console.debug("Valid JWT");
     }
   }
 
@@ -163,8 +149,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
       return [];
     }
 
-    const value = JSON.parse(data) as ContinueAuthenticationSession[];
-    return value;
+    try {
+      const value = JSON.parse(data) as ContinueAuthenticationSession[];
+      return value;
+    } catch (e: any) {
+      console.warn(`Error parsing sessions.json: ${e}`);
+      return [];
+    }
   }
 
   get onDidChangeSessions() {
@@ -182,7 +173,11 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   async refreshSessions() {
-    await this._refreshSessions();
+    try {
+      await this._refreshSessions();
+    } catch (e) {
+      console.error(`Error refreshing sessions: ${e}`);
+    }
   }
 
   private async _refreshSessions(): Promise<void> {
@@ -261,6 +256,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     };
   }
 
+  private _formatProfileLabel(
+    firstName: string | null,
+    lastName: string | null,
+  ) {
+    return ((firstName ?? "") + " " + (lastName ?? "")).trim();
+  }
+
   /**
    * Create a new auth session
    * @returns
@@ -271,9 +273,6 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
       if (!access_token && !refresh_token) {
         throw new Error(`Continue login failure`);
       }
-
-      // const userInfo = (await this.getUserInfoFromToken(token)) as any;
-      // const { id_token, access_token, expires_in, ...user } = userInfo;
 
       const session: ContinueAuthenticationSession = {
         id: uuidv4(),
@@ -428,59 +427,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
       resolve(({access_token, refresh_token, name, email}));
     };
-
-  /**
-   * Get the user info from WorkOS
-   * @param token
-   * @returns
-   */
-  async getUserInfoFromToken(token: string) {
-    try {
-      const resp = await fetch(
-        "https://oauth2.googleapis.com/token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-            redirect_uri: this.redirectUri,
-            grant_type: "authorization_code",
-            code: token,
-          }),
-        },
-      );
-      const tokenText = await resp.text();
-      const { id_token, access_token, expires_in } = await JSON.parse(tokenText);
-
-      const res = await fetch(
-        `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${id_token}`,
-          },
-        }
-      );
-      const userText = await res.text();
-      const user = JSON.parse(userText);
-
-      return { ...user, id_token, access_token, expires_in };
-      
-    } catch (error: any) {
-      console.error(error, "Error fetching Google user");
-      throw new Error(error.message);
-    }
-  }
 }
 
 export async function getControlPlaneSessionInfo(
   silent: boolean,
 ): Promise<ControlPlaneSessionInfo | undefined> {
   const session = await authentication.getSession(
-    AUTH_TYPE,
+    controlPlaneEnv.AUTH_TYPE,
     [],
     silent ? { silent: true } : { createIfNone: true },
   );

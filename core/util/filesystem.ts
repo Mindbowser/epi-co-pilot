@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+
 import {
   ContinueRcJson,
   FileType,
@@ -14,8 +15,8 @@ import {
   Thread,
   ToastType,
 } from "../index.d.js";
-
 import { GetGhTokenArgs } from "../protocol/ide.js";
+
 import { getContinueGlobalPath } from "./paths.js";
 
 class FileSystemIde implements IDE {
@@ -35,10 +36,10 @@ class FileSystemIde implements IDE {
   }
 
   gotoDefinition(location: Location): Promise<RangeInFile[]> {
-    throw new Error("Method not implemented.");
+    return Promise.resolve([]);
   }
   onDidChangeActiveTextEditor(callback: (filepath: string) => void): void {
-    throw new Error("Method not implemented.");
+    return;
   }
 
   async getIdeSettings(): Promise<IdeSettings> {
@@ -124,7 +125,7 @@ class FileSystemIde implements IDE {
     return Promise.resolve([]);
   }
 
-  getDiff(): Promise<string> {
+  getDiff(includeUnstaged: boolean): Promise<string> {
     return Promise.resolve("");
   }
 
@@ -205,6 +206,10 @@ class FileSystemIde implements IDE {
     });
   }
 
+  getCurrentFile(): Promise<undefined> {
+    return Promise.resolve(undefined);
+  }
+
   showDiff(
     filepath: string,
     newContents: string,
@@ -221,10 +226,6 @@ class FileSystemIde implements IDE {
     return Promise.resolve([]);
   }
 
-  getCurrentFile(): Promise<string | undefined> {
-    return Promise.resolve("");
-  }
-
   getPinnedFiles(): Promise<string[]> {
     return Promise.resolve([]);
   }
@@ -237,7 +238,7 @@ class FileSystemIde implements IDE {
     return Promise.resolve([]);
   }
 
-  async subprocess(command: string): Promise<[string, string]> {
+  async subprocess(command: string, cwd?: string): Promise<[string, string]> {
     return ["", ""];
   }
 }

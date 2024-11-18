@@ -1,6 +1,9 @@
+import path from "path";
+
+import ignore from "ignore";
 import { v4 as uuidv4 } from "uuid";
-import type { ContextItemId, IDE, IndexingProgressUpdate } from ".";
-import { CompletionProvider } from "./autocomplete/completionProvider";
+
+import { CompletionProvider } from "./autocomplete/CompletionProvider";
 import { ConfigHandler } from "./config/ConfigHandler";
 import {
   setupBestConfig,
@@ -8,7 +11,6 @@ import {
   setupLocalConfigAfterFreeTrial,
   setupQuickstartConfig,
 } from "./config/onboarding";
-import { createNewPromptFile } from "./config/promptFile";
 import { addModel, addOpenAIKey, deleteModel } from "./config/util";
 import { recentlyEditedFilesCache } from "./context/retrieval/recentlyEditedFilesCache";
 import { ContinueServerClient } from "./continueServer/stubs/client";
@@ -17,17 +19,22 @@ import { ControlPlaneClient } from "./control-plane/client";
 import { streamDiffLines } from "./edit/streamDiffLines";
 import { CodebaseIndexer, PauseToken } from "./indexing/CodebaseIndexer";
 import DocsService from "./indexing/docs/DocsService";
+import { defaultIgnoreFile } from "./indexing/ignore.js";
 import Ollama from "./llm/llms/Ollama";
-import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
-import { GlobalContext } from "./util/GlobalContext";
+import { createNewPromptFileV2 } from "./promptFiles/v2/createNewPromptFile";
+import { ChatDescriber } from "./util/chatDescriber";
 import { logDevData } from "./util/devdata";
 import { DevDataSqliteDb } from "./util/devdataSqlite";
 import { fetchwithRequestOptions } from "./util/fetchWithOptions";
+import { GlobalContext } from "./util/GlobalContext";
 import historyManager from "./util/history";
-import type { IMessenger, Message } from "./util/messenger";
-import { editConfigJson } from "./util/paths";
+import { editConfigJson, setupInitialDotContinueDirectory } from "./util/paths";
 import { Telemetry } from "./util/posthog";
 import { TTS } from "./util/tts";
+
+import type { ContextItemId, IDE, IndexingProgressUpdate } from ".";
+import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
+import type { IMessenger, Message } from "./util/messenger";
 
 export class Core {
   // implements IMessenger<ToCoreProtocol, FromCoreProtocol>
@@ -78,6 +85,9 @@ export class Core {
     private readonly ide: IDE,
     private readonly onWrite: (text: string) => Promise<void> = async () => {},
   ) {
+    // Ensure .continue directory is created
+    setupInitialDotContinueDirectory();
+
     this.indexingState = { status: "loading", desc: "loading", progress: 0 };
 
     const ideSettingsPromise = messenger.request("getIdeSettings", undefined);
@@ -139,7 +149,7 @@ export class Core {
       void this.ide.getWorkspaceDirs().then(async (dirs) => {
         // Respect pauseCodebaseIndexOnStart user settings
         if (ideSettings.pauseCodebaseIndexOnStart) {
-          await this.messenger.request("indexProgress", {
+          void this.messenger.request("indexProgress", {
             progress: 1,
             desc: "Initial Indexing Skipped",
             status: "paused",
@@ -241,11 +251,11 @@ export class Core {
     });
 
     on("config/newPromptFile", async (msg) => {
-      void createNewPromptFile(
+      await createNewPromptFileV2(
         this.ide,
         (await this.config()).experimental?.promptPath,
       );
-      void this.configHandler.reloadConfig();
+      await this.configHandler.reloadConfig();
     });
 
     on("config/reload", (msg) => {
@@ -394,6 +404,7 @@ export class Core {
           });
           break;
         }
+        // @ts-ignore
         yield { content: next.value.content };
         next = await gen.next();
       }
@@ -401,7 +412,6 @@ export class Core {
       if (config.experimental?.readResponseTTS && "completion" in next.value) {
         void TTS.read(next.value?.completion);
       }
-
       return { done: true, content: next.value };
     }
 
@@ -476,11 +486,17 @@ export class Core {
       }
     });
 
-    // Provide messenger to TTS so it can set GUI active / inactive state
+    // Provide messenger to utils so they can interact with GUI + state
     TTS.messenger = this.messenger;
+    ChatDescriber.messenger = this.messenger;
 
     on("tts/kill", async () => {
       void TTS.kill();
+    });
+
+    on("chatDescriber/describe", async (msg) => {
+      const currentModel = await this.getSelectedModel();
+      return await ChatDescriber.describe(currentModel, {}, msg.data);
     });
 
     async function* runNodeJsSlashCommand(
@@ -668,8 +684,13 @@ export class Core {
         await codebaseIndexer.clearIndexes();
       }
 
-      const dirs = data?.dir ? [data.dir] : await this.ide.getWorkspaceDirs();
+      const dirs = data?.dirs ?? (await this.ide.getWorkspaceDirs());
       await this.refreshCodebaseIndex(dirs);
+    });
+    on("index/forceReIndexFiles", async ({ data }) => {
+      if (data?.files?.length) {
+        await this.refreshCodebaseIndexFiles(data.files);
+      }
     });
     on("index/setPaused", (msg) => {
       new GlobalContext().update("indexingPaused", msg.data);
@@ -695,20 +716,40 @@ export class Core {
       return { url };
     });
 
-    on("didChangeActiveTextEditor", ({ data: { filepath } }) => {
-      recentlyEditedFilesCache.set(filepath, filepath);
+    on("didChangeActiveTextEditor", async ({ data: { filepath } }) => {
+      const ignoreInstance = ignore().add(defaultIgnoreFile);
+      let rootDirectory = await this.ide.getWorkspaceDirs();
+      const relativeFilePath = path.relative(rootDirectory[0], filepath);
+      if (!ignoreInstance.ignores(relativeFilePath)) {
+        recentlyEditedFilesCache.set(filepath, filepath);
+      }
     });
   }
 
   private indexingCancellationController: AbortController | undefined;
+  private async sendIndexingErrorTelemetry(update: IndexingProgressUpdate) {
+    console.debug(
+      "Indexing failed with error: ",
+      update.desc,
+      update.debugInfo,
+    );
+    void Telemetry.capture(
+      "indexing_error",
+      {
+        error: update.desc,
+        stack: update.debugInfo,
+      },
+      false,
+    );
+  }
 
-  private async refreshCodebaseIndex(dirs: string[]) {
+  private async refreshCodebaseIndex(paths: string[]) {
     if (this.indexingCancellationController) {
       this.indexingCancellationController.abort();
     }
     this.indexingCancellationController = new AbortController();
-    for await (const update of (await this.codebaseIndexerPromise).refresh(
-      dirs,
+    for await (const update of (await this.codebaseIndexerPromise).refreshDirs(
+      paths,
       this.indexingCancellationController.signal,
     )) {
       let updateToSend = { ...update };
@@ -722,19 +763,41 @@ export class Core {
       this.indexingState = updateToSend;
 
       if (update.status === "failed") {
-        console.debug(
-          "Indexing failed with error: ",
-          update.desc,
-          update.debugInfo,
-        );
-        void Telemetry.capture(
-          "indexing_error",
-          {
-            error: update.desc,
-            stack: update.debugInfo,
-          },
-          false,
-        );
+        void this.sendIndexingErrorTelemetry(update);
+      }
+    }
+
+    this.messenger.send("refreshSubmenuItems", undefined);
+    this.indexingCancellationController = undefined;
+  }
+
+  private async refreshCodebaseIndexFiles(files: string[]) {
+    // Can be cancelled by codebase index but not vice versa
+    if (
+      this.indexingCancellationController &&
+      !this.indexingCancellationController.signal.aborted
+    ) {
+      return console.debug(
+        "Codebase indexing already in progress, skipping indexing of files\n" +
+          files.join("\n"),
+      );
+    }
+    this.indexingCancellationController = new AbortController();
+    for await (const update of (await this.codebaseIndexerPromise).refreshFiles(
+      files,
+    )) {
+      let updateToSend = { ...update };
+      if (update.status === "failed") {
+        updateToSend.status = "done";
+        updateToSend.desc = "Indexing complete";
+        updateToSend.progress = 1.0;
+      }
+
+      void this.messenger.request("indexProgress", updateToSend);
+      this.indexingState = updateToSend;
+
+      if (update.status === "failed") {
+        void this.sendIndexingErrorTelemetry(update);
       }
     }
 

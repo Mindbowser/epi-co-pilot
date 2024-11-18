@@ -1,4 +1,5 @@
 import { ConfigJson } from "@continuedev/config-types";
+
 import { ControlPlaneClient } from "../../control-plane/client.js";
 import {
   ContinueConfig,
@@ -6,8 +7,10 @@ import {
   IdeSettings,
   SerializedContinueConfig,
 } from "../../index.js";
-import { IProfileLoader } from "./IProfileLoader.js";
+import { ConfigResult } from "../load.js";
+
 import doLoadConfig from "./doLoadConfig.js";
+import { IProfileLoader } from "./IProfileLoader.js";
 
 export default class ControlPlaneProfileLoader implements IProfileLoader {
   private static RELOAD_INTERVAL = 1000 * 60 * 15; // every 15 minutes
@@ -36,7 +39,7 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
     }, ControlPlaneProfileLoader.RELOAD_INTERVAL);
   }
 
-  async doLoadConfig(): Promise<ContinueConfig> {
+  async doLoadConfig(): Promise<ConfigResult<ContinueConfig>> {
     const settings =
       this.workspaceSettings ??
       ((await this.controlPlaneClient.getSettingsForWorkspace(
@@ -44,7 +47,7 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
       )) as any);
     const serializedConfig: SerializedContinueConfig = settings;
 
-    return doLoadConfig(
+    const results = await doLoadConfig(
       this.ide,
       this.ideSettingsPromise,
       this.controlPlaneClient,
@@ -52,6 +55,11 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
       serializedConfig,
       this.workspaceId,
     );
+
+    return {
+      ...results,
+      errors: [], // Don't do config validation here, it happens in admin panel
+    };
   }
 
   setIsActive(isActive: boolean): void {}

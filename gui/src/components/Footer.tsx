@@ -1,32 +1,38 @@
 import {
   Cog6ToothIcon,
   EllipsisHorizontalCircleIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
+import { useContext } from "react";
+import { useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
+import { IdeMessengerContext } from "../context/IdeMessenger";
+import { defaultModelSelector } from "../redux/selectors/modelSelectors";
+import { RootState } from "../redux/store";
 import { FREE_TRIAL_LIMIT_REQUESTS } from "../util/freeTrial";
+import { ROUTES } from "../util/navigation";
+import HeaderButtonWithToolTip from "./gui/HeaderButtonWithToolTip";
 import FreeTrialProgressBar from "./loaders/FreeTrialProgressBar";
 import ProfileSwitcher from "./ProfileSwitcher";
-import ButtonWithTooltip from "./ButtonWithTooltip";
-import { useSelector } from "react-redux";
-import { defaultModelSelector } from "../redux/selectors/modelSelectors";
-import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
-import { IdeMessengerContext } from "../context/IdeMessenger";
-import { RootState } from "../redux/store";
 
 function Footer() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const defaultModel = useSelector(defaultModelSelector);
   const ideMessenger = useContext(IdeMessengerContext);
   const selectedProfileId = useSelector(
     (store: RootState) => store.state.selectedProfileId,
   );
+  const configError = useSelector(
+    (store: RootState) => store.state.configError,
+  );
 
   function onClickMore() {
-    if (location.pathname === "/more") {
-      navigate("/");
-    } else {
-      navigate("/more");
-    }
+    navigate(pathname === ROUTES.MORE ? "/" : ROUTES.MORE);
+  }
+
+  function onClickError() {
+    navigate(pathname === ROUTES.CONFIG_ERROR ? "/" : ROUTES.CONFIG_ERROR);
   }
 
   function onClickSettings() {
@@ -35,40 +41,49 @@ function Footer() {
     } else {
       ideMessenger.post(
         "openUrl",
-        `http://app.continue.dev/workspaces/${selectedProfileId}/config`,
+        `http://app.continue.dev/workspaces/${selectedProfileId}/chat`,
       );
     }
   }
 
   return (
-    <footer className="flex justify-between items-center overflow-hidden p-2 h-7 border-0 border-t border-solid border-t-zinc-700">
-      <div className="flex gap-2 max-w-[40vw]">
-        {defaultModel?.provider === "free-trial" ? (
+    <footer className="flex h-7 items-center justify-between overflow-hidden border-0 border-t border-solid border-t-zinc-700 p-2">
+      <div className="flex max-w-[40vw] gap-2">
+        <ProfileSwitcher />
+        {defaultModel?.provider === "free-trial" && (
           <FreeTrialProgressBar
             completed={parseInt(localStorage.getItem("ftc") || "0")}
             total={FREE_TRIAL_LIMIT_REQUESTS}
           />
-        ) : (
-          <ProfileSwitcher />
         )}
       </div>
 
       <div className="flex gap-1">
-        <ButtonWithTooltip
+        {configError && (
+          <HeaderButtonWithToolTip
+            tooltipPlacement="top-end"
+            text="Config error"
+            onClick={onClickError}
+          >
+            <ExclamationTriangleIcon className="h-4 w-4" />
+          </HeaderButtonWithToolTip>
+        )}
+
+        <HeaderButtonWithToolTip
           tooltipPlacement="top-end"
           text="More"
           onClick={onClickMore}
         >
-          <EllipsisHorizontalCircleIcon className="w-4 h-4" />
-        </ButtonWithTooltip>
+          <EllipsisHorizontalCircleIcon className="h-4 w-4" />
+        </HeaderButtonWithToolTip>
 
-        <ButtonWithTooltip
+        <HeaderButtonWithToolTip
           tooltipPlacement="top-end"
           onClick={onClickSettings}
           text="Configure Epico-Pilot"
         >
-          <Cog6ToothIcon className="w-4 h-4" />
-        </ButtonWithTooltip>
+          <Cog6ToothIcon className="h-4 w-4" />
+        </HeaderButtonWithToolTip>
       </div>
     </footer>
   );

@@ -39,8 +39,14 @@ function QuickstartSubmitButton() {
     const result = await ideMessenger.request("getGitHubAuthToken", {
       force: true,
     });
+
     if (result.status === "success") {
       onComplete();
+    } else {
+      ideMessenger.post("showToast", [
+        "error",
+        "Failed to sign up for Continue free trial through GitHub",
+      ]);
     }
   }
 
@@ -58,7 +64,7 @@ function QuickstartSubmitButton() {
     <div className="mt-4 w-full">
       <Button
         onClick={onClick}
-        className="grid grid-flow-col items-center gap-2 w-full"
+        className="grid w-full grid-flow-col items-center gap-2"
       >
         Login with Epico
       </Button>

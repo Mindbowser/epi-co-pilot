@@ -7,14 +7,17 @@ import useSetup from "./hooks/useSetup";
 import useSubmenuContextProviders from "./hooks/useSubmenuContextProviders";
 import { useVscTheme } from "./hooks/useVscTheme";
 import { AddNewModel, ConfigureProvider } from "./pages/AddNewModel";
+import ConfigErrorPage from "./pages/config-error";
+import Edit from "./pages/edit";
 import ErrorPage from "./pages/error";
-import GUI from "./pages/gui";
+import Chat from "./pages/gui";
 import History from "./pages/history";
 import MigrationPage from "./pages/migration";
 import MonacoPage from "./pages/monaco";
 import MorePage from "./pages/More";
 import SettingsPage from "./pages/settings";
 import Stats from "./pages/stats";
+import { ROUTES } from "./util/navigation";
 
 const router = createMemoryRouter([
   {
@@ -24,11 +27,15 @@ const router = createMemoryRouter([
     children: [
       {
         path: "/index.html",
-        element: <GUI />,
+        element: <Chat />,
       },
       {
         path: "/",
-        element: <GUI />,
+        element: <Chat />,
+      },
+      {
+        path: "/edit",
+        element: <Edit />,
       },
       {
         path: "/history",
@@ -53,6 +60,10 @@ const router = createMemoryRouter([
       {
         path: "/more",
         element: <MorePage />,
+      },
+      {
+        path: ROUTES.CONFIG_ERROR,
+        element: <ConfigErrorPage />,
       },
       {
         path: "/monaco",

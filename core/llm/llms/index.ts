@@ -5,12 +5,15 @@ import {
   LLMOptions,
   ModelDescription,
 } from "../..";
-import { renderTemplatedString } from "../../promptFiles/renderTemplatedString";
+import { renderTemplatedString } from "../../promptFiles/v1/renderTemplatedString";
 import { BaseLLM } from "../index";
+
 import Anthropic from "./Anthropic";
+import Asksage from "./Asksage";
 import Azure from "./Azure";
 import Bedrock from "./Bedrock";
 import BedrockImport from "./BedrockImport";
+import Cerebras from "./Cerebras";
 import Cloudflare from "./Cloudflare";
 import Cohere from "./Cohere";
 import DeepInfra from "./DeepInfra";
@@ -23,12 +26,13 @@ import Groq from "./Groq";
 import HuggingFaceInferenceAPI from "./HuggingFaceInferenceAPI";
 import HuggingFaceTGI from "./HuggingFaceTGI";
 import Kindo from "./Kindo";
-import LMStudio from "./LMStudio";
 import LlamaCpp from "./LlamaCpp";
 import Llamafile from "./Llamafile";
+import LMStudio from "./LMStudio";
 import Mistral from "./Mistral";
 import Mock from "./Mock";
 import Msty from "./Msty";
+import Nebius from "./Nebius";
 import Nvidia from "./Nvidia";
 import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
@@ -36,11 +40,13 @@ import OpenRouter from "./OpenRouter";
 import Replicate from "./Replicate";
 import SageMaker from "./SageMaker";
 import SambaNova from "./SambaNova";
+import ContinueProxy from "./stubs/ContinueProxy";
 import TextGenWebUI from "./TextGenWebUI";
 import Together from "./Together";
+import VertexAI from "./VertexAI";
 import Vllm from "./Vllm";
 import WatsonX from "./WatsonX";
-import ContinueProxy from "./stubs/ContinueProxy";
+import xAI from "./xAI";
 
 const LLMs = [
   Ollama,

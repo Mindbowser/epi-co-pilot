@@ -45,12 +45,12 @@ export interface IndexingProgressUpdate {
   debugInfo?: string;
 }
 
-export type PromptTemplate =
-  | string
-  | ((
-      history: ChatMessage[],
-      otherData: Record<string, string>,
-    ) => string | ChatMessage[]);
+export type PromptTemplateFunction = (
+  history: ChatMessage[],
+  otherData: Record<string, string>,
+) => string | ChatMessage[];
+
+export type PromptTemplate = string | PromptTemplateFunction;
 
 export interface ILLM extends LLMOptions {
   get providerName(): ModelProvider;
@@ -72,7 +72,7 @@ export interface ILLM extends LLMOptions {
   apiBase?: string;
   cacheBehavior?: CacheBehavior;
 
-  engine?: string;
+  deployment?: string;
   apiVersion?: string;
   apiType?: string;
   region?: string;
@@ -351,7 +351,7 @@ export interface LLMOptions {
   accountId?: string;
 
   // Azure options
-  engine?: string;
+  deployment?: string;
   apiVersion?: string;
   apiType?: string;
 
@@ -363,16 +363,13 @@ export interface LLMOptions {
   region?: string;
 
   // GCP Options
-  projectId?: string;
   capabilities?: ModelCapability;
 
-  // IBM watsonx options
-  watsonxUrl?: string;
-  watsonxCreds?: string;
-  watsonxProjectId?: string;
-  watsonxStopToken?: string;
-  watsonxApiVersion?: string;
-  watsonxFullUrl?: string;
+  // GCP and Watsonx Options
+  projectId?: string;
+
+  // IBM watsonx Options
+  deploymentId?: string;
 }
 type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<
   T,
@@ -464,7 +461,7 @@ export interface IdeSettings {
 export interface IDE {
   getIdeInfo(): Promise<IdeInfo>;
   getIdeSettings(): Promise<IdeSettings>;
-  getDiff(): Promise<string>;
+  getDiff(includeUnstaged: boolean): Promise<string>;
   isTelemetryEnabled(): Promise<boolean>;
   getUniqueId(): Promise<string>;
   getTerminalContents(): Promise<string>;
@@ -497,10 +494,17 @@ export interface IDE {
     stepIndex: number,
   ): Promise<void>;
   getOpenFiles(): Promise<string[]>;
-  getCurrentFile(): Promise<string | undefined>;
+  getCurrentFile(): Promise<
+    | undefined
+    | {
+        isUntitled: boolean;
+        path: string;
+        contents: string;
+      }
+  >;
   getPinnedFiles(): Promise<string[]>;
   getSearchResults(query: string): Promise<string>;
-  subprocess(command: string): Promise<[string, string]>;
+  subprocess(command: string, cwd?: string): Promise<[string, string]>;
   getProblems(filepath?: string | undefined): Promise<Problem[]>;
   getBranch(dir: string): Promise<string>;
   getTags(artifactId: string): Promise<IndexTag[]>;
@@ -563,7 +567,7 @@ type ContextProviderName =
   | "diff"
   | "github"
   | "terminal"
-  | "locals"
+  | "debugger"
   | "open"
   | "google"
   | "search"
@@ -608,6 +612,7 @@ type TemplateType =
   | "codellama-70b"
   | "llava"
   | "gemma"
+  | "granite"
   | "llama3";
 
 type ModelProvider =
@@ -647,7 +652,12 @@ type ModelProvider =
   | "sambanova"
   | "nvidia"
   | "vllm"
-  | "mock";
+  | "mock"
+  | "cerebras"
+  | "askSage"
+  | "vertexai"
+  | "nebius"
+  | "xAI";
 
 export type ModelName =
   | "AUTODETECT"
@@ -662,6 +672,8 @@ export type ModelName =
   | "gpt-4-turbo"
   | "gpt-4-turbo-preview"
   | "gpt-4-vision-preview"
+  | "o1-preview"
+  | "o1-mini"
   // Mistral
   | "codestral-latest"
   | "open-mistral-7b"
@@ -671,10 +683,12 @@ export type ModelName =
   | "mistral-large-latest"
   | "mistral-7b"
   | "mistral-8x7b"
+  | "mistral-8x22b"
   | "mistral-tiny"
   | "mistral-small"
   | "mistral-medium"
   | "mistral-embed"
+  | "mistral-nemo"
   // Llama 2
   | "llama2-7b"
   | "llama2-13b"
@@ -686,8 +700,21 @@ export type ModelName =
   // Llama 3
   | "llama3-8b"
   | "llama3-70b"
+  // Llama 3.1
+  | "llama3.1-8b"
+  | "llama3.1-70b"
+  | "llama3.1-405b"
+  // Llama 3.2
+  | "llama3.2-1b"
+  | "llama3.2-3b"
+  | "llama3.2-11b"
+  | "llama3.2-90b"
+  // xAI
+  | "grok-beta"
   // Other Open-source
   | "phi2"
+  | "phi-3-mini"
+  | "phi-3-medium"
   | "phind-codellama-34b"
   | "wizardcoder-7b"
   | "wizardcoder-13b"
@@ -696,10 +723,15 @@ export type ModelName =
   | "codeup-13b"
   | "deepseek-7b"
   | "deepseek-33b"
+  | "deepseek-2-lite"
   | "neural-chat-7b"
   | "gemma-7b-it"
+  | "gemma2-2b-it"
   | "gemma2-9b-it"
+  | "olmo-7b"
+  | "qwen-coder2.5-7b"
   // Anthropic
+  | "claude-3-5-sonnet-latest"
   | "claude-3-5-sonnet-20240620"
   | "claude-3-opus-20240229"
   | "claude-3-sonnet-20240229"
@@ -766,6 +798,16 @@ export interface CustomCommand {
   description: string;
 }
 
+interface Prediction {
+  type: "content";
+  content:
+    | string
+    | {
+        type: "text";
+        text: string;
+      }[];
+}
+
 interface BaseCompletionOptions {
   temperature?: number;
   topP?: number;
@@ -777,9 +819,11 @@ interface BaseCompletionOptions {
   stop?: string[];
   maxTokens?: number;
   numThreads?: number;
+  useMmap?: boolean;
   keepAlive?: number;
   raw?: boolean;
   stream?: boolean;
+  prediction?: Prediction;
 }
 
 export interface ModelCapability {
@@ -804,25 +848,30 @@ export interface ModelDescription {
 }
 
 export type EmbeddingsProviderName =
+  | "sagemaker"
   | "bedrock"
   | "huggingface-tei"
   | "transformers.js"
   | "ollama"
   | "openai"
   | "cohere"
+  | "lmstudio"
   | "free-trial"
   | "gemini"
   | "continue-proxy"
   | "deepinfra"
   | "nvidia"
   | "voyage"
-  | "mistral";
+  | "mistral"
+  | "nebius"
+  | "vertexai"
+  | "watsonx";
 
 export interface EmbedOptions {
   apiBase?: string;
   apiKey?: string;
   model?: string;
-  engine?: string;
+  deployment?: string;
   apiType?: string;
   apiVersion?: string;
   requestOptions?: RequestOptions;
@@ -833,6 +882,9 @@ export interface EmbedOptions {
 
   // AWS and GCP Options
   region?: string;
+
+  // GCP and Watsonx Options
+  projectId?: string;
 }
 
 export interface EmbeddingsProviderDescription extends EmbedOptions {
@@ -872,6 +924,7 @@ export interface TabAutocompleteOptions {
   debounceDelay: number;
   maxSuffixPercentage: number;
   prefixPercentage: number;
+  transform?: boolean;
   template?: string;
   multilineCompletions: "always" | "never" | "auto";
   slidingWindowPrefixPercentage: number;
@@ -886,6 +939,7 @@ export interface TabAutocompleteOptions {
   disableInFiles?: string[];
   useImports?: boolean;
   useRootPathContext?: boolean;
+  showWhateverWeHaveAtXMs?: number;
 }
 
 export interface ContinueUIConfig {
@@ -893,6 +947,7 @@ export interface ContinueUIConfig {
   fontSize?: number;
   displayRawMarkdown?: boolean;
   showChatScrollbar?: boolean;
+  getChatTitles?: boolean;
 }
 
 interface ContextMenuConfig {

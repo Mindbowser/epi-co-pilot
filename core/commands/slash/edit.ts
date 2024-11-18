@@ -6,7 +6,7 @@ import {
   fixCodeLlamaFirstLineIndentation,
   stopAtLines,
   streamWithNewLines,
-} from "../../autocomplete/streamTransforms/lineStream";
+} from "../../autocomplete/filtering/streamTransforms/lineStream";
 import { streamLines } from "../../diff/util";
 import { stripImages } from "../../llm/images";
 import {
@@ -95,10 +95,10 @@ export async function getPromptParts(
   }
 
   let filePrefix = fullFileContentsList
-    .slice(curStartLine, maxStartLine)
+    .slice(curStartLine, maxStartLine - 1)
     .join("\n");
   let fileSuffix = fullFileContentsList
-    .slice(minEndLine, curEndLine - 1)
+    .slice(minEndLine, curEndLine + 1)
     .join("\n");
 
   if (rif.contents.length > 0) {
@@ -613,6 +613,7 @@ Please briefly explain the changes made to the code above. Give no more than 2-3
         yield update;
       }
     }
+    yield `Edited ${contextItemToEdit.name}`;
   },
 };
 

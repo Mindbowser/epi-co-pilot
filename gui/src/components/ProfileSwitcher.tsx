@@ -24,7 +24,7 @@ import { useWebviewListener } from "../hooks/useWebviewListener";
 import { setLastControlServerBetaEnabledStatus } from "../redux/slices/miscSlice";
 import { RootState } from "../redux/store";
 import { getFontSize } from "../util";
-import ButtonWithTooltip from "./ButtonWithTooltip";
+import HeaderButtonWithToolTip from "./gui/HeaderButtonWithToolTip";
 
 const StyledListbox = styled(Listbox)`
   background-color: ${vscBackground};
@@ -116,7 +116,7 @@ function ListBoxOption({
         setHovered(false);
       }}
     >
-      <div className="flex items-center justify-between gap-3 h-5 relative">
+      <div className="relative flex h-5 items-center justify-between gap-3">
         {option.title}
       </div>
     </StyledListboxOption>
@@ -142,17 +142,28 @@ function ProfileSwitcher() {
 
   useEffect(() => {
     ideMessenger.ide.getIdeSettings().then(({ enableControlServerBeta }) => {
+      setControlServerBetaEnabled(enableControlServerBeta);
+      dispatch(setLastControlServerBetaEnabledStatus(enableControlServerBeta));
+
       const shouldShowPopup =
         !lastControlServerBetaEnabledStatus && enableControlServerBeta;
-
       if (shouldShowPopup) {
         ideMessenger.ide.showToast("info", "Epico-Pilot for Teams enabled");
       }
-
-      setControlServerBetaEnabled(enableControlServerBeta);
-      dispatch(setLastControlServerBetaEnabledStatus(enableControlServerBeta));
     });
   }, []);
+
+  useWebviewListener(
+    "didChangeIdeSettings",
+    async (msg) => {
+      const { settings } = msg;
+      setControlServerBetaEnabled(settings.enableControlServerBeta);
+      dispatch(
+        setLastControlServerBetaEnabledStatus(settings.enableControlServerBeta),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     ideMessenger
@@ -182,7 +193,7 @@ function ProfileSwitcher() {
         <StyledListbox
           value={"GPT-4"}
           onChange={(id: string) => {
-            ideMessenger.request("didChangeSelectedProfile", { id });
+            ideMessenger.post("didChangeSelectedProfile", { id });
           }}
         >
           <div className="relative">
@@ -236,21 +247,25 @@ function ProfileSwitcher() {
 
       {controlServerBetaEnabled &&
         (session?.account ? (
-          <ButtonWithTooltip
+          <HeaderButtonWithToolTip
             tooltipPlacement="top-end"
-            text={`Logged in as ${session.account.label}`}
+            text={
+              session.account.label === ""
+                ? "Logged in"
+                : `Logged in as ${session.account.label}`
+            }
             onClick={logout}
           >
-            <UserCircleIconSolid className="w-4 h-4" />
-          </ButtonWithTooltip>
+            <UserCircleIconSolid className="h-4 w-4" />
+          </HeaderButtonWithToolTip>
         ) : (
-          <ButtonWithTooltip
+          <HeaderButtonWithToolTip
             tooltipPlacement="top-end"
             text="Click to login to Epico-Pilot"
             onClick={login}
           >
-            <UserCircleIconOutline className="w-4 h-4" />
-          </ButtonWithTooltip>
+            <UserCircleIconOutline className="h-4 w-4" />
+          </HeaderButtonWithToolTip>
         ))}
     </>
   );
