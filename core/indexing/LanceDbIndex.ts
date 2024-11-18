@@ -121,10 +121,10 @@ export class LanceDbIndex implements CodebaseIndex {
 
     for (const item of items) {
       try {
-        if (this.readFile) {
+        if (this.readFile && this.pathSep) {
           const content = await this.readFile(item.path);
   
-          if (this.pathSep && !shouldChunk(this.pathSep, item.path, content)) {
+          if (!shouldChunk(this.pathSep, item.path, content)) {
             continue;
           }
   
