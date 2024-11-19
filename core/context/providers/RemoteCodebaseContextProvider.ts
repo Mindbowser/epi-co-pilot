@@ -50,12 +50,12 @@ class CustomCodebaseContextProvider extends BaseContextProvider {
     query: string,
     extras: ContextProviderExtras,
   ): Promise<ContextItem[]> {
-    const { retrieveContextItemsFromEmbeddings } = await import(
-      "../retrieval/retrieval.js"
+    const { retrieveContextItemsFromRemoteLanceDb } = await import(
+      "../retrieval/remoteRetrieval.js"
     );
     console.log("query", query);
     console.log("extras", extras);
-    return retrieveContextItemsFromEmbeddings(extras, this.options, query);
+    return retrieveContextItemsFromRemoteLanceDb(extras, this.options, query);
   }
 
   async loadSubmenuItems(

@@ -23,6 +23,9 @@ import {
   RefreshIndexResults,
 } from "./types.js";
 
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;
+
 // LanceDB  converts to lowercase, so names must all be lowercase
 interface LanceDbRow {
   uuid: string;
@@ -411,23 +414,20 @@ export class LanceDbIndex implements CodebaseIndex {
     n: number,
     directory: string | undefined,
     vector: number[],
-    db: any, /// lancedb.Connection
+    db: any, /// lancedb.Connection,
+    remote?: boolean,
   ): Promise<LanceDbRow[]> {
-    const tableName = this.tableNameForTag(tag);
+    const tableName = remote ? tag.directory : this.tableNameForTag(tag);
     const tableNames = await db.tableNames();
     if (!tableNames.includes(tableName)) {
       console.warn("Table not found in LanceDB", tableName);
       return [];
     }
 
+
     const table = await db.openTable(tableName);
     let query = table.search(vector);
-    if (directory) {
-      // seems like lancedb is only post-filtering, so have to return a bunch of results and slice after
-      query = query.where(`path LIKE '${directory}%'`).limit(300);
-    } else {
-      query = query.limit(n);
-    }
+    query = query.limit(n);
     const results = await query.execute();
     return results.slice(0, n) as any;
   }
@@ -441,12 +441,25 @@ export class LanceDbIndex implements CodebaseIndex {
   ): Promise<Chunk[]> {
     const [vector] = await this.embeddingsProvider.embed([query]);
     let lanceDbPath = "";
-    if (remote) { lanceDbPath= getRemoteLanceDbPath(); }
-    else { lanceDbPath = getLanceDbPath(); }
+    let db;
+    if (remote) { 
+      lanceDbPath = getRemoteLanceDbPath(); 
+      db = await lance.connect({
+        uri: lanceDbPath,
+        awsRegion: "ap-south-1",
+        awsCredentials: {
+          accessKeyId:AWS_ACCESS_KEY_ID,
+          secretKey: AWS_SECRET_KEY,
+        }
+      });
+    }
+    else { 
+      lanceDbPath = getLanceDbPath(); 
+      db = await lance.connect(lanceDbPath);
+    }
+    
 
-    const db = await lance.connect(lanceDbPath);
-
-    let allResults = [];
+    let allResults: LanceDbRow[] = [];
     for (const tag of tags) {
       const results = await this._retrieveForTag(
         { ...tag, artifactId: this.artifactId },
@@ -454,6 +467,7 @@ export class LanceDbIndex implements CodebaseIndex {
         filterDirectory,
         vector,
         db,
+        true,
       );
       allResults.push(...results);
     }
@@ -462,23 +476,36 @@ export class LanceDbIndex implements CodebaseIndex {
       .sort((a, b) => a._distance - b._distance)
       .slice(0, n);
 
-    const sqliteDb = await SqliteDb.get();
-    const data = await sqliteDb.all(
-      `SELECT * FROM lance_db_cache WHERE uuid in (${allResults
-        .map((r) => `'${r.uuid}'`)
-        .join(",")})`,
-    );
-
-    return data.map((d) => {
-      return {
-        digest: d.cacheKey,
-        filepath: d.path,
-        startLine: d.startLine,
-        endLine: d.endLine,
-        index: 0,
-        content: d.contents,
-      };
-    });
+    if (remote) {
+      return allResults.map((d) => {
+        return {
+          digest: d.cacheKey,
+          filepath: d.path,
+          startLine: d.startLine,
+          endLine: d.endLine,
+          index: 0,
+          content: d.contents,
+        };
+      });
+    } else  {
+      const sqliteDb = await SqliteDb.get();
+      const data = await sqliteDb.all(
+        `SELECT * FROM lance_db_cache WHERE uuid in (${allResults
+          .map((r) => `'${r.uuid}'`)
+          .join(",")})`,
+      );
+  
+      return data.map((d) => {
+        return {
+          digest: d.cacheKey,
+          filepath: d.path,
+          startLine: d.startLine,
+          endLine: d.endLine,
+          index: 0,
+          content: d.contents,
+        };
+      });
+    }
   }
 
   private async insertRows(

@@ -332,13 +332,13 @@
         "command": "epico-pilot.acceptDiff",
         "mac": "shift+cmd+enter",
         "key": "shift+ctrl+enter",
-        "when": "continue.diffVisible"
+        "when": "epico-pilot.diffVisible"
       },
       {
         "command": "epico-pilot.rejectDiff",
         "mac": "shift+cmd+backspace",
         "key": "shift+ctrl+backspace",
-        "when": "continue.diffVisible"
+        "when": "epico-pilot.diffVisible"
       },
       {
         "command": "epico-pilot.rejectDiff",
@@ -531,7 +531,7 @@
       ]
     },
     "views": {
-      "continue": [
+      "epico-pilot": [
         {
           "type": "webview",
           "id": "epico-pilot.continueGUIView",
@@ -542,7 +542,7 @@
     },
     "jsonValidation": [
       {
-        "fileMatch": "**/.continue*/config.json",
+        "fileMatch": "**/.epico-pilot*/config.json",
         "url": "./config_schema.json"
       },
       {

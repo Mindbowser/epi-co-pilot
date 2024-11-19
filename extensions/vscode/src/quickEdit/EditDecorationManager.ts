@@ -19,7 +19,7 @@ class EditDecorationManager {
   private updateInEditMode(inEditMode: boolean) {
     vscode.commands.executeCommand(
       "setContext",
-      "continue.inEditMode",
+      "epico-pilot.inEditMode",
       inEditMode,
     );
   }

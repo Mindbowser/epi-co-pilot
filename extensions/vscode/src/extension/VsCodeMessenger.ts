@@ -338,23 +338,23 @@ export class VsCodeMessenger {
       if (accept && onlyFirst) {
         // Accept first
         vscode.commands.executeCommand(
-          "continue.acceptVerticalDiffBlock",
+          "epico-pilot.acceptVerticalDiffBlock",
           filepath,
           0,
         );
       } else if (accept) {
-        vscode.commands.executeCommand("continue.acceptDiff", filepath);
+        vscode.commands.executeCommand("epico-pilot.acceptDiff", filepath);
         // Accept all
       } else if (onlyFirst) {
         // Reject first
         vscode.commands.executeCommand(
-          "continue.rejectVerticalDiffBlock",
+          "epico-pilot.rejectVerticalDiffBlock",
           filepath,
           0,
         );
       } else {
         // Reject all
-        vscode.commands.executeCommand("continue.rejectDiff", filepath);
+        vscode.commands.executeCommand("epico-pilot.rejectDiff", filepath);
       }
     });
     this.onWebview("edit/escape", async (msg) => {

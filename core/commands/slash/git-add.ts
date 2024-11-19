@@ -12,7 +12,7 @@ const GitAddAllCommand: SlashCommand = {
   name: "git:add",
   description: "Stage all changes for the next commit",
   run: async function* ({ ide, llm, input }) {
-    const diff = await ide.getDiff();
+    const diff = await ide.getDiff(true);
 
     if (!diff || diff.trim() === "") {
       yield "No changes detected. Make sure you are in a git repository with current changes.";

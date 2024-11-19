@@ -12,7 +12,7 @@ const GitCommitCommand: SlashCommand = {
   name: "git:commit",
   description: "Commit changes with a custom message",
   run: async function* ({ ide, llm, input }) {
-    const diff = await ide.getDiff();
+    const diff = await ide.getDiff(false);
 
     if (!diff || diff.trim() === "") {
       yield "No changes detected. Make sure you are in a git repository with current changes.";
