@@ -460,6 +460,13 @@ export class LanceDbIndex implements CodebaseIndex {
     
 
     let allResults: LanceDbRow[] = [];
+    if (tags[0].directory === "all") {
+      const existingLanceTables = await db.tableNames();
+      tags = existingLanceTables.map(folder => ({
+        directory: folder,
+        branch: "NONE"
+      }));
+    }
     for (const tag of tags) {
       const results = await this._retrieveForTag(
         { ...tag, artifactId: this.artifactId },
