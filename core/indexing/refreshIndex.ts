@@ -20,7 +20,7 @@ import {
 export type DatabaseConnection = Database<sqlite3.Database>;
 
 export function tagToString(tag: IndexTag): string {
-  return `${tag.directory}::${tag.branch}::${tag.artifactId}`;
+  return `${tag.directory}::${tag.artifactId}`;
 }
 
 export class SqliteDb {

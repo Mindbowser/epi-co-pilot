@@ -1751,7 +1751,7 @@
                 "codebase",
                 "problems",
                 "folder",
-                "custom-codebase",
+                "local-codebase",
                 "remote-codebase",
                 "issue",
                 "docs",

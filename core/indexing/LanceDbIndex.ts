@@ -409,6 +409,10 @@ export class LanceDbIndex implements CodebaseIndex {
     };
   }
 
+  async updateRemote() {
+    
+  }
+
   private async _retrieveForTag(
     tag: IndexTag,
     n: number,
@@ -417,7 +421,7 @@ export class LanceDbIndex implements CodebaseIndex {
     db: any, /// lancedb.Connection,
     remote?: boolean,
   ): Promise<LanceDbRow[]> {
-    const tableName = remote ? tag.directory : this.tableNameForTag(tag);
+    const tableName = remote ? directory : this.tableNameForTag(tag);
     const tableNames = await db.tableNames();
     if (!tableNames.includes(tableName)) {
       console.warn("Table not found in LanceDB", tableName);
@@ -437,7 +441,7 @@ export class LanceDbIndex implements CodebaseIndex {
     n: number,
     tags: BranchAndDir[],
     filterDirectory: string | undefined,
-    remote: boolean = false,
+    remote: boolean = false
   ): Promise<Chunk[]> {
     const [vector] = await this.embeddingsProvider.embed([query]);
     let lanceDbPath = "";
@@ -474,10 +478,12 @@ export class LanceDbIndex implements CodebaseIndex {
         filterDirectory,
         vector,
         db,
-        true,
+        remote,
       );
       allResults.push(...results);
     }
+
+    console.log("allResults", allResults)
 
     allResults = allResults
       .sort((a, b) => a._distance - b._distance)

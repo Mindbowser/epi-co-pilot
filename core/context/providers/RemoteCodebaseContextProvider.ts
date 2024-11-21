@@ -40,7 +40,7 @@ async function listFolders(path: string, depth: number = 0): Promise<string[]> {
 class CustomCodebaseContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "remote-codebase",
-    displayTitle: "Remote Codebase",
+    displayTitle: "Global",
     description: "Find relevant files a remote server",
     type: "submenu",
     dependsOnIndexing: true,
@@ -53,8 +53,6 @@ class CustomCodebaseContextProvider extends BaseContextProvider {
     const { retrieveContextItemsFromRemoteLanceDb } = await import(
       "../retrieval/remoteRetrieval.js"
     );
-    console.log("query", query);
-    console.log("extras", extras);
     return retrieveContextItemsFromRemoteLanceDb(extras, this.options, query);
   }
 
@@ -67,7 +65,7 @@ class CustomCodebaseContextProvider extends BaseContextProvider {
         uri,
         awsRegion: "ap-south-1",
         awsCredentials: {
-          accessKeyId:AWS_ACCESS_KEY_ID,
+          accessKeyId: AWS_ACCESS_KEY_ID,
           secretKey: AWS_SECRET_KEY,
         }
       });

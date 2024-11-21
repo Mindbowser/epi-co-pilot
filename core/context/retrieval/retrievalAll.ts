@@ -14,24 +14,6 @@ export async function retrieveAllContextItemsFromLanceDb(
   options: any | undefined,
   filterDirectory: string | undefined,
 ): Promise<ContextItem[]> {
-  if (!extras.embeddingsProvider) {
-    return [];
-  }
-
-  // transformers.js not supported in JetBrains IDEs right now
-
-  const isJetBrainsAndTransformersJs =
-    extras.embeddingsProvider.id === TransformersJsEmbeddingsProvider.model &&
-    (await extras.ide.getIdeInfo()).ideType === "jetbrains";
-
-  if (isJetBrainsAndTransformersJs) {
-    throw new Error(
-      "The 'transformers.js' context provider is not currently supported in JetBrains. " +
-        "For now, you can use Ollama to set up local embeddings, or use our 'free-trial' " +
-        "embeddings provider. See here to learn more: " +
-        "https://docs.continue.dev/walkthroughs/codebase-embeddings#embeddings-providers",
-    );
-  }
 
   // Get tags to retrieve for
   const workspaceDirs = await extras.ide.getWorkspaceDirs();
@@ -48,18 +30,18 @@ export async function retrieveAllContextItemsFromLanceDb(
 
   const input = options.input ?? "";
 
-  const tags: BranchAndDir[] = workspaceDirs.map((directory, i) => ({
-    directory,
+  const tags: BranchAndDir[] = filterDirectory ? [{
+    directory: filterDirectory,
     branch: "NONE",
-  }));
-
+  }] : [];
   const index = new LanceDbIndex(extras.config.embeddingsProvider);
 
   const results = await index.retrieve(
     input,
     nFinal,
     tags,
-    filterDirectory
+    filterDirectory,
+    false
   );
 
   if (results.length === 0) {

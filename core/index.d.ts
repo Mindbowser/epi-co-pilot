@@ -576,7 +576,7 @@ type ContextProviderName =
   | "codebase"
   | "problems"
   | "folder"
-  | "custom-codebase"
+  | "local-codebase"
   | "remote-codebase"
   | "jira"
   | "postgres"

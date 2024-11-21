@@ -37,9 +37,9 @@ async function listFolders(path: string, depth: number = 0): Promise<string[]> {
 
 class CustomCodebaseContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
-    title: "custom-codebase",
-    displayTitle: "Custom Codebase",
-    description: "Find relevant files in a specific project",
+    title: "local-codebase",
+    displayTitle: "Local",
+    description: "Find relevant files in a specific project that is already indexed in your local",
     type: "submenu",
     dependsOnIndexing: true,
   };
