@@ -11,6 +11,7 @@ import os from "os";
 import { getBasename, getUniqueFilePath, groupByLastNPathParts } from "../../util";
 import { getLanceDbPath } from "../../util/paths";
 import lance, { Table } from "vectordb";
+import * as path from 'path';
 
 const SKIP_ABLE_FOLDERS = ["node_modules"];
 
@@ -66,15 +67,15 @@ class CustomCodebaseContextProvider extends BaseContextProvider {
     const tempFolders: string[] = [];
     const requiredFolders: string[] = [];
 
-    folders.forEach(x => {
-      if(existingLanceTables.reduce((a, f) => a || f.includes(x.replaceAll(/[/@]/g, "")), false)) {
-        tempFolders.push(x);
+    folders.forEach((x) => {
+      if (existingLanceTables.reduce((a, f) => a || f.includes(x.replaceAll(/[/@]/g, "")), false)) {
+        tempFolders.push(path.posix.join(homeDir, x));
       }
     });
-
-    tempFolders.forEach(f => {
-      if(tempFolders.reduce((a, x) => a || (f.includes(x) && f !== x), false)) {
-        requiredFolders.push(f);
+  
+    tempFolders.forEach((f) => {
+      if (tempFolders.reduce((a, x) => a || (f.includes(x) && f !== x), false)) {
+        requiredFolders.push(path.posix.join(homeDir, f));
       } else {
       }
     });
