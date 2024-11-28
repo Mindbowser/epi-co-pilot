@@ -374,6 +374,7 @@ export function setupInitialDotContinueDirectory() {
     "autocomplete",
     "quickEdit",
     "tokens_generated",
+    "session",
   ];
   devDataTypes.forEach((p) => {
     const devDataPath = getDevDataFilePath(p);

@@ -16,6 +16,8 @@ import {
 } from "vscode";
 
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
+import * as path from "node:path";
+import * as fs from "fs";
 
 const AUTH_NAME = "Epico-Pilot";
 
@@ -33,6 +35,7 @@ import { controlPlaneEnv } from "core/control-plane/env";
 import crypto from "crypto";
 
 import { SecretStorage } from "./SecretStorage";
+import { devDataPath } from "core/util/paths";
 
 // Function to generate a random string of specified length
 export function generateRandomString(length: number): string {
@@ -300,6 +303,15 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
       //   () => this._refreshSessions(),
       //   (expires_in * 2) / 3,
       // );
+
+      const devDataDir = devDataPath();
+      const sessionPath = path.join(devDataDir, "session.jsonl");
+
+      // Write the updated suggestions back to the file
+      fs.writeFileSync(
+        sessionPath,
+        JSON.stringify(session, null, 4),
+      );
 
       return session;
     } catch (e) {

@@ -2,10 +2,15 @@ import os from "node:os";
 
 import { TeamAnalytics } from "../control-plane/TeamAnalytics.js";
 import { IdeInfo } from "../index.js";
+import { devDataPath } from "./paths.js";
+import * as path from "path";
+import * as fs from "fs";
 
 export class Telemetry {
   // Set to undefined whenever telemetry is disabled
   static client: any = undefined;
+  static personName: string = "";
+  static personEmail: string = "";
   static uniqueId = "NOT_UNIQUE";
   static os: string | undefined = undefined;
   static ideInfo: IdeInfo | undefined = undefined;
@@ -23,6 +28,8 @@ export class Telemetry {
         extensionVersion: Telemetry.ideInfo?.extensionVersion,
         ideName: Telemetry.ideInfo?.name,
         ideType: Telemetry.ideInfo?.ideType,
+        accountName: Telemetry.personName,
+        accountEmail: Telemetry.personEmail
       };
       const payload = {
         distinctId: Telemetry.uniqueId,
@@ -58,8 +65,8 @@ export class Telemetry {
   static async getTelemetryClient() {
     try {
       const { PostHog } = await import("posthog-node");
-      return new PostHog("phc_JS6XFROuNbhJtVCEdTSYk6gl5ArRrTNMpCcguAXlSPs", {
-        host: "https://app.posthog.com",
+      return new PostHog(process.env.POSTHOG_API_KEY ?? "", {
+        host: "https://us.i.posthog.com",
       });
     } catch (e) {
       console.error(`Failed to setup telemetry: ${e}`);
@@ -70,6 +77,16 @@ export class Telemetry {
     Telemetry.uniqueId = uniqueId;
     Telemetry.os = os.platform();
     Telemetry.ideInfo = ideInfo;
+    const devDataDir = devDataPath();
+    const sessionPath = path.join(devDataDir, "session.jsonl");
+    
+    const session = JSON.parse(fs.readFileSync(
+      sessionPath,
+      "utf8"
+    ));
+
+    Telemetry.personName = session.account.label;
+    Telemetry.personEmail = session.account.id;
 
     if (!allow || process.env.NODE_ENV === "test") {
       Telemetry.client = undefined;
