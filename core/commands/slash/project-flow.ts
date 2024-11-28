@@ -32,16 +32,25 @@ const LANGUAGE_DEP_MGMT_FILENAMES = [
   "dub.json", // D
 ];
 
-const MAX_EXPLORE_DEPTH = 2;
+const FOLDERS_TO_IGNORE = [
+  '.git',
+  'node_modules',
+  '.vscode',
+  '.idea',
+  '.github',
+]
+
+const MAX_EXPLORE_DEPTH = 3;
 
 const ProjectFlowSlashCommand: SlashCommand = {
   name: "project-flow",
   description: "Project Flow chart.",
-  run: async function* ({ llm, ide }) {
+  run: async function* ({ llm, ide, input }) {
     const [workspaceDir] = await ide.getWorkspaceDirs();
 
     const context = await gatherProjectContext(workspaceDir, ide);
-    const prompt = createProjectFlowPrompt(context);
+    console.log("CONTEXT:", context)
+    const prompt = createProjectFlowPrompt(context, input.replace(`/project-flow`, '').trim());
 
     for await (const chunk of llm.streamChat([
       { role: "user", content: prompt },
@@ -93,6 +102,7 @@ async function gatherProjectContext(
       const relativePath = path.relative(workspaceDir, fullPath);
 
       if (entry.isDirectory()) {
+        if (FOLDERS_TO_IGNORE.includes(relativePath)) return;
         context += `\nFolder: ${relativePath}\n`;
         await exploreDirectory(fullPath, currentDepth + 1);
       } else {
@@ -112,14 +122,23 @@ async function gatherProjectContext(
   return context;
 }
 
-function createProjectFlowPrompt(context: string): string {
+function createProjectFlowPrompt(context: string, input: string): string {
   return `
-    You are an expert in flow diagram creator. Create a detailed flow diagram for the project. 
+    You are an expert flow diagram creator in text-based flowcharts using ASCII art. Create a detailed flowchart for the project in a step-by-step manner. 
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
     ${context}
+    ${!!input ? `
+    Here is some additional input you may want to use:
 
-    Please include all key processes, decision points, and data flows. Be sure to label each component clearly and provide a brief description of its function. The diagram should be visually appealing and easy to understand. Please generate or create the flow diagram in dot forma.
+    ${input}
+    
+    `: ''}
+    The flowchart should include:
+    - All key processes, decision points, and data flows. 
+    - Be sure to label each component clearly and provide a brief description of its function. 
+    - The diagram should be visually appealing and easy to understand.
+    - Please generate or create the flow diagram with logical connectors using ASCII characters such as arrows (-->, |, v) and shapes like [ ] for processes, ( ) for start/end, and < > for decisions. Ensure the flowchart is easy to read and understand, with well-aligned elements.
   `;
 }
 
