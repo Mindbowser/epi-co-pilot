@@ -21,6 +21,7 @@ import TextDialog from "./dialogs";
 import Footer from "./Footer";
 import { isNewUserOnboarding, useOnboardingCard } from "./OnboardingCard";
 import PostHogPageView from "./PosthogPageView";
+import { setAccount } from "../redux/slices/configSlice";
 
 const LayoutTopDiv = styled(CustomScrollbarDiv)`
   height: 100%;
@@ -81,6 +82,9 @@ const Layout = () => {
   );
   const showDialog = useSelector(
     (state: RootState) => state.uiState.showDialog,
+  );
+  const accountEmail = useSelector(
+    (state: RootState) => state.config?.accountEmail,
   );
 
   const timeline = useSelector((state: RootState) => state.state.history);
@@ -198,10 +202,27 @@ const Layout = () => {
   });
 
   useEffect(() => {
-    if (isNewUserOnboarding()) {
+    const getAuthSession = async () => {
+      const result = await ideMessenger.request("getAuthSession", null);
+
+      if (result.status === "success") {
+        console.log(result.content);
+        if (result.content?.account?.id) {
+          dispatch(setAccount({
+            accountEmail: result.content?.account?.id,
+            accountName: result.content?.account?.label,
+          }));
+
+          return;
+        }
+      }
+      isNewUserOnboarding()
       onboardingCard.open("Quickstart");
     }
+    getAuthSession();
   }, []);
+
+  console.log("onboardingCard", onboardingCard)
 
   return (
     <LastSessionProvider>

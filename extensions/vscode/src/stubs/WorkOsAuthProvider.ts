@@ -192,7 +192,6 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     const finalSessions = [];
     for (const session of sessions) {
       try {
-        console.log("session", session);
         const newSession = await this._refreshSession(session.refreshToken);
         finalSessions.push({
           ...session,
@@ -318,6 +317,22 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
       window.showErrorMessage(`Sign in failed: ${e}`);
       throw e;
     }
+  }
+
+  public async getSession(): Promise<ContinueAuthenticationSession | null> {
+    let session: ContinueAuthenticationSession | null = null;
+    const devDataDir = devDataPath();
+    const sessionPath = path.join(devDataDir, "session.jsonl");
+    try {
+      session = JSON.parse(fs.readFileSync(
+        sessionPath,
+        "utf8"
+      ));
+    } catch {
+      console.log("Error:", "No session file found!");
+    }
+
+    return session;
   }
 
   /**

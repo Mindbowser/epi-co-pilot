@@ -49,7 +49,6 @@ const ProjectFlowSlashCommand: SlashCommand = {
     const [workspaceDir] = await ide.getWorkspaceDirs();
 
     const context = await gatherProjectContext(workspaceDir, ide);
-    console.log("CONTEXT:", context)
     const prompt = createProjectFlowPrompt(context, input.replace(`/project-flow`, '').trim());
 
     for await (const chunk of llm.streamChat([

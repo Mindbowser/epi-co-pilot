@@ -85,7 +85,12 @@ class VsCodeIde implements IDE {
   async getAuthToken(authProvider: WorkOsAuthProvider) {
     const session = await authProvider.createSession();
 
-    console.log("session", session);
+    return session;
+  }
+
+  async getAuthSession(authProvider: WorkOsAuthProvider) {
+    const session = await authProvider.getSession();
+
     return session;
   }
 

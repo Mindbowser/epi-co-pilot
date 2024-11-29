@@ -25,9 +25,6 @@ export function useOnboardingCard(): UseOnboardingCard {
   );
 
   const onboardingStatus = getLocalStorage("onboardingStatus");
-  const hasDismissedOnboardingCard = getLocalStorage(
-    "hasDismissedOnboardingCard",
-  );
 
   let show: boolean;
 
@@ -36,7 +33,7 @@ export function useOnboardingCard(): UseOnboardingCard {
   if (onboardingCard.show) {
     show = true;
   } else {
-    show = onboardingStatus !== "Completed" && !hasDismissedOnboardingCard;
+    show = onboardingStatus !== "Completed";
   }
 
   function open(tab: TabTitle) {
@@ -49,7 +46,6 @@ export function useOnboardingCard(): UseOnboardingCard {
   }
 
   function close() {
-    setLocalStorage("hasDismissedOnboardingCard", true);
     dispatch(setOnboardingCard({ show: false }));
   }
 

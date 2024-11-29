@@ -6,7 +6,7 @@ Chat, Edit, and Autocomplete tutorial
 # —————————————————————————————————————————————————     Chat      ————————————————————————————————————————————————— #
 
 ## Highlight the code below
-## Press [Cmd/Ctrl + J] to add to Chat
+## Press [Ctrl/Ctrl + J] to add to Chat
 ## Try asking Continue "what sorting algorithm is this?"
 def sorting_algorithm(x):
     for i in range(len(x)):
@@ -19,7 +19,7 @@ def sorting_algorithm(x):
 # —————————————————————————————————————————————————     Edit      ————————————————————————————————————————————————— #
 
 ## Highlight the code below
-## Press [Cmd/Ctrl + I] to Edit
+## Press [Ctrl/Ctrl + I] to Edit
 ## Try asking Continue to "make this more readable"
 def sorting_algorithm(x):
     for i in range(len(x)):

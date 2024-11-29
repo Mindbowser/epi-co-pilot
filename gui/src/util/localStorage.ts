@@ -4,7 +4,6 @@ import { OnboardingStatus } from "../components/OnboardingCard";
 
 type LocalStorageTypes = {
   onboardingStatus?: OnboardingStatus;
-  hasDismissedOnboardingCard: boolean;
   mainTextEntryCounter: number;
   ide: "vscode" | "jetbrains";
   ftc: number;

@@ -11,6 +11,7 @@ import {
 import { isJetBrains } from "../../../util";
 import { useSubmitOnboarding } from "../hooks";
 import JetBrainsFetchGitHubTokenDialog from "./JetBrainsFetchGitHubTokenDialog";
+import { setAccount } from "../../../redux/slices/configSlice";
 
 function QuickstartSubmitButton() {
   const ideMessenger = useContext(IdeMessengerContext);
@@ -54,9 +55,12 @@ function QuickstartSubmitButton() {
 
   async function onClick() {
     const result = await ideMessenger.request("getAuthToken", null);
-
+    
     if (result.status === "success") {
       onComplete();
+      dispatch(
+        setAccount({ accountName: result?.content.account.label, accountEmail: result.content.account.id }),
+      );
     }
   }
 

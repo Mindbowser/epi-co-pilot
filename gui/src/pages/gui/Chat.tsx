@@ -317,194 +317,196 @@ export function Chat() {
   return (
     <>
       {widget}
-      <StepsDiv
-        ref={stepsDivRef}
-        className={`overflow-y-scroll pt-[8px] ${showScrollbar ? "thin-scrollbar" : "no-scrollbar"} ${state.history.length > 0 ? "h-full" : ""}`}
-        onScroll={handleScroll}
-      >
-        {highlights}
-        {state.history.map((item, index: number) => (
-          <Fragment key={item.message.id}>
-            <ErrorBoundary
-              FallbackComponent={fallbackRender}
-              onReset={() => {
-                dispatch(newSession());
-              }}
-            >
-              {item.message.role === "user" ? (
-                <ContinueInputBox
-                  onEnter={async (editorState, modifiers) => {
-                    streamResponse(editorState, modifiers, ideMessenger, index);
-                  }}
-                  isLastUserInput={isLastUserInput(index)}
-                  isMainInput={false}
-                  editorState={item.editorState}
-                  contextItems={item.contextItems}
-                />
-              ) : (
-                <div className="thread-message">
-                  <TimelineItem
-                    item={item}
-                    iconElement={
-                      false ? (
-                        <CodeBracketSquareIcon width="16px" height="16px" />
-                      ) : false ? (
-                        <ExclamationTriangleIcon
-                          width="16px"
-                          height="16px"
-                          color="red"
-                        />
-                      ) : (
-                        <ChatBubbleOvalLeftIcon width="16px" height="16px" />
-                      )
-                    }
-                    open={
-                      typeof stepsOpen[index] === "undefined"
-                        ? false
-                          ? false
-                          : true
-                        : stepsOpen[index]!
-                    }
-                    onToggle={() => {}}
-                  >
-                    <StepContainer
-                      index={index}
-                      isLast={index === state.history.length - 1}
-                      isFirst={index === 0}
-                      open={
-                        typeof stepsOpen[index] === "undefined"
-                          ? true
-                          : stepsOpen[index]!
-                      }
-                      key={index}
-                      onUserInput={(input: string) => {}}
-                      item={item}
-                      onReverse={() => {}}
-                      onRetry={() => {
-                        streamResponse(
-                          state.history[index - 1].editorState,
-                          state.history[index - 1].modifiers ??
-                            defaultInputModifiers,
-                          ideMessenger,
-                          index - 1,
-                        );
-                      }}
-                      onContinueGeneration={() => {
-                        window.postMessage(
-                          {
-                            messageType: "userInput",
-                            data: {
-                              input:
-                                "Epico-Pilot your response exactly where you left off:",
-                            },
-                          },
-                          "*",
-                        );
-                      }}
-                      onDelete={() => {
-                        dispatch(deleteMessage(index));
-                      }}
-                      modelTitle={item.promptLogs?.[0]?.modelTitle ?? ""}
-                    />
-                  </TimelineItem>
-                </div>
-              )}
-            </ErrorBoundary>
-          </Fragment>
-        ))}
-        <ChatScrollAnchor
-          scrollAreaRef={stepsDivRef}
-          isAtBottom={isAtBottom}
-          trackVisibility={active}
-        />
-      </StepsDiv>
-
-      <div className={`relative`}>
-        <div className="absolute -top-8 right-2 z-30">
-          {ttsActive && (
-            <StopButton
-              className=""
-              onClick={() => {
-                ideMessenger.post("tts/kill", undefined);
-              }}
-            >
-              ■ Stop TTS
-            </StopButton>
-          )}
-          {active && (
-            <StopButton
-              onClick={() => {
-                dispatch(setInactive());
-                if (
-                  state.history[state.history.length - 1]?.message.content
-                    .length === 0
-                ) {
-                  dispatch(clearLastResponse());
-                }
-              }}
-            >
-              {getMetaKeyLabel()} ⌫ Cancel
-            </StopButton>
-          )}
+      {onboardingCard.show ? (
+        <div className="mt-10 mx-2">
+          <OnboardingCard />
         </div>
-        <ContinueInputBox
-          isMainInput
-          isLastUserInput={false}
-          onEnter={(editorContent, modifiers) => {
-            sendInput(editorContent, modifiers);
-          }}
-        />
-        <div
-          style={{
-            pointerEvents: active ? "none" : "auto",
-          }}
-        >
-          {state.history.length > 0 ? (
-            <div className="xs:inline mt-2 hidden">
-              <NewSessionButton
-                onClick={() => {
-                  saveSession();
-                }}
-                className="mr-auto"
-              >
-                <span className="xs:inline hidden">
-                  New Session ({getMetaKeyLabel()} {isJetBrains() ? "J" : "L"})
-                </span>
-              </NewSessionButton>
+      ): (
+        <>
+          <StepsDiv
+            ref={stepsDivRef}
+            className={`overflow-y-scroll pt-[8px] ${showScrollbar ? "thin-scrollbar" : "no-scrollbar"} ${state.history.length > 0 ? "h-full" : ""}`}
+            onScroll={handleScroll}
+          >
+            {highlights}
+            {state.history.map((item, index: number) => (
+              <Fragment key={item.message.id}>
+                <ErrorBoundary
+                  FallbackComponent={fallbackRender}
+                  onReset={() => {
+                    dispatch(newSession());
+                  }}
+                >
+                  {item.message.role === "user" ? (
+                    <ContinueInputBox
+                      onEnter={async (editorState, modifiers) => {
+                        streamResponse(editorState, modifiers, ideMessenger, index);
+                      }}
+                      isLastUserInput={isLastUserInput(index)}
+                      isMainInput={false}
+                      editorState={item.editorState}
+                      contextItems={item.contextItems}
+                    />
+                  ) : (
+                    <div className="thread-message">
+                      <TimelineItem
+                        item={item}
+                        iconElement={
+                          false ? (
+                            <CodeBracketSquareIcon width="16px" height="16px" />
+                          ) : false ? (
+                            <ExclamationTriangleIcon
+                              width="16px"
+                              height="16px"
+                              color="red"
+                            />
+                          ) : (
+                            <ChatBubbleOvalLeftIcon width="16px" height="16px" />
+                          )
+                        }
+                        open={
+                          typeof stepsOpen[index] === "undefined"
+                            ? false
+                              ? false
+                              : true
+                            : stepsOpen[index]!
+                        }
+                        onToggle={() => {}}
+                      >
+                        <StepContainer
+                          index={index}
+                          isLast={index === state.history.length - 1}
+                          isFirst={index === 0}
+                          open={
+                            typeof stepsOpen[index] === "undefined"
+                              ? true
+                              : stepsOpen[index]!
+                          }
+                          key={index}
+                          onUserInput={(input: string) => {}}
+                          item={item}
+                          onReverse={() => {}}
+                          onRetry={() => {
+                            streamResponse(
+                              state.history[index - 1].editorState,
+                              state.history[index - 1].modifiers ??
+                                defaultInputModifiers,
+                              ideMessenger,
+                              index - 1,
+                            );
+                          }}
+                          onContinueGeneration={() => {
+                            window.postMessage(
+                              {
+                                messageType: "userInput",
+                                data: {
+                                  input:
+                                    "Epico-Pilot your response exactly where you left off:",
+                                },
+                              },
+                              "*",
+                            );
+                          }}
+                          onDelete={() => {
+                            dispatch(deleteMessage(index));
+                          }}
+                          modelTitle={item.promptLogs?.[0]?.modelTitle ?? ""}
+                        />
+                      </TimelineItem>
+                    </div>
+                  )}
+                </ErrorBoundary>
+              </Fragment>
+            ))}
+            <ChatScrollAnchor
+              scrollAreaRef={stepsDivRef}
+              isAtBottom={isAtBottom}
+              trackVisibility={active}
+            />
+          </StepsDiv>
+          <div className={`relative`}>
+            <div className="absolute -top-8 right-2 z-30">
+              {ttsActive && (
+                <StopButton
+                  className=""
+                  onClick={() => {
+                    ideMessenger.post("tts/kill", undefined);
+                  }}
+                >
+                  ■ Stop TTS
+                </StopButton>
+              )}
+              {active && (
+                <StopButton
+                  onClick={() => {
+                    dispatch(setInactive());
+                    if (
+                      state.history[state.history.length - 1]?.message.content
+                        .length === 0
+                    ) {
+                      dispatch(clearLastResponse());
+                    }
+                  }}
+                >
+                  {getMetaKeyLabel()} ⌫ Cancel
+                </StopButton>
+              )}
             </div>
-          ) : (
-            <>
-              {!onboardingCard.show && getLastSessionId() ? (
-                <div className="mt-2 hidden xs:inline">
+            <ContinueInputBox
+              isMainInput
+              isLastUserInput={false}
+              onEnter={(editorContent, modifiers) => {
+                sendInput(editorContent, modifiers);
+              }}
+            />
+            <div
+              style={{
+                pointerEvents: active ? "none" : "auto",
+              }}
+            >
+              {state.history.length > 0 ? (
+                <div className="xs:inline mt-2 hidden">
                   <NewSessionButton
-                    onClick={async () => {
-                      loadLastSession().catch((e) =>
-                        console.error(`Failed to load last session: ${e}`),
-                      );
+                    onClick={() => {
+                      saveSession();
                     }}
-                    className="mr-auto flex items-center gap-2"
+                    className="mr-auto"
                   >
-                    <ArrowLeftIcon className="h-3 w-3" />
-                    Last Session
+                    <span className="xs:inline hidden">
+                      New Session ({getMetaKeyLabel()} {isJetBrains() ? "J" : "L"})
+                    </span>
                   </NewSessionButton>
                 </div>
-              ) : null}
+              ) : (
+                <>
+                  {!onboardingCard.show && getLastSessionId() ? (
+                    <div className="mt-2 hidden xs:inline">
+                      <NewSessionButton
+                        onClick={async () => {
+                          loadLastSession().catch((e) =>
+                            console.error(`Failed to load last session: ${e}`),
+                          );
+                        }}
+                        className="mr-auto flex items-center gap-2"
+                      >
+                        <ArrowLeftIcon className="h-3 w-3" />
+                        Last Session
+                      </NewSessionButton>
+                    </div>
+                  ) : null}
 
-              {onboardingCard.show && (
-                <div className="mt-10 mx-2">
-                  <OnboardingCard />
-                </div>
+                  {showTutorialCard !== false && !onboardingCard.open && (
+                    <div className="flex w-full justify-center">
+                      <TutorialCard onClose={closeTutorialCard} />
+                    </div>
+                  )}
+                </>
               )}
+            </div>
+          </div>
+        </>
+      )}
 
-              {showTutorialCard !== false && !onboardingCard.open && (
-                <div className="flex w-full justify-center">
-                  <TutorialCard onClose={closeTutorialCard} />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
     </>
   );
 }

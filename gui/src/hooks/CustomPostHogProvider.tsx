@@ -8,6 +8,9 @@ const CustomPostHogProvider = ({ children }: PropsWithChildren) => {
   const allowAnonymousTelemetry = useSelector(
     (store: RootState) => store?.state?.config.allowAnonymousTelemetry,
   );
+  const config = useSelector(
+    (store: RootState) => store.config
+  )
 
   const [client, setClient] = React.useState<any>(undefined);
 
@@ -21,13 +24,16 @@ const CustomPostHogProvider = ({ children }: PropsWithChildren) => {
         capture_pageleave: false,
         capture_pageview: false,
       });
-      posthog.identify(window.vscMachineId);
+      posthog.identify(window.vscMachineId, {
+        accountName: config.accountName,
+        accountEmail: config.accountEmail
+      });
       posthog.opt_in_capturing();
       setClient(client);
     } else {
       setClient(undefined);
     }
-  }, [allowAnonymousTelemetry]);
+  }, [allowAnonymousTelemetry, config]);
 
   return allowAnonymousTelemetry ? (
     <PostHogProvider client={client}>{children}</PostHogProvider>

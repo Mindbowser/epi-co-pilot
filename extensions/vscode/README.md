@@ -1,6 +1,6 @@
 <div align="center">
 
-![Epico-Pilot logo](media/Logo-Epico-Pilot.png)
+![Epico-Pilot logo](https://github.com/Mindbowser/co-pilot/blob/feature/remote-codebase/extensions/vscode/media/Logo-Epico-Pilot.png)
 
 </div>
 

@@ -80,13 +80,18 @@ export class Telemetry {
     const devDataDir = devDataPath();
     const sessionPath = path.join(devDataDir, "session.jsonl");
     
-    const session = JSON.parse(fs.readFileSync(
-      sessionPath,
-      "utf8"
-    ));
+    let session;
+    try {
+      session = JSON.parse(fs.readFileSync(
+        sessionPath,
+        "utf8"
+      ));
+      Telemetry.personName = session.account.label ?? "";
+      Telemetry.personEmail = session.account.id ?? "";
+    } catch {
+      console.log("Error:", "Need to login first");
+    }
 
-    Telemetry.personName = session.account.label;
-    Telemetry.personEmail = session.account.id;
 
     if (!allow || process.env.NODE_ENV === "test") {
       Telemetry.client = undefined;
