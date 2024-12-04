@@ -59,7 +59,6 @@ export async function retrieveAllContextItemsFromLanceDb(
     ...results
       .sort((a, b) => a.filepath.localeCompare(b.filepath))
       .map((r, i) => {
-        console.log("result", i+1, r);
         const name = `${path.basename(r.filepath)} (${r.startLine}-${
           r.endLine
         })`;

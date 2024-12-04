@@ -9,7 +9,6 @@ export type OnboardingStatus = "Started" | "Completed";
 // it implies that the user has not begun or completed onboarding.
 export function isNewUserOnboarding() {
   setLocalStorage("onboardingStatus", "Started");
-  setLocalStorage("isLoggedIn", false);
   setLocalStorage(
     "inputHistory_chat",
     null,

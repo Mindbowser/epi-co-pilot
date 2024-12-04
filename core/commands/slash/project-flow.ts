@@ -123,7 +123,8 @@ async function gatherProjectContext(
 
 function createProjectFlowPrompt(context: string, input: string): string {
   return `
-    You are an expert flow diagram creator in text-based flowcharts using ASCII art. Create a detailed flowchart for the project in a step-by-step manner. 
+    You are an expert flow diagram creator in text-based flowcharts using ASCII art. 
+    Create a detailed flowchart for the project in a step-by-step manner. 
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
     ${context}

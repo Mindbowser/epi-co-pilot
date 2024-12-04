@@ -2,6 +2,7 @@ import {
   Cog6ToothIcon,
   EllipsisHorizontalCircleIcon,
   ExclamationTriangleIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useContext } from "react";
 import { useSelector } from "react-redux";
@@ -14,14 +15,19 @@ import { ROUTES } from "../util/navigation";
 import HeaderButtonWithToolTip from "./gui/HeaderButtonWithToolTip";
 import FreeTrialProgressBar from "./loaders/FreeTrialProgressBar";
 import ProfileSwitcher from "./ProfileSwitcher";
+import { isNewUserOnboarding, useOnboardingCard } from "./OnboardingCard";
 
 function Footer() {
   const navigate = useNavigate();
+  const onboardingCard = useOnboardingCard();
   const { pathname } = useLocation();
   const defaultModel = useSelector(defaultModelSelector);
   const ideMessenger = useContext(IdeMessengerContext);
   const selectedProfileId = useSelector(
     (store: RootState) => store.state.selectedProfileId,
+  );
+  const accountEmail = useSelector(
+    (state: RootState) => state.config?.accountEmail,
   );
   const configError = useSelector(
     (store: RootState) => store.state.configError,
@@ -46,16 +52,34 @@ function Footer() {
     }
   }
 
+  const handleAccountCLicked = () => {
+    if (!accountEmail) {
+      isNewUserOnboarding();
+      onboardingCard.open("Quickstart");
+      navigate("/");
+    }
+  } 
+
   return (
     <footer className="flex h-7 items-center justify-between overflow-hidden border-0 border-t border-solid border-t-zinc-700 p-2">
       <div className="flex max-w-[40vw] gap-2">
         <ProfileSwitcher />
-        {defaultModel?.provider === "free-trial" && (
-          <FreeTrialProgressBar
-            completed={parseInt(localStorage.getItem("ftc") || "0")}
-            total={FREE_TRIAL_LIMIT_REQUESTS}
-          />
-        )}
+        
+        {accountEmail ? (
+          <HeaderButtonWithToolTip
+            tooltipPlacement="top-end"
+            text={`Logged in as ${accountEmail}`}
+          >
+            <UserCircleIcon className="h-4 w-4" />
+          </HeaderButtonWithToolTip>
+          ) : 
+          <div 
+            onClick={handleAccountCLicked} 
+            style={{ cursor: 'pointer' }}
+          >
+            Sign In to Epico - Pilot
+          </div>
+        }
       </div>
 
       <div className="flex gap-1">

@@ -116,7 +116,11 @@ export const defaultSlashCommandsVscode: SlashCommandDescription[] = [
   {
     name: "impact-analysis",
     description: "Generate a real-time impact analysis report",
-  }
+  },
+  {
+    name: "code-stats",
+    description: "Generate stats of the codebase.",
+  },
 ];
 
 export const defaultSlashCommandsJetBrains = [

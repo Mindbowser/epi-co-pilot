@@ -116,63 +116,97 @@ async function gatherProjectContext(
 
 function createOnboardingPrompt(context: string): string {
   return `
-  As a helpful AI assistant, your task is to onboard a new developer to this project. Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview: ${context}
+  As a helpful AI assistant, your role is to provide an insightful and structured overview of this codebase to help onboard a new developer. Use the provided context about the project structure, READMEs, and dependency files to generate a detailed summary:
   ${context}
+
   Please provide an overview of the project with the following guidelines:
 
-  Important Folders: Identify the most critical folders in the project (up to 10) and explain each one step-by-step:
+  1. Important Folders
 
-  Describe the primary purpose of each folder, summarizing relevant README or package.json information, if available.
-  Mention the most popular or common packages in each folder and their roles.
-  Project Architecture: After covering individual folders, provide at most 5 high-level insights on the architecture:
+   - Identify the critical folders in the project and explain their purpose.
+   - Highlight key packages or technologies used within these folders.
+   - Summarize relevant details from README files or configuration files like package.json.
+  
+  2. Project Architecture
 
-  Explain how different parts of the codebase fit together.
-  Describe the overall architecture or design patterns used (such as MVC, Singleton, or Factory), as evident from the folder structure and dependencies.
-  Third-Party Libraries: List the main third-party libraries used and summarize their roles.
+   - Provide a high-level overview of how different parts of the codebase fit together.
+   - Describe the overall architecture (e.g., monolithic, microservices) and design patterns (e.g., MVC, Singleton).
+   - List major third-party libraries and their roles within the project.
+  
+  3. Coding Style
 
-  Unit Testing and Coverage: Mention the unit testing framework (if any) and describe the test coverage strategy to ensure code quality.
+   - Summarize the project's coding standards, including formatting, naming conventions, code structure, and documentation practices.
+   - Highlight approaches to error handling and testing standards.
+  
+  4. UI Frameworks
 
-  Coding Style: Provide an overview of the project's coding style, covering:
+   - Explain how UI frameworks are utilized in the project.
+   - Describe specific use cases and the rationale for using frameworks like MUI, Bootstrap, or Tailwind CSS.
+  
+  5.  Environment Configurations
 
-  Formatting standards, naming conventions, code structure, documentation practices, error handling, and testing standards.
-  UI Frameworks: Describe how the UI frameworks are used in the project:
+   - Detail how environment configurations are managed, including where they are stored and how they are accessed in the codebase.
+  
+  6. Additional Architectural Insights
 
-  Explain the specific use cases and distinctions between MUI, Bootstrap, and Tailwind CSS, and why each one is selected in different contexts.
-  How to Run the Project: Offer detailed instructions for setting up the project environment, running the code, and essential commands to run the project successfully.
+   - Provide up to five additional insights about the architecture, such as scalability strategies, CI/CD pipelines, or performance optimizations.
+  
+  7. Unit Testing and Coverage
 
-  Environment Configurations: Describe the environment configurations in the project and explain how they are typically stored and accessed.
+   - Mention the testing framework(s) used and the approach to ensure sufficient test coverage.
+   - Highlight strategies for maintaining code quality through testing.
+  
+  8. How to Run the Project
 
-  Additional Architecture Insights: Provide at most 5 additional architectural insights that weren't covered in the folder-by-folder breakdown.
+   - Include step-by-step instructions for setting up the project, running it locally, and accessing key functionalities.
+  
+  
+  Example Response Format:
 
-  Your response should be structured, clear, and focused on giving the new developer both a detailed understanding of individual components and a high-level overview of the project as a whole.
+  1. Important Folders
 
-  Here is an example of a valid response:
+   - /src: Contains core application logic, including API handlers and business logic.
+   - Key Packages: Express for routing, Sequelize for database interactions.
+   - /public: Houses static assets like images and CSS files.
+   - /config: Stores configuration files, including environment-specific settings.
+  
+  2. Project Architecture
 
-  Important folders
-  /folder1
-  Description: Contains the main application logic.
-  Key packages: Express.js for routing, Mongoose for database operations.
-  /folder1/folder2
-  Project Architecture
-  Frontend: Built using React and Redux for state management.
-  Backend: A Node.js application using Express.js for routing and Mongoose for database operations.
-  Architecture Pattern: Follows a Model-View-Controller (MVC) architecture.
-  Design Patterns: Utilizes MVC with a Singleton pattern for database connections.
-  Third-Party Libraries
-  Libraries: Express for server routing, Mongoose for database manipulation, and Axios for API requests.
-  Unit Testing and Coverage
-  Framework: Uses Jest for unit testing, with a goal of 80% code coverage on core components.
-  Coding Style
-  Overview: The project follows [coding conventions] for formatting, naming, and documentation. Standards for error handling and testing are outlined to ensure code consistency and maintainability.
-  UI Frameworks
-  Use Cases: MUI is used for material design components, Bootstrap for quick, responsive layouts, and Tailwind CSS for custom utility styling.
-  How to Run the Project
-  Instructions: Set up the environment with [specific commands] and run [project entry points] to start the application.
-  Environment Configurations
-  Overview: Environment variables are stored in a .env file, managing different configurations for development, testing, and production.
-  Additional Insights
-  Structure: The project follows a monorepo layout.
-  Type Safety: TypeScript is implemented to enhance code reliability.
+   - Frontend: Built with React, uses Redux for state management.
+   - Backend: Node.js application following an MVC architecture.
+   - Design Patterns: Implements Repository pattern for database operations.
+   - Key Libraries: Axios for HTTP requests, Lodash for utility functions.
+  
+  3. Coding Style
+
+   - The project adheres to [Airbnb JavaScript Style Guide] with Prettier for formatting.
+   - Variables follow camelCase conventions; components are PascalCase.
+  
+  4. UI Frameworks
+
+   - Bootstrap is used for rapid prototyping and layout grids.
+   - Tailwind CSS provides flexibility for custom styles.
+  
+  5. Environment Configurations
+
+   - Stored in .env files. Utilizes dotenv to load variables.
+  
+  6.  Additional Insights
+
+   - CI/CD: Automated testing and deployment with GitHub Actions.
+   - TypeScript: Enforces static typing for improved reliability.
+  
+  7. Unit Testing and Coverage
+
+   - Framework: Jest for backend, React Testing Library for frontend.
+   - Goal: 90% coverage for critical modules.
+  
+  8. How to Run the Project
+
+   - Install dependencies: npm install.
+   - Start the server: npm start.
+   - Access at http://localhost:3000.
+  
   This format ensures the developer has a clear, detailed understanding of both the specifics of each component and the overall structure of the project.  
   `;
 }

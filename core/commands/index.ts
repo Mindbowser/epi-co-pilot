@@ -68,7 +68,7 @@ export function slashFromCustomCommand(
 export function slashCommandFromDescription(
   desc: SlashCommandDescription,
 ): SlashCommand | undefined {
-  const cmd = SlashCommands.find((cmd) => cmd.name === desc.name);
+  const cmd = SlashCommands.find((cmd) => cmd?.name === desc.name);
   if (!cmd) {
     return undefined;
   }

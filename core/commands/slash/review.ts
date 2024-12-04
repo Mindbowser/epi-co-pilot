@@ -11,28 +11,13 @@ import ignore from "ignore";
 
 const MAX_EXPLORE_DEPTH = 5;
 
-const LANGUAGE_DEP_MGMT_FILENAMES = [
-  "package.json", // JavaScript (Node.js)
-  "requirements.txt", // Python
-  "Gemfile", // Ruby
-  "pom.xml", // Java (Maven)
-  "build.gradle", // Java (Gradle)
-  "composer.json", // PHP
-  "Cargo.toml", // Rust
-  "go.mod", // Go
-  "packages.config", // C# (.NET)
-  "*.csproj", // C# (.NET Core)
-  "pubspec.yaml", // Dart
-  "Project.toml", // Julia
-  "mix.exs", // Elixir
-  "rebar.config", // Erlang
-  "shard.yml", // Crystal
-  "Package.swift", // Swift
-  "dependencies.gradle", // Kotlin (when using Gradle)
-  "Podfile", // Objective-C/Swift (CocoaPods)
-  "*.cabal", // Haskell
-  "dub.json", // D
-];
+const FOLDERS_TO_IGNORE = [
+  '.git',
+  'node_modules',
+  '.vscode',
+  '.idea',
+  '.github',
+]
 
 const ReviewMessageCommand: SlashCommand = {
   name: "review",
@@ -120,13 +105,14 @@ async function gatherProjectContext(
       const relativePath = path.relative(workspaceDir, fullPath);
 
       if (entry.isDirectory()) {
+        if (FOLDERS_TO_IGNORE.includes(relativePath)) return;
         context += `\nFolder: ${relativePath}\n`;
         await exploreDirectory(fullPath, currentDepth + 1);
       } else {
         if (entry.name.toLowerCase() === "readme.md") {
           const content = await fs.readFile(fullPath, "utf-8");
           context += `README for ${relativePath}:\n${content}\n\n`;
-        } else if (LANGUAGE_DEP_MGMT_FILENAMES.includes(entry.name)) {
+        } else {
           const content = await fs.readFile(fullPath, "utf-8");
           context += `${entry.name} for ${relativePath}:\n${content}\n\n`;
         }
@@ -141,20 +127,28 @@ async function gatherProjectContext(
 
 function createReviewPrompt(context: string): string {
   return `
-    You are an expert in code reviewer.
-    Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
+    You are an expert code reviewer with extensive experience in analyzing and optimizing codebases.
 
-    ${context}
+    Review Focus Areas:
 
-    Considering these aspects:
+    1. Readability: Assess whether the code is easy to read and understand. Highlight any areas where clarity can be improved.
+    2. Efficiency: Identify potential performance bottlenecks or inefficient constructs. Suggest optimizations where applicable.
+    3. Best Practices: Evaluate adherence to industry standards and coding conventions. Mention any deviations and their implications.
+    4. Error Handling: Check if error handling is implemented effectively. Highlight gaps and propose strategies to handle exceptions gracefully.
+    5. Scalability: Analyze whether the codebase is designed to scale efficiently as the system grows in complexity or size.
+    6. Documentation: Review the adequacy and quality of inline comments, documentation files, and READMEs. Suggest improvements to enhance maintainability.
+    7. Security: Conduct an analysis based on OWASP guidelines and tools like MOB-SF. Identify potential vulnerabilities and recommend mitigation strategies.
+    
+    Deliverable:
+    
+    Provide a structured and detailed review, including:
 
-    Readability: Is the code easy to understand? 
-    Efficiency: Are there any performance concerns? 
-    Best Practices: Does it follow industry standards? 
-    Error Handling: Is error handling implemented properly? 
-    Scalability: Will it perform well as the system grows? 
-    Documentation: Is the code adequately commented? 
-    Security: Include OWASP and MOB-SF checks and provide an analysis of potential vulnerabilities.If improvements please provide the improvements points
+     - Specific examples or excerpts from the codebase where applicable.
+     - Suggestions for improvement for each focus area.
+     - An overall summary of the codebase's strengths and weaknesses.
+    
+    
+    If you identify any issues or areas of improvement, clearly outline actionable steps for resolving them.
   `;
 }
 

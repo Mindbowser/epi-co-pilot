@@ -34,14 +34,14 @@ const LANGUAGE_DEP_MGMT_FILENAMES = [
 
 const MAX_EXPLORE_DEPTH = 2;
 
-const CreateReadmeSlashCommand: SlashCommand = {
-  name: "create-readme",
-  description: "Create readme file context.",
+const CreateCodeStatsCommand: SlashCommand = {
+  name: "code-stats",
+  description: "Generate stats of the codebase.",
   run: async function* ({ llm, ide, input }) {
     const [workspaceDir] = await ide.getWorkspaceDirs();
 
     const context = await gatherProjectContext(workspaceDir, ide);
-    const prompt = createReadmePrompt(context, input);
+    const prompt = createCodeStatsPrompt(context, input);
 
     for await (const chunk of llm.streamChat([
       { role: "user", content: prompt },
@@ -112,24 +112,23 @@ async function gatherProjectContext(
   return context;
 }
 
-function createReadmePrompt(context: string, input: string): string {
+function createCodeStatsPrompt(context: string, input: string): string {
   return `
-    Please help me generate a detailed and professional README file for my codebase. Below is the context of the codebase, including its purpose, features, setup instructions, and any other relevant information.
+    Please help me generate detailed statistics about the current project. The goal is to analyze the codebase and provide the following information:
 
-    Context:
+    Language Usage: Number of files and total lines of code (LOC) for each programming language used in the project.
+    File Count: The total number of files in the project.
+    Total LOC: The combined lines of code for all files in the project.
 
-     - Project Name: [Name of the project]
-     - Description: [Brief description of what the project does and its purpose]
-     - Technologies Used: [List of frameworks, libraries, languages, or tools]
-     - Features: [Highlight the main features of the codebase]
-     - Setup Instructions: [Steps for users to clone, install dependencies, and run the project]
-     - Usage Instructions: [Any special instructions for using the project or running tests]
-     - Contributors: [List of contributors or teams, if any]
-     - License: [Specify the license type]
-     - Additional Notes: [Anything extra, like future improvements, acknowledgments, or contact info]
-   
-    Format the README with appropriate Markdown syntax for headings, bullet points, and code blocks. Make it clear and user-friendly.
+    Please format the statistics in a clean and organized way, such as:
+
+    - JavaScript: 20 files, 5,000 LOC
+    - CSS: 10 files, 1,200 LOC
+    - HTML: 5 files, 800 LOC
+    - Total: 7,000 LOC
+
+    If additional details like the largest files, smallest files, or a summary of extensions used can be included, feel free to add them!"
   `;
 }
 
-export default CreateReadmeSlashCommand;
+export default CreateCodeStatsCommand;

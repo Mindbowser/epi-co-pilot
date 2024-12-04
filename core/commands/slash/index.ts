@@ -13,6 +13,7 @@ import CreateReadmeSlashCommand from "./create-readme";
 import ImpactAnalysisSlashCommand from "./impact-analysis";
 import EditSlashCommand from "./edit";
 import CommentSlashCommand from "./comment";
+import CreateCodeStatsCommand from "./code-stats";
 
 export default [
   DraftIssueCommand,
@@ -29,5 +30,6 @@ export default [
   ProjectFlowSlashCommand,
   CreateReadmeSlashCommand,
   ImpactAnalysisSlashCommand,
-  MultiFileEditSlashCommand,
+  MultiFileEditSlashCommand,,
+  CreateCodeStatsCommand,
 ];

@@ -206,23 +206,29 @@ const Layout = () => {
       const result = await ideMessenger.request("getAuthSession", null);
 
       if (result.status === "success") {
-        console.log(result.content);
         if (result.content?.account?.id) {
           dispatch(setAccount({
             accountEmail: result.content?.account?.id,
             accountName: result.content?.account?.label,
           }));
 
+          
+          setLocalStorage("onboardingStatus", "Completed");
+          onboardingCard.close()
+
           return;
         }
       }
-      isNewUserOnboarding()
+      isNewUserOnboarding();
       onboardingCard.open("Quickstart");
+      navigate("/");
     }
-    getAuthSession();
-  }, []);
-
-  console.log("onboardingCard", onboardingCard)
+    if (!accountEmail || accountEmail === "") {
+      getAuthSession();
+    } else  {
+      // pass
+    }
+  }, [accountEmail, dispatch]);
 
   return (
     <LastSessionProvider>

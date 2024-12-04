@@ -18,8 +18,8 @@ const SKIP_ABLE_FOLDERS = ["node_modules"];
 async function listFolders(path: string, depth: number = 0): Promise<string[]> {
   const folders: string[] = [];
 
-  const dir = await fsPromises.readdir(path);
   try {
+    const dir = await fsPromises.readdir(path);
     for await (const item of dir) {
       if (!item.startsWith(".") && !SKIP_ABLE_FOLDERS.includes(item) && (await fsPromises.stat(path + "/" + item)).isDirectory()) {
         if (depth > 0) {

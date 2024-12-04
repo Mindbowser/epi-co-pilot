@@ -495,7 +495,7 @@ function TipTapEditor(props: TipTapEditorProps) {
     onFocus: () => setIsEditorFocused(true),
     onBlur: () => setIsEditorFocused(false),
     // onUpdate
-    editable: !active || props.isMainInput,
+    editable: !active,
   });
 
   const [shouldHideToolbar, setShouldHideToolbar] = useState(false);
@@ -835,6 +835,7 @@ function TipTapEditor(props: TipTapEditorProps) {
         <EditorContent
           spellCheck={false}
           editor={editor}
+          disabled={active}
           onClick={(event) => {
             event.stopPropagation();
           }}
