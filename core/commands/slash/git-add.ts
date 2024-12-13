@@ -14,7 +14,7 @@ const GitAddAllCommand: SlashCommand = {
   run: async function* ({ ide, llm, input }) {
     const diff = await ide.getDiff(true);
 
-    if (!diff || diff.trim() === "") {
+    if (!diff) {
       yield "No changes detected. Make sure you are in a git repository with current changes.";
       return;
     }

@@ -1,13 +1,13 @@
 import { IDE, SlashCommand } from "../..";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { stripImages } from "../../llm/images";
 import ignore from "ignore";
 import {
   defaultIgnoreDir,
   defaultIgnoreFile,
   gitIgArrayFromFile,
 } from "../../indexing/ignore";
+import { renderChatMessage } from "../../util/messageContent";
 
 const LANGUAGE_DEP_MGMT_FILENAMES = [
   "package.json", // JavaScript (Node.js)
@@ -51,10 +51,11 @@ const ProjectFlowSlashCommand: SlashCommand = {
     const context = await gatherProjectContext(workspaceDir, ide);
     const prompt = createProjectFlowPrompt(context, input.replace(`/project-flow`, '').trim());
 
-    for await (const chunk of llm.streamChat([
-      { role: "user", content: prompt },
-    ])) {
-      yield stripImages(chunk.content);
+    for await (const chunk of llm.streamChat(
+      [{ role: "user", content: prompt }],
+      new AbortController().signal,
+    )) {
+      yield renderChatMessage(chunk);
     }
   },
 };

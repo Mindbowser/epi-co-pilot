@@ -53,7 +53,7 @@ import Vllm from "./Vllm";
 import WatsonX from "./WatsonX";
 import xAI from "./xAI";
 
-const LLMClasses = [
+export const LLMClasses = [
   Ollama,
 ];
 
