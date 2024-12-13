@@ -120,12 +120,7 @@ function createCodeStatsPrompt(context: string, input: string): string {
     File Count: The total number of files in the project.
     Total LOC: The combined lines of code for all files in the project.
 
-    Please format the statistics in a clean and organized way, such as:
-
-    - JavaScript: 20 files, 5,000 LOC
-    - CSS: 10 files, 1,200 LOC
-    - HTML: 5 files, 800 LOC
-    - Total: 7,000 LOC
+    Please format the statistics in a clean and organized way
 
     If additional details like the largest files, smallest files, or a summary of extensions used can be included, feel free to add them!"
   `;

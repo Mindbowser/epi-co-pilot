@@ -159,55 +159,6 @@ function createOnboardingPrompt(context: string): string {
   8. How to Run the Project
 
    - Include step-by-step instructions for setting up the project, running it locally, and accessing key functionalities.
-  
-  
-  Example Response Format:
-
-  1. Important Folders
-
-   - /src: Contains core application logic, including API handlers and business logic.
-   - Key Packages: Express for routing, Sequelize for database interactions.
-   - /public: Houses static assets like images and CSS files.
-   - /config: Stores configuration files, including environment-specific settings.
-  
-  2. Project Architecture
-
-   - Frontend: Built with React, uses Redux for state management.
-   - Backend: Node.js application following an MVC architecture.
-   - Design Patterns: Implements Repository pattern for database operations.
-   - Key Libraries: Axios for HTTP requests, Lodash for utility functions.
-  
-  3. Coding Style
-
-   - The project adheres to [Airbnb JavaScript Style Guide] with Prettier for formatting.
-   - Variables follow camelCase conventions; components are PascalCase.
-  
-  4. UI Frameworks
-
-   - Bootstrap is used for rapid prototyping and layout grids.
-   - Tailwind CSS provides flexibility for custom styles.
-  
-  5. Environment Configurations
-
-   - Stored in .env files. Utilizes dotenv to load variables.
-  
-  6.  Additional Insights
-
-   - CI/CD: Automated testing and deployment with GitHub Actions.
-   - TypeScript: Enforces static typing for improved reliability.
-  
-  7. Unit Testing and Coverage
-
-   - Framework: Jest for backend, React Testing Library for frontend.
-   - Goal: 90% coverage for critical modules.
-  
-  8. How to Run the Project
-
-   - Install dependencies: npm install.
-   - Start the server: npm start.
-   - Access at http://localhost:3000.
-  
-  This format ensures the developer has a clear, detailed understanding of both the specifics of each component and the overall structure of the project.  
   `;
 }
 

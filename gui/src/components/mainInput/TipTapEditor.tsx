@@ -366,8 +366,14 @@ function TipTapEditor(props: TipTapEditorProps) {
                 return false;
               }
 
+              const commandsWithCodebase = ["/review", "/impact-analysis", "/onboard", "/project-flow", "/create-readme", "/code-stats"]
+
+              const text = this.editor.getText();
+
+              const shouldUseCodebase = commandsWithCodebase.reduce((a: boolean, c) => a || (text.indexOf(c) > -1), false);
+
               onEnterRef.current({
-                useCodebase: false,
+                useCodebase: shouldUseCodebase,
                 noContext: !useActiveFile,
               });
               return true;
@@ -448,6 +454,22 @@ function TipTapEditor(props: TipTapEditorProps) {
         },
       }),
       Text,
+      props.availableSlashCommands.length
+        ? SlashCommand.configure({
+            HTMLAttributes: {
+              class: "mention",
+            },
+            suggestion: getSlashCommandDropdownOptions(
+              availableSlashCommandsRef,
+              onClose,
+              onOpen,
+              ideMessenger,
+            ),
+            renderText: (props) => {
+              return props.node.attrs.label;
+            },
+          })
+        : undefined,
       props.availableContextProviders.length
         ? Mention.configure({
             HTMLAttributes: {
@@ -464,22 +486,6 @@ function TipTapEditor(props: TipTapEditorProps) {
             ),
             renderHTML: (props) => {
               return `@${props.node.attrs.label || props.node.attrs.id}`;
-            },
-          })
-        : undefined,
-      props.availableSlashCommands.length
-        ? SlashCommand.configure({
-            HTMLAttributes: {
-              class: "mention",
-            },
-            suggestion: getSlashCommandDropdownOptions(
-              availableSlashCommandsRef,
-              onClose,
-              onOpen,
-              ideMessenger,
-            ),
-            renderText: (props) => {
-              return props.node.attrs.label;
             },
           })
         : undefined,
@@ -591,7 +597,7 @@ function TipTapEditor(props: TipTapEditorProps) {
         return;
       }
       editor?.commands.insertContent(data.input);
-      onEnterRef.current({ useCodebase: false, noContext: true });
+      onEnterRef.current({ useCodebase: true, noContext: true });
     },
     [editor, onEnterRef.current, props.isMainInput],
   );
@@ -705,7 +711,7 @@ function TipTapEditor(props: TipTapEditorProps) {
       }
 
       if (data.shouldRun) {
-        onEnterRef.current({ useCodebase: false, noContext: true });
+        onEnterRef.current({ useCodebase: true, noContext: true });
       }
 
       setTimeout(() => {
