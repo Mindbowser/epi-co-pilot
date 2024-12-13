@@ -45,6 +45,7 @@ class VsCodeIde implements IDE {
   constructor(
     private readonly diffManager: DiffManager,
     private readonly vscodeWebviewProtocolPromise: Promise<VsCodeWebviewProtocol>,
+    private readonly context: vscode.ExtensionContext,
   ) {
     this.ideUtils = new VsCodeIdeUtils();
   }
@@ -293,8 +294,15 @@ class VsCodeIde implements IDE {
     return Promise.resolve(vscode.env.machineId);
   }
 
-  async getDiff(includeUnstaged: boolean): Promise<string> {
+  async getDiff(includeUnstaged: boolean): Promise<string[]> {
     return await this.ideUtils.getDiff(includeUnstaged);
+  }
+
+  async getClipboardContent() {
+    return this.context.workspaceState.get("continue.copyBuffer", {
+      text: "",
+      copiedAt: new Date("1900-01-01").toISOString(),
+    });
   }
 
   async getTerminalContents(): Promise<string> {
@@ -459,6 +467,11 @@ class VsCodeIde implements IDE {
       return "";
     }
   }
+
+  async openUrl(url: string): Promise<void> {
+    await vscode.env.openExternal(vscode.Uri.parse(url));
+  }
+
   async showDiff(
     filepath: string,
     newContents: string,
@@ -501,8 +514,14 @@ class VsCodeIde implements IDE {
         "bin",
         "rg",
       ),
-      ["-i", "-C", "2", "--", `${query}`, "."], //no regex
-      //["-i", "-C", "2", "-e", `${query}`, "."], //use regex
+      [
+        "-i", // Case-insensitive search
+        "-C",
+        "2", // Show 2 lines of context
+        "-e",
+        query, // Pattern to search for
+        ".", // Directory to search in
+      ],
       { cwd: dir },
     );
     let output = "";
@@ -516,6 +535,9 @@ class VsCodeIde implements IDE {
       p.on("close", (code) => {
         if (code === 0) {
           resolve(output);
+        } else if (code === 1) {
+          // No matches
+          resolve("No matches found");
         } else {
           reject(new Error(`Process exited with code ${code}`));
         }

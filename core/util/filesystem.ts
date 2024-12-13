@@ -125,8 +125,12 @@ class FileSystemIde implements IDE {
     return Promise.resolve([]);
   }
 
-  getDiff(includeUnstaged: boolean): Promise<string> {
-    return Promise.resolve("");
+  getDiff(includeUnstaged: boolean): Promise<string[]> {
+    return Promise.resolve([]);
+  }
+
+  getClipboardContent(): Promise<{ text: string; copiedAt: string }> {
+    return Promise.resolve({ text: "", copiedAt: new Date().toISOString() });
   }
 
   getTerminalContents(): Promise<string> {
@@ -184,6 +188,10 @@ class FileSystemIde implements IDE {
   }
 
   openFile(path: string): Promise<void> {
+    return Promise.resolve();
+  }
+
+  openUrl(url: string): Promise<void> {
     return Promise.resolve();
   }
 

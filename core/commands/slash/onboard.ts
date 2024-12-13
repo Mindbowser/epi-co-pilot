@@ -9,7 +9,7 @@ import {
   defaultIgnoreFile,
   gitIgArrayFromFile,
 } from "../../indexing/ignore";
-import { stripImages } from "../../llm/images";
+import { renderChatMessage } from "../../util/messageContent";
 
 const LANGUAGE_DEP_MGMT_FILENAMES = [
   "package.json", // JavaScript (Node.js)
@@ -45,10 +45,11 @@ const OnboardSlashCommand: SlashCommand = {
     const context = await gatherProjectContext(workspaceDir, ide);
     const prompt = createOnboardingPrompt(context);
 
-    for await (const chunk of llm.streamChat([
-      { role: "user", content: prompt },
-    ])) {
-      yield stripImages(chunk.content);
+    for await (const chunk of llm.streamChat(
+      [{ role: "user", content: prompt }],
+      new AbortController().signal,
+    )) {
+      yield renderChatMessage(chunk);
     }
   },
 };
@@ -72,7 +73,10 @@ async function getEntriesFilteredByIgnore(dir: string, ide: IDE) {
     ig = ig.add(igPatterns);
   }
 
-  const filteredEntries = entries.filter((entry) => !ig.ignores(entry.name));
+  const filteredEntries = entries.filter((entry) => {
+    const name = entry.isDirectory() ? `${entry.name}/` : entry.name;
+    return !ig.ignores(name);
+  });
 
   return filteredEntries;
 }
@@ -116,8 +120,8 @@ async function gatherProjectContext(
 
 function createOnboardingPrompt(context: string): string {
   return `
-  As a helpful AI assistant, your role is to provide an insightful and structured overview of this codebase to help onboard a new developer. Use the provided context about the project structure, READMEs, and dependency files to generate a detailed summary:
-  ${context}
+    As a helpful AI assistant, your task is to onboard a new developer to this project.
+    Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
   Please provide an overview of the project with the following guidelines:
 
@@ -129,11 +133,9 @@ function createOnboardingPrompt(context: string): string {
   
   2. Project Architecture
 
-   - Provide a high-level overview of how different parts of the codebase fit together.
-   - Describe the overall architecture (e.g., monolithic, microservices) and design patterns (e.g., MVC, Singleton).
-   - List major third-party libraries and their roles within the project.
-  
-  3. Coding Style
+    Here is an example of a valid response:
+
+    ## Important folders
 
    - Summarize the project's coding standards, including formatting, naming conventions, code structure, and documentation practices.
    - Highlight approaches to error handling and testing standards.

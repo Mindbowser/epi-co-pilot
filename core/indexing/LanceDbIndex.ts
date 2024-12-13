@@ -7,7 +7,7 @@ import { IContinueServerClient } from "../continueServer/interface.js";
 import {
   BranchAndDir,
   Chunk,
-  EmbeddingsProvider,
+  ILLM,
   IndexTag,
   IndexingProgressUpdate,
 } from "../index.js";
@@ -42,13 +42,13 @@ type ChunkMap = Map<string, ItemWithChunks>;
 export class LanceDbIndex implements CodebaseIndex {
   relativeExpectedTime: number = 13;
   get artifactId(): string {
-    return `vectordb::${this.embeddingsProvider.id}`;
+    return `vectordb::${this.embeddingsProvider.embeddingId}`;
   }
 
   constructor(
-    private readonly embeddingsProvider: EmbeddingsProvider,
-    private readonly readFile?: (filepath: string) => Promise<string>,
-    private readonly pathSep?: string,
+    private readonly embeddingsProvider: ILLM,
+    private readonly readFile: (filepath: string) => Promise<string>,
+    private readonly pathSep: string,
     private readonly continueServerClient?: IContinueServerClient,
   ) {}
 
@@ -152,7 +152,7 @@ export class LanceDbIndex implements CodebaseIndex {
     const chunkParams = {
       filepath: item.path,
       contents: content,
-      maxChunkSize: this.embeddingsProvider.maxChunkSize,
+      maxChunkSize: this.embeddingsProvider.maxEmbeddingChunkSize,
       digest: item.cacheKey,
     };
 
@@ -172,7 +172,7 @@ export class LanceDbIndex implements CodebaseIndex {
       return await this.embeddingsProvider.embed(chunks.map((c) => c.content));
     } catch (err) {
       throw new Error(
-        `Failed to generate embeddings for ${chunks.length} chunks with provider: ${this.embeddingsProvider.id}: ${err}`,
+        `Failed to generate embeddings for ${chunks.length} chunks with provider: ${this.embeddingsProvider.embeddingId}: ${err}`,
         { cause: err },
       );
     }

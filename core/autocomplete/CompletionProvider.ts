@@ -3,19 +3,19 @@ import { TRIAL_FIM_MODEL } from "../config/onboarding.js";
 import { IDE, ILLM } from "../index.js";
 import OpenAI from "../llm/llms/OpenAI.js";
 import { DEFAULT_AUTOCOMPLETE_OPTS } from "../util/parameters.js";
+import { PosthogFeatureFlag, Telemetry } from "../util/posthog.js";
 
 import { shouldCompleteMultiline } from "./classification/shouldCompleteMultiline.js";
-import { AutocompleteLanguageInfo } from "./constants/AutocompleteLanguageInfo.js";
-import { constructAutocompletePrompt } from "./constructPrompt.js";
+import { ContextRetrievalService } from "./context/ContextRetrievalService.js";
 // @prettier-ignore
 
-import { ContextRetrievalService } from "./context/ContextRetrievalService.js";
-import { AutocompleteSnippet } from "./context/ranking/index.js";
 import { BracketMatchingService } from "./filtering/BracketMatchingService.js";
 import { CompletionStreamer } from "./generation/CompletionStreamer.js";
 import { postprocessCompletion } from "./postprocessing/index.js";
 import { shouldPrefilter } from "./prefiltering/index.js";
+import { getAllSnippets } from "./snippets/index.js";
 import { renderPrompt } from "./templating/index.js";
+import { GetLspDefinitionsFunction } from "./types.js";
 import { AutocompleteDebouncer } from "./util/AutocompleteDebouncer.js";
 import { AutocompleteLoggingService } from "./util/AutocompleteLoggingService.js";
 import AutocompleteLruCache from "./util/AutocompleteLruCache.js";
@@ -29,15 +29,8 @@ const autocompleteCache = AutocompleteLruCache.get();
 const ERRORS_TO_IGNORE = [
   // From Ollama
   "unexpected server status",
+  "operation was aborted",
 ];
-
-export type GetLspDefinitionsFunction = (
-  filepath: string,
-  contents: string,
-  cursorIndex: number,
-  ide: IDE,
-  lang: AutocompleteLanguageInfo,
-) => Promise<AutocompleteSnippet[]>;
 
 export class CompletionProvider {
   private autocompleteCache = AutocompleteLruCache.get();
@@ -66,6 +59,11 @@ export class CompletionProvider {
       return undefined;
     }
 
+    // Temporary fix for JetBrains autocomplete bug as described in https://github.com/continuedev/continue/pull/3022
+    if (llm.model === undefined && llm.completionOptions?.model !== undefined) {
+      llm.model = llm.completionOptions.model;
+    }
+
     // Ignore empty API keys for Mistral since we currently write
     // a template provider without one during onboarding
     if (llm.providerName === "mistral" && llm.apiKey === "") {
@@ -74,7 +72,11 @@ export class CompletionProvider {
 
     // Set temperature (but don't override)
     if (llm.completionOptions.temperature === undefined) {
-      llm.completionOptions.temperature = 0.01;
+      const value = await Telemetry.getValueForFeatureFlag(
+        PosthogFeatureFlag.AutocompleteTemperature,
+      );
+
+      llm.completionOptions.temperature = value ?? 0.01;
     }
 
     if (llm instanceof OpenAI) {
@@ -170,23 +172,21 @@ export class CompletionProvider {
         token = controller.signal;
       }
 
-      //////////
+      const [snippetPayload, workspaceDirs] = await Promise.all([
+        getAllSnippets({
+          helper,
+          ide: this.ide,
+          getDefinitionsFromLsp: this.getDefinitionsFromLsp,
+          contextRetrievalService: this.contextRetrievalService,
+        }),
+        this.ide.getWorkspaceDirs(),
+      ]);
 
-      // Some IDEs might have special ways of finding snippets (e.g. JetBrains and VS Code have different "LSP-equivalent" systems,
-      // or they might separately track recently edited ranges)
-      const extraSnippets = await this._getExtraSnippets(helper);
-
-      let snippets = await constructAutocompletePrompt(
+      const { prompt, prefix, suffix, completionOptions } = renderPrompt({
+        snippetPayload,
+        workspaceDirs,
         helper,
-        extraSnippets,
-        this.contextRetrievalService,
-      );
-
-      const { prompt, prefix, suffix, completionOptions } = renderPrompt(
-        snippets,
-        await this.ide.getWorkspaceDirs(),
-        helper,
-      );
+      });
 
       // Completion
       let completion: string | undefined = "";
@@ -262,7 +262,7 @@ export class CompletionProvider {
       //////////
 
       // Save to cache
-      if (!outcome.cacheHit) {
+      if (!outcome.cacheHit && helper.options.useCache) {
         (await this.autocompleteCache).put(outcome.prefix, outcome.completion);
       }
 
@@ -278,33 +278,5 @@ export class CompletionProvider {
     } finally {
       this.loggingService.deleteAbortController(input.completionId);
     }
-  }
-
-  private async _getExtraSnippets(
-    helper: HelperVars,
-  ): Promise<AutocompleteSnippet[]> {
-    let extraSnippets = helper.options.useOtherFiles
-      ? ((await Promise.race([
-          this.getDefinitionsFromLsp(
-            helper.input.filepath,
-            helper.fullPrefix + helper.fullSuffix,
-            helper.fullPrefix.length,
-            this.ide,
-            helper.lang,
-          ),
-          new Promise((resolve) => {
-            setTimeout(() => resolve([]), 100);
-          }),
-        ])) as AutocompleteSnippet[])
-      : [];
-
-    const workspaceDirs = await this.ide.getWorkspaceDirs();
-    if (helper.options.onlyMyCode) {
-      extraSnippets = extraSnippets.filter((snippet) => {
-        return workspaceDirs.some((dir) => snippet.filepath.startsWith(dir));
-      });
-    }
-
-    return extraSnippets;
   }
 }

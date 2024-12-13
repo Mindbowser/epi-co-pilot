@@ -11,9 +11,9 @@ import {
   ProviderInfo,
   providers,
 } from "../pages/AddNewModel/configs/providers";
-import { setDefaultModel } from "../redux/slices/stateSlice";
 import { FREE_TRIAL_LIMIT_REQUESTS, hasPassedFTL } from "../util/freeTrial";
 import { completionParamsInputs } from "../pages/AddNewModel/configs/completionParamsInputs";
+import { setDefaultModel } from "../redux/slices/configSlice";
 
 interface QuickModelSetupProps {
   onDone: () => void;
@@ -87,7 +87,9 @@ function AddModelForm({
     };
 
     ideMessenger.post("config/addModel", { model });
-    ideMessenger.post("openConfigJson", undefined);
+    ideMessenger.post("config/openProfile", {
+      profileId: "local",
+    });
 
     dispatch(setDefaultModel({ title: model.title, force: true }));
 

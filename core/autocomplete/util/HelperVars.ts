@@ -39,7 +39,9 @@ export class HelperVars {
 
   private async init() {
     // Don't do anything if already initialized
-    if (this._fileContents !== undefined) {return;}
+    if (this._fileContents !== undefined) {
+      return;
+    }
 
     this._fileContents =
       this.input.manuallyPassFileContents ??
@@ -112,9 +114,7 @@ export class HelperVars {
   get pos() {
     return this.input.pos;
   }
-  get maxSnippetTokens() {
-    return this.options.maxPromptTokens * this.options.maxSnippetPercentage;
-  }
+
   get prunedCaretWindow() {
     return this.prunedPrefix + this.prunedSuffix;
   }

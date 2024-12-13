@@ -1,19 +1,17 @@
 import { useContext, useEffect, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { CustomScrollbarDiv, defaultBorderRadius, vscInputBackground } from ".";
-import { IdeMessengerContext } from "../context/IdeMessenger";
-import { LastSessionProvider } from "../context/LastSessionContext";
+import { CustomScrollbarDiv, defaultBorderRadius } from ".";
 import { useWebviewListener } from "../hooks/useWebviewListener";
-import { useConfigError } from "../redux/hooks";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { setEditStatus, focusEdit } from "../redux/slices/editModeState";
+import { setDialogMessage, setShowDialog } from "../redux/slices/uiSlice";
 import {
-  setEditDone,
-  setEditStatus,
-  startEditMode,
-} from "../redux/slices/editModeState";
-import { setShowDialog, updateApplyState } from "../redux/slices/uiStateSlice";
-import { RootState } from "../redux/store";
+  addCodeToEdit,
+  updateApplyState,
+  setMode,
+  newSession,
+} from "../redux/slices/sessionSlice";
 import { getFontSize, isMetaEquivalentKeyPressed } from "../util";
 import { getLocalStorage, setLocalStorage } from "../util/localStorage";
 import { ROUTES } from "../util/navigation";
@@ -22,6 +20,12 @@ import Footer from "./Footer";
 import { isNewUserOnboarding, useOnboardingCard } from "./OnboardingCard";
 import PostHogPageView from "./PosthogPageView";
 import { setAccount } from "../redux/slices/configSlice";
+import AccountDialog from "./AccountDialog";
+import { AuthProvider } from "../context/Auth";
+import { exitEditMode } from "../redux/thunks";
+import { loadLastSession, saveCurrentSession } from "../redux/thunks/session";
+import { RootState } from "../redux/store";
+import { IdeMessengerContext } from "../context/IdeMessenger";
 
 const LayoutTopDiv = styled(CustomScrollbarDiv)`
   height: 100%;
@@ -47,67 +51,39 @@ const GridDiv = styled.div`
   overflow-x: visible;
 `;
 
-const ModelDropdownPortalDiv = styled.div`
-  background-color: ${vscInputBackground};
-  position: relative;
-  margin-left: 8px;
-  z-index: 200;
-  font-size: ${getFontSize()};
-`;
-
-const ProfileDropdownPortalDiv = styled.div`
-  background-color: ${vscInputBackground};
-  position: relative;
-  margin-left: 8px;
-  z-index: 200;
-  font-size: ${getFontSize() - 2};
-`;
-
 const Layout = () => {
+  const ideMessenger = useContext(IdeMessengerContext);
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useDispatch();
-  const ideMessenger = useContext(IdeMessengerContext);
+  const dispatch = useAppDispatch();
   const onboardingCard = useOnboardingCard();
   const { pathname } = useLocation();
 
-  const configError = useConfigError();
+  const configError = useAppSelector((state) => state.config.configError);
 
   const hasFatalErrors = useMemo(() => {
     return configError?.some((error) => error.fatal);
   }, [configError]);
 
-  const dialogMessage = useSelector(
-    (state: RootState) => state.uiState.dialogMessage,
-  );
-  const showDialog = useSelector(
-    (state: RootState) => state.uiState.showDialog,
-  );
-  const accountEmail = useSelector(
+  const accountEmail = useAppSelector(
     (state: RootState) => state.config?.accountEmail,
   );
+  const dialogMessage = useAppSelector((state) => state.ui.dialogMessage);
 
-  const timeline = useSelector((state: RootState) => state.state.history);
+  const showDialog = useAppSelector((state) => state.ui.showDialog);
 
-  useEffect(() => {
-    const handleKeyDown = (event: any) => {
-      if (isMetaEquivalentKeyPressed(event) && event.code === "KeyC") {
-        const selection = window.getSelection()?.toString();
-        if (selection) {
-          // Copy to clipboard
-          setTimeout(() => {
-            navigator.clipboard.writeText(selection);
-          }, 100);
-        }
+  const isStreaming = useAppSelector((state) => state.session.isStreaming);
+
+  useWebviewListener(
+    "openDialogMessage",
+    async (message) => {
+      if (message === "account") {
+        dispatch(setShowDialog(true));
+        dispatch(setDialogMessage(<AccountDialog />));
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [timeline]);
+    },
+    [],
+  );
 
   useWebviewListener(
     "addModel",
@@ -116,10 +92,6 @@ const Layout = () => {
     },
     [navigate],
   );
-
-  useWebviewListener("openSettings", async () => {
-    ideMessenger.post("openConfigJson", undefined);
-  });
 
   useWebviewListener(
     "viewHistory",
@@ -162,6 +134,12 @@ const Layout = () => {
   useWebviewListener(
     "updateApplyState",
     async (state) => {
+      // dispatch(
+      //   updateCurCheckpoint({
+      //     filepath: state.filepath,
+      //     content: state.fileContent,
+      //   }),
+      // );
       dispatch(updateApplyState(state));
     },
     [],
@@ -184,21 +162,57 @@ const Layout = () => {
   );
 
   useWebviewListener(
-    "startEditMode",
-    async (args) => {
-      dispatch(startEditMode(args));
-      navigate("/edit");
+    "focusEdit",
+    async () => {
+      await dispatch(
+        saveCurrentSession({
+          openNewSession: false,
+        }),
+      );
+      dispatch(newSession());
+      dispatch(focusEdit());
+      dispatch(setMode("edit"));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "focusEditWithoutClear",
+    async () => {
+      await dispatch(
+        saveCurrentSession({
+          openNewSession: true,
+        }),
+      );
+      dispatch(focusEdit());
+      dispatch(setMode("edit"));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "addCodeToEdit",
+    async (payload) => {
+      dispatch(addCodeToEdit(payload));
     },
     [navigate],
   );
 
-  useWebviewListener("setEditStatus", async ({ status, fileAfterEdit }) => {
-    dispatch(setEditStatus({ status, fileAfterEdit }));
-  });
+  useWebviewListener(
+    "setEditStatus",
+    async ({ status, fileAfterEdit }) => {
+      dispatch(setEditStatus({ status, fileAfterEdit }));
+    },
+    [],
+  );
 
   useWebviewListener("exitEditMode", async () => {
-    dispatch(setEditDone());
-    navigate("/");
+    dispatch(
+      loadLastSession({
+        saveCurrentSession: false,
+      }),
+    );
+    dispatch(exitEditMode());
   });
 
   useEffect(() => {
@@ -231,7 +245,7 @@ const Layout = () => {
   }, [accountEmail, dispatch]);
 
   return (
-    <LastSessionProvider>
+    <AuthProvider>
       <LayoutTopDiv>
         <div
           style={{
@@ -269,9 +283,6 @@ const Layout = () => {
                 <div className="mt-2 underline">Learn More</div>
               </div>
             )}
-
-            <ModelDropdownPortalDiv id="model-select-top-div"></ModelDropdownPortalDiv>
-            <ProfileDropdownPortalDiv id="profile-select-top-div"></ProfileDropdownPortalDiv>
             <Footer />
           </GridDiv>
         </div>
@@ -280,7 +291,7 @@ const Layout = () => {
           id="tooltip-portal-div"
         />
       </LayoutTopDiv>
-    </LastSessionProvider>
+    </AuthProvider>
   );
 };
 

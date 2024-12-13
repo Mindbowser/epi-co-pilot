@@ -82,6 +82,7 @@ export const LINES_TO_REMOVE_BEFORE_START = [
   "<COMPLETION>",
   "[CODE]",
   "<START EDITING HERE>",
+  "{{FILL_HERE}}",
 ];
 
 export const ENGLISH_START_PHRASES = [
@@ -261,6 +262,20 @@ export async function* stopAtLines(
 ): LineStream {
   for await (const line of stream) {
     if (linesToStopAt.some((stopAt) => line.trim().includes(stopAt))) {
+      fullStop();
+      break;
+    }
+    yield line;
+  }
+}
+
+export async function* stopAtLinesExact(
+  stream: LineStream,
+  fullStop: () => void,
+  linesToStopAt: string[],
+): LineStream {
+  for await (const line of stream) {
+    if (linesToStopAt.some((stopAt) => line === stopAt)) {
       fullStop();
       break;
     }
@@ -535,13 +550,32 @@ export async function* showWhateverWeHaveAtXMs(
   ms: number,
 ): LineStream {
   const startTime = Date.now();
+  let firstNonWhitespaceLineYielded = false;
+
   for await (const line of lines) {
-    // Always get at least one line
     yield line;
 
-    // But after that, soft break at X ms
-    if (Date.now() - startTime > ms) {
+    if (!firstNonWhitespaceLineYielded && line.trim() !== "") {
+      firstNonWhitespaceLineYielded = true;
+    }
+
+    const isTakingTooLong = Date.now() - startTime > ms;
+    if (isTakingTooLong && firstNonWhitespaceLineYielded) {
       break;
     }
+  }
+}
+
+export async function* noDoubleNewLine(lines: LineStream): LineStream {
+  let isFirstLine = true;
+
+  for await (const line of lines) {
+    if (line.trim() === "" && !isFirstLine) {
+      return;
+    }
+
+    isFirstLine = false;
+
+    yield line;
   }
 }

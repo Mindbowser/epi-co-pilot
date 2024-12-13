@@ -2,13 +2,15 @@ import { streamLines } from "../../../diff/util";
 import { DEFAULT_AUTOCOMPLETE_OPTS } from "../../../util/parameters";
 import { HelperVars } from "../../util/HelperVars";
 
-import { stopAtStopTokens } from "./charStream";
+import { stopAtStartOf, stopAtStopTokens } from "./charStream";
 import {
   avoidEmptyComments,
   avoidPathLine,
+  noDoubleNewLine,
   showWhateverWeHaveAtXMs,
   skipPrefixes,
   stopAtLines,
+  stopAtLinesExact,
   stopAtRepeatingLines,
   stopAtSimilarLine,
   streamWithNewLines,
@@ -27,6 +29,7 @@ export class StreamTransformPipeline {
     let charGenerator = generator;
 
     charGenerator = stopAtStopTokens(generator, stopTokens);
+    charGenerator = stopAtStartOf(charGenerator, suffix);
     for (const charFilter of helper.lang.charFilters ?? []) {
       charGenerator = charFilter({
         chars: charGenerator,
@@ -40,6 +43,12 @@ export class StreamTransformPipeline {
     let lineGenerator = streamLines(charGenerator);
 
     lineGenerator = stopAtLines(lineGenerator, fullStop);
+    const lineBelowCursor = this.getLineBelowCursor(helper);
+    if (lineBelowCursor.trim() !== "") {
+      lineGenerator = stopAtLinesExact(lineGenerator, fullStop, [
+        lineBelowCursor,
+      ]);
+    }
     lineGenerator = stopAtRepeatingLines(lineGenerator, fullStop);
     lineGenerator = avoidEmptyComments(
       lineGenerator,
@@ -47,6 +56,7 @@ export class StreamTransformPipeline {
     );
     lineGenerator = avoidPathLine(lineGenerator, helper.lang.singleLineComment);
     lineGenerator = skipPrefixes(lineGenerator);
+    lineGenerator = noDoubleNewLine(lineGenerator);
 
     for (const lineFilter of helper.lang.lineFilters ?? []) {
       lineGenerator = lineFilter({ lines: lineGenerator, fullStop });

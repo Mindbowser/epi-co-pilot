@@ -4,7 +4,6 @@ import * as path from "node:path";
 import { ConfigHandler } from "core/config/ConfigHandler";
 import { getModelByRole } from "core/config/util";
 import { applyCodeBlock } from "core/edit/lazy/applyCodeBlock";
-import { stripImages } from "core/llm/images";
 import {
   FromCoreProtocol,
   FromWebviewProtocol,
@@ -18,10 +17,10 @@ import {
   WEBVIEW_TO_CORE_PASS_THROUGH,
 } from "core/protocol/passThrough";
 import { getBasename } from "core/util";
-import { InProcessMessenger, Message } from "core/util/messenger";
-import { getConfigJsonPath } from "core/util/paths";
+import { InProcessMessenger, Message } from "core/protocol/messenger";
 import * as vscode from "vscode";
 
+import { stripImages } from "core/util/messageContent";
 import { VerticalDiffManager } from "../diff/vertical/manager";
 import EditDecorationManager from "../quickEdit/EditDecorationManager";
 import {
@@ -108,10 +107,6 @@ export class VsCodeMessenger {
       );
     });
 
-    this.onWebview("openConfigJson", (msg) => {
-      this.ide.openFile(getConfigJsonPath());
-    });
-
     this.onWebview("readRangeInFile", async (msg) => {
       return await vscode.workspace
         .openTextDocument(msg.data.filepath)
@@ -152,15 +147,35 @@ export class VsCodeMessenger {
       );
     });
 
-    webviewProtocol.on("acceptDiff", async ({ data: { filepath } }) => {
-      void vscode.commands.executeCommand("epico-pilot.acceptDiff", filepath);
-    });
+    webviewProtocol.on(
+      "acceptDiff",
+      async ({ data: { filepath, streamId } }) => {
+        await vscode.commands.executeCommand(
+          "epico-pilot.acceptDiff",
+          filepath,
+          streamId,
+        );
+      },
+    );
 
-    webviewProtocol.on("rejectDiff", async ({ data: { filepath } }) => {
-      void vscode.commands.executeCommand("epico-pilot.rejectDiff", filepath);
-    });
+    webviewProtocol.on(
+      "rejectDiff",
+      async ({ data: { filepath, streamId } }) => {
+        await vscode.commands.executeCommand(
+          "epico-pilot.rejectDiff",
+          filepath,
+          streamId,
+        );
+      },
+    );
 
     this.onWebview("applyToFile", async ({ data }) => {
+      webviewProtocol.request("updateApplyState", {
+        streamId: data.streamId,
+        status: "streaming",
+        fileContent: data.text,
+      });
+
       let filepath = data.filepath;
 
       // If there is a filepath, verify it exists and then open the file
@@ -173,18 +188,10 @@ export class VsCodeMessenger {
 
         const fileExists = await this.ide.fileExists(fullPath);
 
-        // If it's a new file, no need to apply, just write directly
+        // If there is no existing file at the path, create it
         if (!fileExists) {
-          await this.ide.writeFile(fullPath, data.text);
+          await this.ide.writeFile(fullPath, "");
           await this.ide.openFile(fullPath);
-
-          void webviewProtocol.request("updateApplyState", {
-            streamId: data.streamId,
-            status: "done",
-            numDiffs: 0,
-          });
-
-          return;
         }
 
         await this.ide.openFile(fullPath);
@@ -203,11 +210,14 @@ export class VsCodeMessenger {
         editor.edit((builder) =>
           builder.insert(new vscode.Position(0, 0), data.text),
         );
+
         void webviewProtocol.request("updateApplyState", {
           streamId: data.streamId,
-          status: "done",
+          status: "closed",
           numDiffs: 0,
+          fileContent: data.text,
         });
+
         return;
       }
 
@@ -240,7 +250,9 @@ export class VsCodeMessenger {
         llm,
         fastLlm,
       );
+
       const verticalDiffManager = await this.verticalDiffManagerPromise;
+
       if (instant) {
         await verticalDiffManager.streamDiffLines(
           diffLines,
@@ -295,6 +307,37 @@ export class VsCodeMessenger {
     this.onWebview("openUrl", (msg) => {
       vscode.env.openExternal(vscode.Uri.parse(msg.data));
     });
+
+    this.onWebview(
+      "overwriteFile",
+      async ({ data: { prevFileContent, filepath } }) => {
+        if (prevFileContent === null) {
+          // TODO: Delete the file
+          return;
+        }
+
+        await this.ide.openFile(filepath);
+
+        // Get active text editor
+        const editor = vscode.window.activeTextEditor;
+
+        if (!editor) {
+          vscode.window.showErrorMessage("No active editor to apply edits to");
+          return;
+        }
+
+        editor.edit((builder) =>
+          builder.replace(
+            new vscode.Range(
+              editor.document.positionAt(0),
+              editor.document.positionAt(editor.document.getText().length),
+            ),
+            prevFileContent,
+          ),
+        );
+      },
+    );
+
     this.onWebview("insertAtCursor", async (msg) => {
       const editor = vscode.window.activeTextEditor;
       if (editor === undefined || !editor.selection) {
@@ -357,8 +400,16 @@ export class VsCodeMessenger {
         vscode.commands.executeCommand("epico-pilot.rejectDiff", filepath);
       }
     });
-    this.onWebview("edit/escape", async (msg) => {
-      this.editDecorationManager.clear();
+    this.onWebview("edit/exit", async (msg) => {
+      if (msg.data.shouldFocusEditor) {
+        const activeEditor = vscode.window.activeTextEditor;
+
+        if (activeEditor) {
+          vscode.window.showTextDocument(activeEditor.document);
+        }
+      }
+
+      editDecorationManager.clear();
     });
 
     /** PASS THROUGH FROM WEBVIEW TO CORE AND BACK **/
@@ -472,6 +523,11 @@ export class VsCodeMessenger {
       const sessions = await this.workOsAuthProvider.getSessions();
       await Promise.all(
         sessions.map((session) => workOsAuthProvider.removeSession(session.id)),
+      );
+      vscode.commands.executeCommand(
+        "setContext",
+        "epico-pilot.isSignedInToControlPlane",
+        false,
       );
     });
   }

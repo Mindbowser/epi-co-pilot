@@ -6,7 +6,6 @@ import {
 // Message types to pass through from webview to core
 export const WEBVIEW_TO_CORE_PASS_THROUGH: (keyof ToCoreFromWebviewProtocol)[] =
   [
-    "update/modelChange",
     "ping",
     "abort",
     "history/list",
@@ -21,7 +20,10 @@ export const WEBVIEW_TO_CORE_PASS_THROUGH: (keyof ToCoreFromWebviewProtocol)[] =
     "config/getSerializedProfileInfo",
     "config/deleteModel",
     "config/reload",
+    "config/listProfiles",
+    "config/openProfile",
     "context/getContextItems",
+    "context/getSymbolsForFiles",
     "context/loadSubmenuItems",
     "context/addDocs",
     "context/removeDocs",
@@ -39,15 +41,23 @@ export const WEBVIEW_TO_CORE_PASS_THROUGH: (keyof ToCoreFromWebviewProtocol)[] =
     "chatDescriber/describe",
     "stats/getTokensPerDay",
     "stats/getTokensPerModel",
+    // Codebase
     "index/setPaused",
     "index/forceReIndex",
     "index/forceReIndexFiles",
     "index/indexingProgressBarInitialized",
+    // Docs, etc.
+    "indexing/reindex",
+    "indexing/abort",
+    "indexing/setPaused",
+    "docs/getSuggestedDocs",
+    "docs/initStatuses",
+    //
     "completeOnboarding",
     "addAutocompleteModel",
-    "config/listProfiles",
     "profiles/switch",
     "didChangeSelectedProfile",
+    "tools/call",
   ];
 
 // Message types to pass through from core to webview
@@ -55,11 +65,15 @@ export const CORE_TO_WEBVIEW_PASS_THROUGH: (keyof ToWebviewFromCoreProtocol)[] =
   [
     "configUpdate",
     "getDefaultModelTitle",
-    "indexProgress",
+    "indexProgress", // Codebase
+    "indexing/statusUpdate", // Docs, etc.
     "addContextItem",
     "refreshSubmenuItems",
     "isContinueInputFocused",
     "didChangeAvailableProfiles",
     "setTTSActive",
     "getWebviewHistoryLength",
+    "signInToControlPlane",
+    "openDialogMessage",
+    "docs/suggestions",
   ];

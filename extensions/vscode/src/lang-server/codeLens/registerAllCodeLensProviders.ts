@@ -118,11 +118,6 @@ export function registerAllCodeLensProviders(
     new providers.DiffViewerCodeLensProvider(diffManager),
   );
 
-  configPyCodeLensDisposable = registerCodeLensProvider(
-    "*",
-    new providers.ConfigPyCodeLensProvider(),
-  );
-
   registerQuickActionsProvider(config, context);
 
   subscribeToVSCodeQuickActionsSettings(() =>
@@ -132,7 +127,6 @@ export function registerAllCodeLensProviders(
   context.subscriptions.push(verticalPerLineCodeLensProvider);
   context.subscriptions.push(suggestionsCodeLensDisposable);
   context.subscriptions.push(diffsCodeLensDisposable);
-  context.subscriptions.push(configPyCodeLensDisposable);
 
   return { verticalDiffCodeLens };
 }

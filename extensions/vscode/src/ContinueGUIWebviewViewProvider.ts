@@ -22,9 +22,7 @@ export class ContinueGUIWebviewViewProvider
   private updateDebugLogsStatus() {
     const settings = vscode.workspace.getConfiguration(EXTENSION_NAME);
     this.enableDebugLogs = settings.get<boolean>("enableDebugLogs", false);
-    if (this.enableDebugLogs) {
-      this.outputChannel.show(true);
-    } else {
+    if (!this.enableDebugLogs) {
       this.outputChannel.hide();
     }
   }
@@ -35,9 +33,7 @@ export class ContinueGUIWebviewViewProvider
       if (event.affectsConfiguration("epico-pilot.enableDebugLogs")) {
         const settings = vscode.workspace.getConfiguration(EXTENSION_NAME);
         const enableDebugLogs = settings.get<boolean>("enableDebugLogs", false);
-        if (enableDebugLogs) {
-          this.outputChannel.show(true);
-        } else {
+        if (!enableDebugLogs) {
           this.outputChannel.hide();
         }
       }
@@ -168,7 +164,15 @@ export class ContinueGUIWebviewViewProvider
 
     const currentTheme = getTheme();
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("workbench.colorTheme")) {
+      if (
+        e.affectsConfiguration("workbench.colorTheme") ||
+        e.affectsConfiguration("window.autoDetectColorScheme") ||
+        e.affectsConfiguration("window.autoDetectHighContrast") ||
+        e.affectsConfiguration("workbench.preferredDarkColorTheme") ||
+        e.affectsConfiguration("workbench.preferredLightColorTheme") ||
+        e.affectsConfiguration("workbench.preferredHighContrastColorTheme") ||
+        e.affectsConfiguration("workbench.preferredHighContrastLightColorTheme")
+      ) {
         // Send new theme to GUI to update embedded Monaco themes
         this.webviewProtocol?.request("setTheme", { theme: getTheme() });
       }
@@ -188,7 +192,7 @@ export class ContinueGUIWebviewViewProvider
       </head>
       <body>
         <div id="root"></div>
-        
+
         ${
           inDevelopmentMode
             ? `<script type="module">

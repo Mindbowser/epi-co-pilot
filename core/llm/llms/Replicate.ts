@@ -1,6 +1,6 @@
 import ReplicateClient from "replicate";
 
-import { CompletionOptions, LLMOptions, ModelProvider } from "../../index.js";
+import { CompletionOptions, LLMOptions } from "../../index.js";
 import { BaseLLM } from "../index.js";
 
 class Replicate extends BaseLLM {
@@ -35,17 +35,19 @@ class Replicate extends BaseLLM {
     "phind-codellama-34b": "kcaverly/phind-codellama-34b-v2-gguf" as any,
   };
 
-  static providerName: ModelProvider = "replicate";
+  static providerName = "replicate";
   private _replicate: ReplicateClient;
 
   private _convertArgs(
     options: CompletionOptions,
     prompt: string,
-  ): [`${string}/${string}:${string}`, { input: any }] {
+    signal: AbortSignal,
+  ): [`${string}/${string}:${string}`, { input: any; signal: AbortSignal }] {
     return [
       Replicate.MODEL_IDS[options.model] || (options.model as any),
       {
         input: { prompt, message: prompt },
+        signal,
       },
     ];
   }
@@ -57,9 +59,10 @@ class Replicate extends BaseLLM {
 
   protected async _complete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): Promise<string> {
-    const [model, args] = this._convertArgs(options, prompt);
+    const [model, args] = this._convertArgs(options, prompt, signal);
     const response = await this._replicate.run(model, args);
 
     return (response as any)[0];
@@ -67,9 +70,10 @@ class Replicate extends BaseLLM {
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
-    const [model, args] = this._convertArgs(options, prompt);
+    const [model, args] = this._convertArgs(options, prompt, signal);
     for await (const event of this._replicate.stream(model, args)) {
       if (event.event === "output") {
         yield event.data;

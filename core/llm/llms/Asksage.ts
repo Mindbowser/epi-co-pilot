@@ -1,13 +1,8 @@
-import {
-  ChatMessage,
-  CompletionOptions,
-  LLMOptions,
-  ModelProvider,
-} from "../../index.js";
+import { ChatMessage, CompletionOptions, LLMOptions } from "../../index.js";
 import { BaseLLM } from "../index.js";
 
 class Asksage extends BaseLLM {
-  static providerName: ModelProvider = "askSage";
+  static providerName = "askSage";
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.asksage.ai/server/",
     model: "gpt-4o",
@@ -62,13 +57,15 @@ class Asksage extends BaseLLM {
       temperature: options.temperature ?? 0.0,
       live: options.live ?? 0,
       model: this._convertModelName(options.model),
-      system_prompt: options.systemPrompt ?? "You are an expert software developer. You give helpful and concise responses.",
+      system_prompt:
+        options.systemPrompt ??
+        "You are an expert software developer. You give helpful and concise responses.",
       tools: options.tools,
       tool_choice: options.toolChoice,
     };
 
     Object.keys(args).forEach(
-      (key) => args[key] === undefined && delete args[key]
+      (key) => args[key] === undefined && delete args[key],
     );
 
     return args;
@@ -89,7 +86,7 @@ class Asksage extends BaseLLM {
   protected _getEndpoint(endpoint: string) {
     if (!this.apiBase) {
       throw new Error(
-        "No API base URL provided. Please set the 'apiBase' option."
+        "No API base URL provided. Please set the 'apiBase' option.",
       );
     }
 
@@ -98,7 +95,8 @@ class Asksage extends BaseLLM {
 
   protected async _complete(
     prompt: string,
-    options: CompletionOptions
+    signal: AbortSignal,
+    options: CompletionOptions,
   ): Promise<string> {
     if (typeof prompt !== "string" || prompt.trim() === "") {
       throw new Error("Prompt must be a non-empty string.");
@@ -116,7 +114,7 @@ class Asksage extends BaseLLM {
 
     if (!response.ok) {
       throw new Error(
-        `API request failed with status ${response.status}: ${response.statusText}`
+        `API request failed with status ${response.status}: ${response.statusText}`,
       );
     }
 
@@ -126,15 +124,17 @@ class Asksage extends BaseLLM {
 
   protected async *_streamComplete(
     prompt: string,
-    options: CompletionOptions
+    signal: AbortSignal,
+    options: CompletionOptions,
   ): AsyncGenerator<string> {
-    const completion = await this._complete(prompt, options);
+    const completion = await this._complete(prompt, signal, options);
     yield completion;
   }
 
   protected async *_streamChat(
     messages: ChatMessage[],
-    options: CompletionOptions
+    signal: AbortSignal,
+    options: CompletionOptions,
   ): AsyncGenerator<ChatMessage> {
     const args = this._convertArgs(options, messages);
 
@@ -142,11 +142,12 @@ class Asksage extends BaseLLM {
       method: "POST",
       headers: this._getHeaders(),
       body: JSON.stringify(args),
+      signal,
     });
 
     if (!response.ok) {
       throw new Error(
-        `API request failed with status ${response.status}: ${response.statusText}`
+        `API request failed with status ${response.status}: ${response.statusText}`,
       );
     }
 

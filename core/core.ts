@@ -1,5 +1,6 @@
 import path from "path";
 
+import { fetchwithRequestOptions } from "@continuedev/fetch";
 import ignore from "ignore";
 import { v4 as uuidv4 } from "uuid";
 
@@ -19,22 +20,24 @@ import { ControlPlaneClient } from "./control-plane/client";
 import { streamDiffLines } from "./edit/streamDiffLines";
 import { CodebaseIndexer, PauseToken } from "./indexing/CodebaseIndexer";
 import DocsService from "./indexing/docs/DocsService";
+import { getAllSuggestedDocs } from "./indexing/docs/suggestions";
 import { defaultIgnoreFile } from "./indexing/ignore.js";
 import Ollama from "./llm/llms/Ollama";
 import { createNewPromptFileV2 } from "./promptFiles/v2/createNewPromptFile";
+import { callTool } from "./tools/callTool";
 import { ChatDescriber } from "./util/chatDescriber";
 import { logDevData } from "./util/devdata";
 import { DevDataSqliteDb } from "./util/devdataSqlite";
-import { fetchwithRequestOptions } from "./util/fetchWithOptions";
 import { GlobalContext } from "./util/GlobalContext";
 import historyManager from "./util/history";
 import { editConfigJson, setupInitialDotContinueDirectory } from "./util/paths";
 import { Telemetry } from "./util/posthog";
+import { getSymbolsForManyFiles } from "./util/treeSitter";
 import { TTS } from "./util/tts";
 
 import type { ContextItemId, IDE, IndexingProgressUpdate } from ".";
 import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
-import type { IMessenger, Message } from "./util/messenger";
+import type { IMessenger, Message } from "./protocol/messenger";
 
 export class Core {
   // implements IMessenger<ToCoreProtocol, FromCoreProtocol>
@@ -42,7 +45,7 @@ export class Core {
   codebaseIndexerPromise: Promise<CodebaseIndexer>;
   completionProvider: CompletionProvider;
   continueServerClientPromise: Promise<ContinueServerClient>;
-  indexingState: IndexingProgressUpdate;
+  codebaseIndexingState: IndexingProgressUpdate;
   controlPlaneClient: ControlPlaneClient;
   private docsService: DocsService;
   private globalContext = new GlobalContext();
@@ -53,14 +56,8 @@ export class Core {
 
   private abortedMessageIds: Set<string> = new Set();
 
-  private selectedModelTitle: string | undefined;
-
   private async config() {
     return this.configHandler.loadConfig();
-  }
-
-  private async getSelectedModel() {
-    return await this.configHandler.llmFromTitle(this.selectedModelTitle);
   }
 
   invoke<T extends keyof ToCoreProtocol>(
@@ -88,7 +85,11 @@ export class Core {
     // Ensure .continue directory is created
     setupInitialDotContinueDirectory();
 
-    this.indexingState = { status: "loading", desc: "loading", progress: 0 };
+    this.codebaseIndexingState = {
+      status: "loading",
+      desc: "loading",
+      progress: 0,
+    };
 
     const ideSettingsPromise = messenger.request("getIdeSettings", undefined);
     const sessionInfoPromise = messenger.request("getControlPlaneSessionInfo", {
@@ -149,8 +150,9 @@ export class Core {
       void this.ide.getWorkspaceDirs().then(async (dirs) => {
         // Respect pauseCodebaseIndexOnStart user settings
         if (ideSettings.pauseCodebaseIndexOnStart) {
+          this.indexingPauseToken.paused = true;
           void this.messenger.request("indexProgress", {
-            progress: 1,
+            progress: 0,
             desc: "Initial Indexing Skipped",
             status: "paused",
           });
@@ -187,11 +189,6 @@ export class Core {
         stack: err.stack,
       });
       void this.ide.showToast("error", err.message);
-    });
-
-    // New
-    on("update/modelChange", (msg) => {
-      this.selectedModelTitle = msg.data;
     });
 
     on("update/selectTabAutocompleteModel", async (msg) => {
@@ -258,6 +255,10 @@ export class Core {
       await this.configHandler.reloadConfig();
     });
 
+    on("config/openProfile", async (msg) => {
+      await this.configHandler.openConfigProfile(msg.data.profileId);
+    });
+
     on("config/reload", (msg) => {
       void this.configHandler.reloadConfig();
       return this.configHandler.getSerializedConfig();
@@ -272,34 +273,15 @@ export class Core {
 
     // Context providers
     on("context/addDocs", async (msg) => {
-      let hasFailed = false;
-
-      for await (const result of this.docsService.indexAndAdd(msg.data)) {
-        if (result.status === "failed") {
-          hasFailed = true;
-          break;
-        }
-      }
-
-      if (hasFailed) {
-        void this.ide.showToast("info", `Failed to index ${msg.data.startUrl}`);
-      } else {
-        void this.ide.showToast(
-          "info",
-          `Successfully indexed ${msg.data.startUrl}`,
-        );
-        this.messenger.send("refreshSubmenuItems", undefined);
-      }
+      void this.docsService.indexAndAdd(msg.data);
     });
 
     on("context/removeDocs", async (msg) => {
       await this.docsService.delete(msg.data.startUrl);
-      this.messenger.send("refreshSubmenuItems", undefined);
     });
 
     on("context/indexDocs", async (msg) => {
-      await this.docsService.indexAllDocs(msg.data.reIndex);
-      this.messenger.send("refreshSubmenuItems", undefined);
+      await this.docsService.syncOrReindexAllDocsWithPrompt(msg.data.reIndex);
     });
 
     on("context/loadSubmenuItems", async (msg) => {
@@ -316,9 +298,10 @@ export class Core {
     });
 
     on("context/getContextItems", async (msg) => {
-      const { name, query, fullInput, selectedCode } = msg.data;
+      const { name, query, fullInput, selectedCode, selectedModelTitle } =
+        msg.data;
       const config = await this.config();
-      const llm = await this.getSelectedModel();
+      const llm = await this.configHandler.llmFromTitle(selectedModelTitle);
       const provider = config.contextProviders?.find(
         (provider) => provider.description.title === name,
       );
@@ -365,6 +348,11 @@ export class Core {
       }
     });
 
+    on("context/getSymbolsForFiles", async (msg) => {
+      const { uris } = msg.data;
+      return await getSymbolsForManyFiles(uris, this.ide);
+    });
+
     on("config/getSerializedProfileInfo", async (msg) => {
       return {
         config: await this.configHandler.getSerializedConfig(),
@@ -378,15 +366,16 @@ export class Core {
       msg: Message<ToCoreProtocol["llm/streamChat"][0]>,
     ) {
       const config = await configHandler.loadConfig();
-
       // Stop TTS on new StreamChat
       if (config.experimental?.readResponseTTS) {
         void TTS.kill();
       }
 
       const model = await configHandler.llmFromTitle(msg.data.title);
+
       const gen = model.streamChat(
         msg.data.messages,
+        new AbortController().signal,
         msg.data.completionOptions,
       );
       let next = await gen.next();
@@ -404,14 +393,27 @@ export class Core {
           });
           break;
         }
+
+        const chunk = next.value;
+
         // @ts-ignore
-        yield { content: next.value.content };
+        yield { content: chunk };
         next = await gen.next();
       }
 
       if (config.experimental?.readResponseTTS && "completion" in next.value) {
         void TTS.read(next.value?.completion);
       }
+
+      void Telemetry.capture(
+        "chat",
+        {
+          model: model.model,
+          provider: model.providerName,
+        },
+        true,
+      );
+
       return { done: true, content: next.value };
     }
 
@@ -428,6 +430,7 @@ export class Core {
       const model = await configHandler.llmFromTitle(msg.data.title);
       const gen = model.streamComplete(
         msg.data.prompt,
+        new AbortController().signal,
         msg.data.completionOptions,
       );
       let next = await gen.next();
@@ -460,6 +463,7 @@ export class Core {
       const model = await this.configHandler.llmFromTitle(msg.data.title);
       const completion = await model.complete(
         msg.data.prompt,
+        new AbortController().signal,
         msg.data.completionOptions,
       );
       return completion;
@@ -471,7 +475,7 @@ export class Core {
         config.models.find((model) => model.title?.startsWith(msg.data.title));
       try {
         if (model) {
-          return model.listModels();
+          return await model.listModels();
         } else {
           if (msg.data.title === "Ollama") {
             const models = await new Ollama({ model: "" }).listModels();
@@ -495,8 +499,10 @@ export class Core {
     });
 
     on("chatDescriber/describe", async (msg) => {
-      const currentModel = await this.getSelectedModel();
-      return await ChatDescriber.describe(currentModel, {}, msg.data);
+      const currentModel = await this.configHandler.llmFromTitle(
+        msg.data.selectedModelTitle,
+      );
+      return await ChatDescriber.describe(currentModel, {}, msg.data.text);
     });
 
     async function* runNodeJsSlashCommand(
@@ -540,33 +546,39 @@ export class Core {
         }
       }, 100);
 
-      for await (const content of slashCommand.run({
-        input,
-        history,
-        llm,
-        contextItems,
-        params,
-        ide,
-        addContextItem: (item) => {
-          void messenger.request("addContextItem", {
-            item,
-            historyIndex,
-          });
-        },
-        selectedCode,
-        config,
-        fetch: (url, init) =>
-          fetchwithRequestOptions(url, init, config.requestOptions),
-      })) {
-        if (abortedMessageIds.has(msg.messageId)) {
-          abortedMessageIds.delete(msg.messageId);
-          break;
+      try {
+        for await (const content of slashCommand.run({
+          input,
+          history,
+          llm,
+          contextItems,
+          params,
+          ide,
+          addContextItem: (item) => {
+            void messenger.request("addContextItem", {
+              item,
+              historyIndex,
+            });
+          },
+          selectedCode,
+          config,
+          fetch: (url, init) =>
+            fetchwithRequestOptions(url, init, config.requestOptions),
+        })) {
+          if (abortedMessageIds.has(msg.messageId)) {
+            abortedMessageIds.delete(msg.messageId);
+            clearInterval(checkActiveInterval);
+            break;
+          }
+          if (content) {
+            yield { content };
+          }
         }
-        if (content) {
-          yield { content };
-        }
+      } catch (e) {
+        throw e;
+      } finally {
+        clearInterval(checkActiveInterval);
       }
-      clearInterval(checkActiveInterval);
       yield { done: true, content: "" };
     }
     on("command/run", (msg) =>
@@ -678,6 +690,8 @@ export class Core {
       const rows = await DevDataSqliteDb.getTokensPerModel();
       return rows;
     });
+
+    // Codebase indexing
     on("index/forceReIndex", async ({ data }) => {
       if (data?.shouldClearIndexes) {
         const codebaseIndexer = await this.codebaseIndexerPromise;
@@ -693,16 +707,48 @@ export class Core {
       }
     });
     on("index/setPaused", (msg) => {
-      new GlobalContext().update("indexingPaused", msg.data);
+      this.globalContext.update("indexingPaused", msg.data);
       this.indexingPauseToken.paused = msg.data;
     });
     on("index/indexingProgressBarInitialized", async (msg) => {
       // Triggered when progress bar is initialized.
       // If a non-default state has been stored, update the indexing display to that state
-      if (this.indexingState.status !== "loading") {
-        void this.messenger.request("indexProgress", this.indexingState);
+      if (this.codebaseIndexingState.status !== "loading") {
+        void this.messenger.request(
+          "indexProgress",
+          this.codebaseIndexingState,
+        );
       }
     });
+
+    // Docs, etc. indexing
+    on("indexing/reindex", async (msg) => {
+      if (msg.data.type === "docs") {
+        void this.docsService.reindexDoc(msg.data.id);
+      }
+    });
+    on("indexing/abort", async (msg) => {
+      if (msg.data.type === "docs") {
+        this.docsService.abort(msg.data.id);
+      }
+    });
+    on("indexing/setPaused", async (msg) => {
+      if (msg.data.type === "docs") {
+        // this.docsService.setPaused(msg.data.id, msg.data.paused);
+      }
+    });
+    on("docs/getSuggestedDocs", async (msg) => {
+      if (hasRequestedDocs) {
+        return;
+      } // TODO, remove, hack because of rerendering
+      hasRequestedDocs = true;
+      const suggestedDocs = await getAllSuggestedDocs(this.ide);
+      this.messenger.send("docs/suggestions", suggestedDocs);
+    });
+    on("docs/initStatuses", async (msg) => {
+      void this.docsService.initStatuses();
+    });
+    //
 
     on("didChangeSelectedProfile", (msg) => {
       void this.configHandler.setSelectedProfile(msg.data.id);
@@ -720,9 +766,43 @@ export class Core {
       const ignoreInstance = ignore().add(defaultIgnoreFile);
       let rootDirectory = await this.ide.getWorkspaceDirs();
       const relativeFilePath = path.relative(rootDirectory[0], filepath);
-      if (!ignoreInstance.ignores(relativeFilePath)) {
-        recentlyEditedFilesCache.set(filepath, filepath);
+      try {
+        if (!ignoreInstance.ignores(relativeFilePath)) {
+          recentlyEditedFilesCache.set(filepath, filepath);
+        }
+      } catch (e) {
+        if (e instanceof RangeError) {
+          // do nothing, this can happen when editing a file outside the workspace such as `../extensions/.continue-debug/config.json`
+        } else {
+          console.debug("unhandled ignores error", relativeFilePath, e);
+        }
       }
+    });
+
+    on("tools/call", async ({ data: { toolCall, selectedModelTitle } }) => {
+      const config = await this.configHandler.loadConfig();
+      const tool = config.tools.find(
+        (t) => t.function.name === toolCall.function.name,
+      );
+
+      if (!tool) {
+        throw new Error(`Tool ${toolCall.function.name} not found`);
+      }
+
+      const llm = await this.configHandler.llmFromTitle(selectedModelTitle);
+
+      const contextItems = await callTool(
+        tool.uri ?? tool.function.name,
+        JSON.parse(toolCall.function.arguments || "{}"),
+        {
+          ide: this.ide,
+          llm,
+          fetch: (url, init) =>
+            fetchwithRequestOptions(url, init, config.requestOptions),
+        },
+      );
+
+      return { contextItems };
     });
   }
 
@@ -753,6 +833,8 @@ export class Core {
       this.indexingCancellationController.signal,
     )) {
       let updateToSend = { ...update };
+      // TODO reconsider this status overwrite?
+      // original goal was to not concern users with edge noncritical errors
       if (update.status === "failed") {
         updateToSend.status = "done";
         updateToSend.desc = "Indexing complete";
@@ -760,7 +842,7 @@ export class Core {
       }
 
       void this.messenger.request("indexProgress", updateToSend);
-      this.indexingState = updateToSend;
+      this.codebaseIndexingState = updateToSend;
 
       if (update.status === "failed") {
         void this.sendIndexingErrorTelemetry(update);
@@ -777,10 +859,7 @@ export class Core {
       this.indexingCancellationController &&
       !this.indexingCancellationController.signal.aborted
     ) {
-      return console.debug(
-        "Codebase indexing already in progress, skipping indexing of files\n" +
-          files.join("\n"),
-      );
+      return;
     }
     this.indexingCancellationController = new AbortController();
     for await (const update of (await this.codebaseIndexerPromise).refreshFiles(
@@ -794,7 +873,7 @@ export class Core {
       }
 
       void this.messenger.request("indexProgress", updateToSend);
-      this.indexingState = updateToSend;
+      this.codebaseIndexingState = updateToSend;
 
       if (update.status === "failed") {
         void this.sendIndexingErrorTelemetry(update);
@@ -803,4 +882,8 @@ export class Core {
 
     this.messenger.send("refreshSubmenuItems", undefined);
   }
+
+  // private
 }
+
+let hasRequestedDocs = false;

@@ -135,14 +135,12 @@ cached_embeddings.pkl
 .ruff_cache
 codeql
 
-**/.continue
 .DS_Store
-.continue
 .test
 .tiktoken_cache
 
 
-# IntelliJ Plugin 
+# IntelliJ Plugin
 **/**/.gradle
 **/**/.qodana
 **/**/build
@@ -153,9 +151,7 @@ continue_server.dist
 Icon
 Icon?
 
-.continue
 .continuerc.json
-.prompts/
 .aider*
 
 notes.md
@@ -169,3 +165,6 @@ extensions/intellij/.idea/**
 
 extensions/intellij/bin
 extensions/.epico-pilot-debug/
+extensions/.continue-debug/
+
+*.vsix

@@ -13,10 +13,10 @@ import ModelCard from "../../components/modelSelection/ModelCard";
 import Toggle from "../../components/modelSelection/Toggle";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
-import { setDefaultModel } from "../../redux/slices/stateSlice";
 import { ModelPackage, models } from "./configs/models";
 import { providers } from "./configs/providers";
 import { CustomModelButton } from "./ConfigureProvider";
+import { setDefaultModel } from "../../redux/slices/configSlice";
 
 const IntroDiv = styled.div`
   padding: 8px 12px;
@@ -211,7 +211,9 @@ function AddNewModel() {
           className="mt-12"
           disabled={false}
           onClick={(e) => {
-            ideMessenger.post("openConfigJson", undefined);
+            ideMessenger.post("config/openProfile", {
+              profileId: "local",
+            });
           }}
         >
           <h3 className="my-2 text-center">

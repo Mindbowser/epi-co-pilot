@@ -17,7 +17,6 @@ import {
   RefreshIndexResults,
 } from "./types.js";
 import { walkDirAsync } from "./walkDir.js";
-import { getBasename } from "../util/index.js";
 
 export class PauseToken {
   constructor(private _paused: boolean) {}
@@ -83,7 +82,7 @@ export class CodebaseIndexer {
         this.ide.readFile.bind(this.ide),
         pathSep,
         this.continueServerClient,
-        config.embeddingsProvider.maxChunkSize,
+        config.embeddingsProvider.maxEmbeddingChunkSize,
       ), // Chunking must come first
       new LanceDbIndex(
         config.embeddingsProvider,
@@ -145,9 +144,7 @@ export class CodebaseIndexer {
     }
   }
 
-  async *refreshFiles(
-    files: string[],
-  ): AsyncGenerator<IndexingProgressUpdate> {
+  async *refreshFiles(files: string[]): AsyncGenerator<IndexingProgressUpdate> {
     let progress = 0;
     if (files.length === 0) {
       yield {
@@ -192,9 +189,9 @@ export class CodebaseIndexer {
 
     if (dirs.length === 0) {
       yield {
-        progress,
+        progress: 1,
         desc: "Nothing to index",
-        status: "disabled",
+        status: "done",
       };
       return;
     }
@@ -238,9 +235,9 @@ export class CodebaseIndexer {
         directoryFiles.push(p);
         if (abortSignal.aborted) {
           yield {
-            progress: 1,
+            progress: 0,
             desc: "Indexing cancelled",
-            status: "disabled",
+            status: "cancelled",
           };
           return;
         }
@@ -263,9 +260,9 @@ export class CodebaseIndexer {
           // Handle pausing in this loop because it's the only one really taking time
           if (abortSignal.aborted) {
             yield {
-              progress: 1,
+              progress: 0,
               desc: "Indexing cancelled",
-              status: "disabled",
+              status: "cancelled",
             };
             return;
           }

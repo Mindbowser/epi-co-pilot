@@ -1,9 +1,9 @@
+import * as JSONC from "comment-json";
+import dotenv from "dotenv";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-
-import * as JSONC from "comment-json";
-import dotenv from "dotenv";
+import { pathToFileURL } from "url";
 
 import { IdeType, SerializedContinueConfig } from "../";
 import { defaultConfig, defaultConfigJetBrains } from "../config/default";
@@ -15,6 +15,10 @@ const CONTINUE_GLOBAL_DIR =
   process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".epico-pilot");
 
 const REMOTE_LANCE_DB_URL = process.env.REMOTE_LANCE_DB_URL ?? "s3://epico-pilot-lance-db/lancedb/";
+
+// export const DEFAULT_CONFIG_TS_CONTENTS = `import { Config } from "./types"\n\nexport function modifyConfig(config: Config): Config {
+//   return config;
+// }`;
 
 export const DEFAULT_CONFIG_TS_CONTENTS = `export function modifyConfig(config: Config): Config {
   return config;
@@ -43,6 +47,9 @@ export function getGlobalContinueIgnorePath(): string {
   return continueIgnorePath;
 }
 
+/*
+  Deprecated, replace with getContinueGlobalUri where possible
+*/
 export function getContinueGlobalPath(): string {
   // This is ~/.epico-pilot on mac/linux
   const continuePath = CONTINUE_GLOBAL_DIR;
@@ -50,6 +57,10 @@ export function getContinueGlobalPath(): string {
     fs.mkdirSync(continuePath);
   }
   return continuePath;
+}
+
+export function getContinueGlobalUri(): string {
+  return pathToFileURL(CONTINUE_GLOBAL_DIR).href;
 }
 
 export function getSessionsFolderPath(): string {
@@ -93,6 +104,18 @@ export function getConfigJsonPath(ideType: IdeType = "vscode"): string {
         fs.writeFileSync(p, JSON.stringify(defaultConfig, null, 2));
     }
   }
+  return p;
+}
+
+export function getConfigYamlPath(ideType: IdeType): string {
+  const p = path.join(getContinueGlobalPath(), "config.yaml");
+  // if (!fs.existsSync(p)) {
+  //   if (ideType === "jetbrains") {
+  //     fs.writeFileSync(p, YAML.stringify(defaultConfigYamlJetBrains));
+  //   } else {
+  //     fs.writeFileSync(p, YAML.stringify(defaultConfigYaml));
+  //   }
+  // }
   return p;
 }
 

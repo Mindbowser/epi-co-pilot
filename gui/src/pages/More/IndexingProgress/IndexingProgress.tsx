@@ -10,10 +10,7 @@ import IndexingProgressTitleText from "./IndexingProgressTitleText";
 import IndexingProgressSubtext from "./IndexingProgressSubtext";
 import { usePostHog } from "posthog-js/react";
 import ConfirmationDialog from "../../../components/dialogs/ConfirmationDialog";
-import {
-  setShowDialog,
-  setDialogMessage,
-} from "../../../redux/slices/uiStateSlice";
+import { setShowDialog, setDialogMessage } from "../../../redux/slices/uiSlice";
 import IndexingProgressErrorText from "./IndexingProgressErrorText";
 
 export function getProgressPercentage(
@@ -98,7 +95,9 @@ function IndexingProgress() {
         }
         break;
       case "disabled":
-        ideMessenger.post("openConfigJson", undefined);
+        ideMessenger.post("config/openProfile", {
+          profileId: undefined,
+        });
         break;
       case "done":
         ideMessenger.post("index/forceReIndex", undefined);

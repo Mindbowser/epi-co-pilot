@@ -63,7 +63,7 @@ function sayHello() {
 `,
     llmOutput: `world!");
 `,
-    expectedCompletion: "world!\");",
+    expectedCompletion: 'world!");',
   },
   {
     description: "Should autocomplete Java when inside a block",
@@ -110,6 +110,7 @@ Here is a list of features:
 - Feature 2`,
   },
   {
+    // options: { only: true },
     description: "Should autocomplete a Java method within a class",
     filename: "Calculator.java",
     input: `
@@ -131,10 +132,6 @@ public class Calculator {
     }
 `,
     expectedCompletion: `
-    }
-
-    public void subtract(double number) {
-        result -= number;
     }`,
   },
   {
@@ -154,26 +151,8 @@ public class Calculator {
             POSTGRES_DB: mydb
     `,
     expectedCompletion: `
-            POSTGRES_DB: mydb
-    `,
+            POSTGRES_DB: mydb`,
   },
-  // TODO
-  //   {
-  //     description: "Should autocomplete a Markdown list with nested items",
-  //     filename: "test.md",
-  //     input: `
-  // - Item 1
-  // - Item 2
-  //   - Subitem 1
-  //   <|fim|>
-  // - Item 3
-  // `,
-  //     llmOutput: `  - Subitem 2
-  //   - Subitem 3
-  // `,
-  //     expectedCompletion: `  - Subitem 2
-  //   - Subitem 3`,
-  //   },
   {
     description: "Should enforce bracket matching in JSON files",
     filename: "test.json",
@@ -185,7 +164,7 @@ public class Calculator {
     "state": "California",
     "city": "San BERNARDINO",
     "coordinates": {
-      <FIM>
+      <|fim|>
     }
   },
   "employees": [
@@ -234,8 +213,171 @@ public class Calculator {
     "required": ["JavaScript", "React", "Node.js", "Leadership", "Project Management"],
     "optional": ["Photoshop", "Illustrator"]`,
     expectedCompletion: `"latitude": 34.10834,
-      "longitude": -117.28977
+      "longitude": -117.28977`,
+  },
+  {
+    description:
+      "Should return nothing when output is duplicated lines in TypeScript",
+    filename: "file.ts",
+    input: `
+async getContextForPath(
+    filepath: string,
+    astPath: AstPatt,
+    language: LanguageName,
+    options: ContextOptions = {},
+<|fim|>
+  ): Promise<AutocompleteCodeSnippet[]> {
+    const snippets: AutocompleteCodeSnippet[] = [];
+    let parentKey = filepath;
+`,
+    llmOutput: `  ): Promise<AutocompleteCodeSnippet[]> {
+    const snippets: AutocompleteCodeSnippet[] = [];
     `,
+    expectedCompletion: undefined,
+  },
+  {
+    description:
+      "Should return partial result when output is duplicated lines in TypeScript",
+    filename: "file.ts",
+    input: `
+async getContextForPath(
+    filepath: string,
+    astPath: AstPatt,
+    language: LanguageName,
+    options: ContextOptions = {},
+<|fim|>
+  ): Promise<AutocompleteCodeSnippet[]> {
+    const snippets: AutocompleteCodeSnippet[] = [];
+    let parentKey = filepath;
+`,
+    llmOutput: `console.log('TEST');
+      ): Promise<AutocompleteCodeSnippet[]> {
+    const snippets: AutocompleteCodeSnippet[] = [];
+    `,
+    expectedCompletion: `console.log('TEST');`,
+  },
+  {
+    description: "Should autocomplete React effect hook",
+    input: `import React, { useState, useEffect } from "react";
+
+export const Timer = () => {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(seconds + 1);
+    }, 1000);
+
+    <|fim|>;
+
+    return () => clearInterval(interval);
+  }, [seconds]);
+
+  return (
+    <div>
+      <p>{seconds} seconds have passed.</p>
+    </div>
+  );
+};`,
+    llmOutput: "return () => clearInterval(interval);",
+    expectedCompletion: undefined,
+    filename: "Timer.tsx",
+  },
+  {
+    description: "Should autocomplete simple return statement in TypeScript",
+    filename: "file.ts",
+    input: `
+  multiply(number) {
+    this.result *= number;
+    return <|fim|>
+  }
+
+  divide(number) {
+    if (number === 0) {
+      throw new Error("Cannot divide by zero");
+    }
+    this.result /= number;
+    return this;
+  }
+`,
+    llmOutput: ` this;`,
+    expectedCompletion: `this;`,
+  },
+  {
+    description: "Should complete YAML list item and preserve structure",
+    filename: "test.yaml",
+    input: `
+      services:
+        - name: web
+          image: nginx
+        - name: app<|fim|>
+      volumes:
+        - volume1
+        - volume2
+    `,
+    llmOutput: `
+          image: node
+    `,
+    expectedCompletion: `
+          image: node`,
+  },
+  {
+    description:
+      "Should complete YAML key-value pair inside a nested structure",
+    filename: "test.yaml",
+    input: `
+      version: '3'
+      services:
+        db:
+          image: postgres
+          environment:
+            POSTGRES_USER: user
+            POSTGRES_PASSWORD: pass
+            POSTGRES_DB: mydb<|fim|>
+    `,
+    llmOutput: `
+            PGDATA: /var/lib/postgresql/data/pgdata
+    `,
+    expectedCompletion: `
+            PGDATA: /var/lib/postgresql/data/pgdata`,
+  },
+  {
+    description: "Should complete YAML block within an existing block",
+    filename: "test.yaml",
+    input: `
+      pipelines:
+        branches:
+          master:
+            - step:
+                name: Build and Test
+                script:
+                  - npm install
+                  - npm run test
+            - step:
+                name: Deploy<|fim|>
+    `,
+    llmOutput: `
+                script:
+                  - npm run deploy
+    `,
+    expectedCompletion: `
+                script:
+                  - npm run deploy`,
+  },
+  {
+    description:
+      "Should autocomplete SQL query with subquery and alias in SELECT clause",
+    filename: "complex_query.sql",
+    input: `SELECT u.id, 
+                  u.name, 
+                  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS order_count
+          FROM users u
+          WHERE u.active = 1
+          <|fim|>`,
+    llmOutput:
+      " AND EXISTS (SELECT 1 FROM transactions t WHERE t.user_id = u.id AND t.amount > 100)",
+    expectedCompletion:
+      "AND EXISTS (SELECT 1 FROM transactions t WHERE t.user_id = u.id AND t.amount > 100)",
   },
 ];
 
@@ -489,8 +631,8 @@ echo calculateArea(5, 3);`,
 $colors = array("Red", "Green", <|fim|>);
 
 echo "First color is: " . $colors[0];`,
-    llmOutput: "\"Blue\"",
-    expectedCompletion: "\"Blue\"",
+    llmOutput: '"Blue"',
+    expectedCompletion: '"Blue"',
     filename: "colors.php",
   },
   {
@@ -534,35 +676,6 @@ export const Counter = () => {
     expectedCompletion: "0",
     filename: "Counter.tsx",
   },
-
-  {
-    description: "Should autocomplete React effect hook",
-    input: `import React, { useState, useEffect } from "react";
-
-export const Timer = () => {
-  const [seconds, setSeconds] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds(seconds + 1);
-    }, 1000);
-
-    <|fim|>;
-
-    return () => clearInterval(interval);
-  }, [seconds]);
-
-  return (
-    <div>
-      <p>{seconds} seconds have passed.</p>
-    </div>
-  );
-};`,
-    llmOutput: "return () => clearInterval(interval);",
-    expectedCompletion: "return () => clearInterval(interval);",
-    filename: "Timer.tsx",
-  },
-
   {
     description: "Should autocomplete React component methods",
     input: `import React from "react";
@@ -697,8 +810,7 @@ func main() {}`,
 }`,
     expectedCompletion: `string
     State   string
-    ZipCode string
-}`,
+    ZipCode string`,
   },
 
   {
@@ -750,7 +862,7 @@ func main() {
   CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100),
-    price DECIMAL(8,2) NOT NULL<FIM> '0.00',
+    price DECIMAL(8,2) NOT NULL<|fim|> '0.00',
     quantity INT NOT NULL DEFAULT '0'
   );
   
@@ -764,19 +876,6 @@ func main() {
   `,
     llmOutput: " DEFAULT",
     expectedCompletion: " DEFAULT",
-  },
-  {
-    description:
-      "Should autocomplete SQL query with subquery and alias in SELECT clause",
-    filename: "complex_query.sql",
-    input: `SELECT u.id, 
-                  u.name, 
-                  (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS order_count
-          FROM users u
-          WHERE u.active = 1
-          <|fim|>`,
-    llmOutput: " AND EXISTS (SELECT 1 FROM transactions t WHERE t.user_id = u.id AND t.amount > 100)",
-    expectedCompletion: " AND EXISTS (SELECT 1 FROM transactions t WHERE t.user_id = u.id AND t.amount > 100)",
   },
   {
     description:
@@ -817,8 +916,8 @@ func main() {
     <p>Description text.</p>
   </div>
 </div>`,
-    llmOutput: "alt=\"Description of image\"",
-    expectedCompletion: "alt=\"Description of image\"",
+    llmOutput: 'alt="Description of image"',
+    expectedCompletion: 'alt="Description of image"',
     filename: "test.html",
   },
   {
@@ -930,8 +1029,8 @@ public class App {
     <|fim|>
   ]
 }`,
-    llmOutput: ", { \"id\": 3, \"name\": \"Charlie\" }",
-    expectedCompletion: ", { \"id\": 3, \"name\": \"Charlie\" }",
+    llmOutput: ', { "id": 3, "name": "Charlie" }',
+    expectedCompletion: ', { "id": 3, "name": "Charlie" }',
   },
   {
     description: "Should autocomplete within a CSV record",
@@ -960,70 +1059,6 @@ Smart<|fim|>`,
 2, B<|fim|>`,
     llmOutput: "ob, 2023-02-10",
     expectedCompletion: "ob, 2023-02-10",
-  },
-  {
-    description: "Should complete YAML list item and preserve structure",
-    filename: "test.yaml",
-    input: `
-      services:
-        - name: web
-          image: nginx
-        - name: app<|fim|>
-      volumes:
-        - volume1
-        - volume2
-    `,
-    llmOutput: `
-          image: node
-    `,
-    expectedCompletion: `
-          image: node
-    `,
-  },
-  {
-    description:
-      "Should complete YAML key-value pair inside a nested structure",
-    filename: "test.yaml",
-    input: `
-      version: '3'
-      services:
-        db:
-          image: postgres
-          environment:
-            POSTGRES_USER: user
-            POSTGRES_PASSWORD: pass
-            POSTGRES_DB: mydb<|fim|>
-    `,
-    llmOutput: `
-            PGDATA: /var/lib/postgresql/data/pgdata
-    `,
-    expectedCompletion: `
-            PGDATA: /var/lib/postgresql/data/pgdata
-    `,
-  },
-  {
-    description: "Should complete YAML block within an existing block",
-    filename: "test.yaml",
-    input: `
-      pipelines:
-        branches:
-          master:
-            - step:
-                name: Build and Test
-                script:
-                  - npm install
-                  - npm run test
-            - step:
-                name: Deploy<|fim|>
-    `,
-    llmOutput: `
-                script:
-                  - npm run deploy
-    `,
-    expectedCompletion: `
-                script:
-                  - npm run deploy
-    `,
   },
   {
     description:
@@ -1082,8 +1117,7 @@ impl Calculator {
         self.result /= number;
     } else {
         println!("Cannot divide by zero.");
-    }
-}`,
+    }`,
   },
   {
     description: "Should autocomplete Rust struct definition",
@@ -1237,8 +1271,8 @@ class Counter {
    :age 30
    <|fim|>
   (println "User information loaded"))`,
-    llmOutput: ":location \"Unknown\"}",
-    expectedCompletion: ":location \"Unknown\"}",
+    llmOutput: ':location "Unknown"}',
+    expectedCompletion: ':location "Unknown"}',
     filename: "test.clj",
   },
   {
@@ -1301,8 +1335,8 @@ if (grade >= 90) {
 } else {
   print("C")
 }`,
-    llmOutput: "print(\"B\")",
-    expectedCompletion: "print(\"B\")",
+    llmOutput: 'print("B")',
+    expectedCompletion: 'print("B")',
   },
   {
     description: "Should autocomplete R ggplot2 plot structure",
@@ -1324,8 +1358,8 @@ ggplot(data=mtcars, aes(x=wt, y=mpg)) +
         <|fim|>
       }
   }`,
-    llmOutput: "s\"Hello, my name is $name and I am $age years old.\"",
-    expectedCompletion: "s\"Hello, my name is $name and I am $age years old.\"",
+    llmOutput: 's"Hello, my name is $name and I am $age years old."',
+    expectedCompletion: 's"Hello, my name is $name and I am $age years old."',
   },
 
   {
@@ -1335,8 +1369,8 @@ ggplot(data=mtcars, aes(x=wt, y=mpg)) +
   case class Person(name: String, age: Int, address: Address)
   
   val alice = Person("Alice", 30, Address("Wonderland", <|fim|>))`,
-    llmOutput: "\"12345\")",
-    expectedCompletion: "\"12345\")",
+    llmOutput: '"12345")',
+    expectedCompletion: '"12345")',
   },
 
   {
@@ -1564,10 +1598,21 @@ interface User {
   age: number;
 }`,
     expectedCompletion: `mail: string;
-  age: number;
+  age: number;`,
+  },
+  {
+    description: "Should autocomplete TypeScript interface declarations",
+    filename: "autocomplete.ts",
+    input: `interface AutocompleteDiffSnippet extends BaseAutocompleteSnippet {}
+
+interface AutocompleteCodeSnippet`,
+    llmOutput: ` extends BaseAutocompleteSnippet {
+  filepath: string;
+}`,
+    expectedCompletion: ` extends BaseAutocompleteSnippet {
+  filepath: string;
 }`,
   },
-
   {
     description:
       "Should autocomplete a TypeScript arrow function inside a variable assignment",
@@ -1805,8 +1850,7 @@ let john = { FirstName = "John"; LastName = "Doe"; Age = 30 }`,
     Address: string
 }`,
     expectedCompletion: `
-    Address: string
-}`,
+    Address: string`,
   },
 
   {
@@ -2066,8 +2110,8 @@ export default {
   <ChildComponent <|fim|> />
 </main>
 `,
-    llmOutput: "name=\"World\"",
-    expectedCompletion: "name=\"World\"",
+    llmOutput: 'name="World"',
+    expectedCompletion: 'name="World"',
   },
 
   {
@@ -2086,5 +2130,71 @@ export default {
 `,
     llmOutput: "}",
     expectedCompletion: "}",
+  },
+  {
+    description:
+      "Should handle autocomplete in two similar TypeScript functions",
+    filename: "List.svelte",
+    input: `
+import { createClient, RedisClientType } from "redis";
+import { IKeyValueStore } from "./index.js";
+
+export class RedisKeyValueStore implements IKeyValueStore {
+  private client: RedisClientType;
+
+  constructor(redisUrl: string) {
+    this.client = createClient({
+      url: redisUrl
+        .replace("https://", "redis://")
+        .replace("http://", "redis://"),
+    });
+    this.client.on("connect", () => console.log("Redis Connected"));
+    this.client.on("error", (err) => console.log("Redis Client Error", err));
+    this.client.connect();
+  }
+  public async has(tableName: string, key: string): Promise<boolean> {
+    return (await this.client.exists(this._getKey(tableName, key))) > 0;
+  }
+
+  public async keys(tableName: string): Promise<string[]> {
+    const keys = await this.client.keys(this._getTableKey(tableName));
+    return keys.map((key) => key.split("::")[1]);
+  }
+
+  public async put(
+    tableName: string,
+    key: string,
+    value: string,
+  ): Promise<void> {
+    await this.client.set(this._getKey(tableName, key), value);
+  }
+
+  public async get(
+    tableName: string,
+    key: string,
+  ): Promise<string | undefined> {
+    const value = await this.client.get(this._getKey(tableName, key));
+    return value ?? undefined;
+  }
+
+  public async deleteAll(tableName: string): Promise<void> {
+    await this.client.del(this._getTableKey(tableName));
+  }
+
+<|fim|>
+  
+
+  public async remove(tableName: string, key: string): Promise<boolean> {
+    const result = await this.client.del(this._getKey(tableName, key));
+    return result > 0;
+  }
+}
+`,
+    llmOutput: `  public async delete(tableName: string, key: string): Promise<void> {
+    await this.client.del(this._getKey(tableName, key));
+  }`,
+    expectedCompletion: `  public async delete(tableName: string, key: string): Promise<void> {
+    await this.client.del(this._getKey(tableName, key));
+  }`,
   },
 ];

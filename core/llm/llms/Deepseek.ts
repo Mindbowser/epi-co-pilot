@@ -1,11 +1,11 @@
-import { CompletionOptions, LLMOptions, ModelProvider } from "../../index.js";
+import { CompletionOptions, LLMOptions } from "../../index.js";
 import { streamSse } from "../stream.js";
 import { osModelsEditPrompt } from "../templates/edit.js";
 
 import OpenAI from "./OpenAI.js";
 
 class Deepseek extends OpenAI {
-  static providerName: ModelProvider = "deepseek";
+  static providerName = "deepseek";
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.deepseek.com/",
     model: "deepseek-coder",
@@ -23,6 +23,7 @@ class Deepseek extends OpenAI {
   async *_streamFim(
     prefix: string,
     suffix: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const endpoint = new URL("beta/completions", this.apiBase);
@@ -45,6 +46,7 @@ class Deepseek extends OpenAI {
         Accept: "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
+      signal,
     });
     for await (const chunk of streamSse(resp)) {
       yield chunk.choices[0].text;

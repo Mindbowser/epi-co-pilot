@@ -1,12 +1,13 @@
-import { ChatMessage, CompletionOptions, ModelProvider } from "../../index.js";
+import { ChatMessage, CompletionOptions } from "../../index.js";
 import { BaseLLM } from "../index.js";
 
-class Mock extends BaseLLM {
+class MockLLM extends BaseLLM {
   public completion: string = "Test Completion";
-  static providerName: ModelProvider = "mock";
+  static providerName = "mock";
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     yield this.completion;
@@ -14,6 +15,7 @@ class Mock extends BaseLLM {
 
   protected async *_streamChat(
     messages: ChatMessage[],
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<ChatMessage> {
     for (const char of this.completion) {
@@ -25,4 +27,4 @@ class Mock extends BaseLLM {
   }
 }
 
-export default Mock;
+export default MockLLM;
