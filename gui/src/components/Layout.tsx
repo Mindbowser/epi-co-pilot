@@ -1,18 +1,31 @@
-import { useContext, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useContext, useEffect, useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { CustomScrollbarDiv, defaultBorderRadius, vscInputBackground } from ".";
-import { IdeMessengerContext } from "../context/IdeMessenger";
+import { CustomScrollbarDiv, defaultBorderRadius } from ".";
 import { useWebviewListener } from "../hooks/useWebviewListener";
-import { RootState } from "../redux/store";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { setEditStatus, focusEdit } from "../redux/slices/editModeState";
+import { setDialogMessage, setShowDialog } from "../redux/slices/uiSlice";
+import {
+  addCodeToEdit,
+  updateApplyState,
+  setMode,
+  newSession,
+} from "../redux/slices/sessionSlice";
 import { getFontSize, isMetaEquivalentKeyPressed } from "../util";
 import { getLocalStorage, setLocalStorage } from "../util/localStorage";
-import PostHogPageView from "./PosthogPageView";
-import Footer from "./Footer";
-import { updateApplyState, setShowDialog } from "../redux/slices/uiStateSlice";
+import { ROUTES } from "../util/navigation";
 import TextDialog from "./dialogs";
-import { useOnboardingCard, isNewUserOnboarding } from "./OnboardingCard";
+import Footer from "./Footer";
+import { isNewUserOnboarding, useOnboardingCard } from "./OnboardingCard";
+import PostHogPageView from "./PosthogPageView";
+import { setAccount } from "../redux/slices/configSlice";
+import AccountDialog from "./AccountDialog";
+import { AuthProvider } from "../context/Auth";
+import { exitEditMode } from "../redux/thunks";
+import { loadLastSession, saveCurrentSession } from "../redux/thunks/session";
+import { RootState } from "../redux/store";
+import { IdeMessengerContext } from "../context/IdeMessenger";
 
 const LayoutTopDiv = styled(CustomScrollbarDiv)`
   height: 100%;
@@ -38,57 +51,40 @@ const GridDiv = styled.div`
   overflow-x: visible;
 `;
 
-const ModelDropdownPortalDiv = styled.div`
-  background-color: ${vscInputBackground};
-  position: relative;
-  margin-left: 8px;
-  z-index: 200;
-  font-size: ${getFontSize()};
-`;
-
-const ProfileDropdownPortalDiv = styled.div`
-  background-color: ${vscInputBackground};
-  position: relative;
-  margin-left: 8px;
-  z-index: 200;
-  font-size: ${getFontSize() - 2};
-`;
-
 const Layout = () => {
+  const ideMessenger = useContext(IdeMessengerContext);
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useDispatch();
-  const ideMessenger = useContext(IdeMessengerContext);
+  const dispatch = useAppDispatch();
   const onboardingCard = useOnboardingCard();
+  const { pathname } = useLocation();
 
-  const dialogMessage = useSelector(
-    (state: RootState) => state.uiState.dialogMessage,
+  const configError = useAppSelector((state) => state.config.configError);
+
+  const hasFatalErrors = useMemo(() => {
+    return configError?.some((error) => error.fatal);
+  }, [configError]);
+
+  const accountEmail = useAppSelector(
+    (state: RootState) => state.config?.accountEmail,
   );
-  const showDialog = useSelector(
-    (state: RootState) => state.uiState.showDialog,
-  );
+  
+  const dialogMessage = useAppSelector((state) => state.ui.dialogMessage);
 
-  const timeline = useSelector((state: RootState) => state.state.history);
+  const showDialog = useAppSelector((state) => state.ui.showDialog);
 
-  useEffect(() => {
-    const handleKeyDown = (event: any) => {
-      if (isMetaEquivalentKeyPressed(event) && event.code === "KeyC") {
-        const selection = window.getSelection()?.toString();
-        if (selection) {
-          // Copy to clipboard
-          setTimeout(() => {
-            navigator.clipboard.writeText(selection);
-          }, 100);
-        }
+  const isStreaming = useAppSelector((state) => state.session.isStreaming);
+
+  useWebviewListener(
+    "openDialogMessage",
+    async (message) => {
+      if (message === "account") {
+        dispatch(setShowDialog(true));
+        dispatch(setDialogMessage(<AccountDialog />));
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [timeline]);
+    },
+    [],
+  );
 
   useWebviewListener(
     "addModel",
@@ -98,10 +94,6 @@ const Layout = () => {
     [navigate],
   );
 
-  useWebviewListener("openSettings", async () => {
-    ideMessenger.post("openConfigJson", undefined);
-  });
-
   useWebviewListener(
     "viewHistory",
     async () => {
@@ -110,6 +102,18 @@ const Layout = () => {
         navigate("/");
       } else {
         navigate("/history");
+      }
+    },
+    [location, navigate],
+  );
+
+  useWebviewListener(
+    "navigateTo",
+    async (data) => {
+      if (data.toggle && location.pathname === data.path) {
+        navigate("/");
+      } else {
+        navigate(data.path);
       }
     },
     [location, navigate],
@@ -131,6 +135,12 @@ const Layout = () => {
   useWebviewListener(
     "updateApplyState",
     async (state) => {
+      // dispatch(
+      //   updateCurCheckpoint({
+      //     filepath: state.filepath,
+      //     content: state.fileContent,
+      //   }),
+      // );
       dispatch(updateApplyState(state));
     },
     [],
@@ -152,49 +162,137 @@ const Layout = () => {
     [],
   );
 
+  useWebviewListener(
+    "focusEdit",
+    async () => {
+      await dispatch(
+        saveCurrentSession({
+          openNewSession: false,
+        }),
+      );
+      dispatch(newSession());
+      dispatch(focusEdit());
+      dispatch(setMode("edit"));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "focusEditWithoutClear",
+    async () => {
+      await dispatch(
+        saveCurrentSession({
+          openNewSession: true,
+        }),
+      );
+      dispatch(focusEdit());
+      dispatch(setMode("edit"));
+    },
+    [],
+  );
+
+  useWebviewListener(
+    "addCodeToEdit",
+    async (payload) => {
+      dispatch(addCodeToEdit(payload));
+    },
+    [navigate],
+  );
+
+  useWebviewListener(
+    "setEditStatus",
+    async ({ status, fileAfterEdit }) => {
+      dispatch(setEditStatus({ status, fileAfterEdit }));
+    },
+    [],
+  );
+
+  useWebviewListener("exitEditMode", async () => {
+    dispatch(
+      loadLastSession({
+        saveCurrentSession: false,
+      }),
+    );
+    dispatch(exitEditMode());
+  });
+
   useEffect(() => {
-    if (
-      isNewUserOnboarding() &&
-      (location.pathname === "/" || location.pathname === "/index.html")
-    ) {
+    const getAuthSession = async () => {
+      const result = await ideMessenger.request("getAuthSession", null);
+
+      if (result.status === "success") {
+        if (result.content?.account?.id) {
+          dispatch(setAccount({
+            accountEmail: result.content?.account?.id,
+            accountName: result.content?.account?.label,
+          }));
+
+          
+          setLocalStorage("onboardingStatus", "Completed");
+          onboardingCard.close()
+
+          return;
+        }
+      }
+      isNewUserOnboarding();
       onboardingCard.open("Quickstart");
+      navigate("/");
     }
-  }, [location]);
+    if (!accountEmail || accountEmail === "") {
+      getAuthSession();
+    } else  {
+      // pass
+    }
+  }, [accountEmail, dispatch]);
 
   return (
-    <LayoutTopDiv>
-      <div
-        style={{
-          scrollbarGutter: "stable both-edges",
-          minHeight: "100%",
-          display: "grid",
-          gridTemplateRows: "1fr auto",
-        }}
-      >
-        <TextDialog
-          showDialog={showDialog}
-          onEnter={() => {
-            dispatch(setShowDialog(false));
+    <AuthProvider>
+      <LayoutTopDiv>
+        <div
+          style={{
+            scrollbarGutter: "stable both-edges",
+            minHeight: "100%",
+            display: "grid",
+            gridTemplateRows: "1fr auto",
           }}
-          onClose={() => {
-            dispatch(setShowDialog(false));
-          }}
-          message={dialogMessage}
-        />
+        >
+          <TextDialog
+            showDialog={showDialog}
+            onEnter={() => {
+              dispatch(setShowDialog(false));
+            }}
+            onClose={() => {
+              dispatch(setShowDialog(false));
+            }}
+            message={dialogMessage}
+          />
 
-        <GridDiv>
-          <PostHogPageView />
-          <Outlet />
-          <ModelDropdownPortalDiv id="model-select-top-div"></ModelDropdownPortalDiv>
-          <ProfileDropdownPortalDiv id="profile-select-top-div"></ProfileDropdownPortalDiv>
-          <Footer />
-        </GridDiv>
-      </div>
-      <div
-        style={{ fontSize: `${getFontSize() - 4}px` }}
-        id="tooltip-portal-div"
-      />
-    </LayoutTopDiv>
+          <GridDiv className="">
+            <PostHogPageView />
+            <Outlet />
+
+            {hasFatalErrors && pathname !== ROUTES.CONFIG_ERROR && (
+              <div
+                className="z-50 cursor-pointer bg-red-600 p-4 text-center text-white"
+                role="alert"
+                onClick={() => navigate(ROUTES.CONFIG_ERROR)}
+              >
+                <strong className="font-bold">Error!</strong>{" "}
+                <span className="block sm:inline">
+                  Could not load config.json
+                </span>
+                <div className="mt-2 underline">Learn More</div>
+              </div>
+            )}
+            <Footer />
+          </GridDiv>
+        </div>
+        <div
+          style={{ fontSize: `${getFontSize() - 4}px` }}
+          id="tooltip-portal-div"
+        />
+      </LayoutTopDiv>
+    </AuthProvider>
   );
 };
 

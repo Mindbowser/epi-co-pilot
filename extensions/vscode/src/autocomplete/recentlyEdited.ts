@@ -1,6 +1,6 @@
-import { getSymbolsForSnippet } from "core/autocomplete/ranking";
-import { RecentlyEditedRange } from "core/autocomplete/recentlyEdited";
-import { RangeInFileWithContents } from "core/commands/util";
+import { RangeInFileWithContents } from "core";
+import { getSymbolsForSnippet } from "core/autocomplete/context/ranking";
+import { RecentlyEditedRange } from "core/autocomplete/util/types";
 import * as vscode from "vscode";
 
 type VsCodeRecentlyEditedRange = {

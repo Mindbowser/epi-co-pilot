@@ -16,20 +16,19 @@ import {
   vscInputBackground,
 } from "..";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
-import { defaultModelSelector } from "../../redux/selectors/modelSelectors";
-import { setDefaultModel } from "../../redux/slices/stateSlice";
-import {
-  setDialogMessage,
-  setShowDialog,
-} from "../../redux/slices/uiStateSlice";
-import { RootState } from "../../redux/store";
+import AddModelForm from "../../forms/AddModelForm";
+import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
 import {
   getFontSize,
   getMetaKeyLabel,
   isMetaEquivalentKeyPressed,
 } from "../../util";
 import ConfirmationDialog from "../dialogs/ConfirmationDialog";
-import AddModelForm from "../../forms/AddModelForm";
+import { useAppSelector } from "../../redux/hooks";
+import {
+  selectDefaultModel,
+  setDefaultModel,
+} from "../../redux/slices/configSlice";
 
 interface ModelOptionProps {
   option: Option;
@@ -41,7 +40,7 @@ interface ModelOptionProps {
 interface Option {
   value: string;
   title: string;
-  apiKey: string;
+  apiKey?: string;
 }
 
 const MAX_HEIGHT_PX = 300;
@@ -61,7 +60,7 @@ const StyledListboxButton = styled(Listbox.Button)`
   }
 `;
 
-const StyledListboxOptions = styled(Listbox.Options)<{ showAbove: boolean }>`
+const StyledListboxOptions = styled(Listbox.Options)<{ $showabove: boolean }>`
   margin-top: 4px;
   position: absolute;
   list-style: none;
@@ -81,7 +80,7 @@ const StyledListboxOptions = styled(Listbox.Options)<{ showAbove: boolean }>`
 
   scrollbar-width: none;
 
-  ${(props) => (props.showAbove ? "bottom: 100%;" : "top: 100%;")}
+  ${(props) => (props.$showabove ? "bottom: 100%;" : "top: 100%;")}
 `;
 
 const StyledListboxOption = styled(Listbox.Option)<{ isDisabled?: boolean }>`
@@ -105,14 +104,14 @@ const StyledListboxOption = styled(Listbox.Option)<{ isDisabled?: boolean }>`
   `}
 `;
 
-const IconBase = styled.div<{ hovered: boolean }>`
+const IconBase = styled.div<{ $hovered: boolean }>`
   width: 1.2em;
   height: 1.2em;
   cursor: pointer;
   padding: 4px;
   border-radius: ${defaultBorderRadius};
-  opacity: ${(props) => (props.hovered ? 0.75 : 0)};
-  visibility: ${(props) => (props.hovered ? "visible" : "hidden")};
+  opacity: ${(props) => (props.$hovered ? 0.75 : 0)};
+  visibility: ${(props) => (props.$hovered ? "visible" : "hidden")};
 
   &:hover {
     opacity: 1;
@@ -169,7 +168,9 @@ function ModelOption({
     e.stopPropagation();
     e.preventDefault();
 
-    ideMessenger.post("openConfigJson", undefined);
+    ideMessenger.post("config/openProfile", {
+      profileId: "local",
+    });
   }
 
   function handleOptionClick(e) {
@@ -188,23 +189,23 @@ function ModelOption({
       onMouseLeave={() => setHovered(false)}
       onClick={handleOptionClick}
     >
-      <div className="flex flex-col w-full gap-0.5">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center flex-grow">
-            <CubeIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+      <div className="flex w-full flex-col gap-0.5">
+        <div className="flex w-full items-center justify-between">
+          <div className="flex flex-grow items-center">
+            <CubeIcon className="mr-2 h-4 w-4 flex-shrink-0" />
             <span className="flex-grow">
               {option.title}
               {showMissingApiKeyMsg && (
-                <span className="ml-2 italic text-[10px]">
+                <span className="ml-2 text-[10px] italic">
                   (Missing API key)
                 </span>
               )}
             </span>
           </div>
-          <div className="flex items-center ml-5">
-            <StyledCog6ToothIcon hovered={hovered} onClick={onClickGear} />
+          <div className="ml-5 flex items-center">
+            <StyledCog6ToothIcon $hovered={hovered} onClick={onClickGear} />
             {showDelete && (
-              <StyledTrashIcon hovered={hovered} onClick={onClickDelete} />
+              <StyledTrashIcon $hovered={hovered} onClick={onClickDelete} />
             )}
           </div>
         </div>
@@ -215,17 +216,15 @@ function ModelOption({
 
 function ModelSelect() {
   const dispatch = useDispatch();
-  const defaultModel = useSelector(defaultModelSelector);
-  const allModels = useSelector(
-    (state: RootState) => state.state.config.models,
-  );
+  const defaultModel = useAppSelector(selectDefaultModel);
+  const allModels = useAppSelector((state) => state.config.config.models);
   const ideMessenger = useContext(IdeMessengerContext);
   const [showAbove, setShowAbove] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [options, setOptions] = useState<Option[]>([]);
   const [sortedOptions, setSortedOptions] = useState<Option[]>([]);
-  const selectedProfileId = useSelector(
-    (store: RootState) => store.state.selectedProfileId,
+  const selectedProfileId = useAppSelector(
+    (store) => store.session.selectedProfileId,
   );
 
   // Sort so that options without an API key are at the end
@@ -258,14 +257,15 @@ function ModelSelect() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "'" && isMetaEquivalentKeyPressed(event)) {
+      if (event.key === "'" && isMetaEquivalentKeyPressed(event as any)) {
         const direction = event.shiftKey ? -1 : 1;
         const currentIndex = options.findIndex(
           (option) => option.value === defaultModel?.title,
         );
         let nextIndex = (currentIndex + 1 * direction) % options.length;
         if (nextIndex < 0) nextIndex = options.length - 1;
-        dispatch(setDefaultModel({ title: options[nextIndex].value }));
+        const newModelTitle = options[nextIndex].value;
+        dispatch(setDefaultModel({ title: newModelTitle }));
       }
     };
 
@@ -276,6 +276,9 @@ function ModelSelect() {
   }, [options, defaultModel]);
 
   function calculatePosition() {
+    if (!buttonRef.current) {
+      return;
+    }
     const rect = buttonRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
@@ -309,17 +312,17 @@ function ModelSelect() {
       onChange={async (val: string) => {
         if (val === defaultModel?.title) return;
         dispatch(setDefaultModel({ title: val }));
-        await ideMessenger.request("update/modelChange", val);
       }}
     >
       <div className="relative">
         <StyledListboxButton
+          data-testid="model-select-button"
           ref={buttonRef}
           className="h-[18px] overflow-hidden"
           style={{ padding: 0 }}
           onClick={calculatePosition}
         >
-          <div className="text-gray-400 transition-colors duration-200 flex items-center gap-0.5 max-w-[33vw]">
+          <div className="flex max-w-[33vw] items-center gap-0.5 text-gray-400 transition-colors duration-200">
             <span className="truncate">
               {modelSelectTitle(defaultModel) || "Select model"}{" "}
             </span>
@@ -330,7 +333,7 @@ function ModelSelect() {
           </div>
         </StyledListboxButton>
         <StyledListboxOptions
-          showAbove={showAbove}
+          $showabove={showAbove}
           className="z-50 max-w-[90vw]"
         >
           <div className={`max-h-[${MAX_HEIGHT_PX}px]`}>
@@ -354,7 +357,7 @@ function ModelSelect() {
                   value={"addModel" as any}
                 >
                   <div className="flex items-center py-0.5">
-                    <PlusIcon className="w-4 h-4 mr-2" />
+                    <PlusIcon className="mr-2 h-4 w-4" />
                     Add Chat model
                   </div>
                 </StyledListboxOption>

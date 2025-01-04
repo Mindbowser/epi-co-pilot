@@ -1,8 +1,9 @@
-import { ChatMessage, LLMOptions, ModelProvider } from "..";
+import { ChatMessage, LLMOptions } from "..";
+
 import { BaseLLM } from ".";
 
 class DummyLLM extends BaseLLM {
-  static providerName: ModelProvider = "openai";
+  static providerName = "openai";
   static defaultOptions: Partial<LLMOptions> = {
     model: "dummy-model",
     contextLength: 200_000,
@@ -48,7 +49,7 @@ describe("BaseLLM", () => {
         aiGatewaySlug: "testSlug",
         apiBase: "https://api.example.com",
         accountId: "testAccountId",
-        engine: "davinci",
+        deployment: "davinci",
         apiVersion: "v1",
         apiType: "public",
         region: "us",
@@ -71,7 +72,7 @@ describe("BaseLLM", () => {
       expect(instance.aiGatewaySlug).toBe("testSlug");
       expect(instance.apiBase).toBe("https://api.example.com/");
       expect(instance.accountId).toBe("testAccountId");
-      expect(instance.engine).toBe("davinci");
+      expect(instance.deployment).toBe("davinci");
       expect(instance.apiVersion).toBe("v1");
       expect(instance.apiType).toBe("public");
       expect(instance.region).toBe("us");
@@ -122,7 +123,7 @@ describe("BaseLLM", () => {
       expect(baseLLM.supportsPrefill()).toBe(false);
 
       class PrefillLLM extends BaseLLM {
-        static providerName: ModelProvider = "ollama";
+        static providerName = "ollama";
       }
       const prefillLLM = new PrefillLLM({ model: "some-model" });
       expect(prefillLLM.supportsPrefill()).toBe(true);

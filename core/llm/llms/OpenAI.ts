@@ -1,11 +1,18 @@
+import { ChatCompletionCreateParams } from "openai/resources/index";
+
 import {
   ChatMessage,
   CompletionOptions,
   LLMOptions,
-  ModelProvider,
+  Tool,
 } from "../../index.js";
-import { stripImages } from "../images.js";
+import { renderChatMessage } from "../../util/messageContent.js";
 import { BaseLLM } from "../index.js";
+import {
+  fromChatCompletionChunk,
+  LlmApiRequestType,
+  toChatBody,
+} from "../openaiTypeConverters.js";
 import { streamSse } from "../stream.js";
 
 const NON_CHAT_MODELS = [
@@ -37,12 +44,12 @@ const CHAT_ONLY_MODELS = [
   "gpt-4-0125-preview",
   "gpt-4-1106-preview",
   "gpt-4o-mini",
+  "o1-preview",
+  "o1-mini",
 ];
 
 class OpenAI extends BaseLLM {
   public useLegacyCompletionsEndpoint: boolean | undefined = undefined;
-
-  maxStopWords: number | undefined = undefined;
 
   constructor(options: LLMOptions) {
     super(options);
@@ -50,40 +57,20 @@ class OpenAI extends BaseLLM {
     this.apiVersion = options.apiVersion ?? "2023-07-01-preview";
   }
 
-  static providerName: ModelProvider = "openai";
-  static defaultOptions: Partial<LLMOptions> = {
+  static providerName = "openai";
+  static defaultOptions: Partial<LLMOptions> | undefined = {
     apiBase: "https://api.openai.com/v1/",
+    maxEmbeddingBatchSize: 128,
   };
 
-  protected _convertMessage(message: ChatMessage) {
-    if (typeof message.content === "string") {
-      return message;
-    } else if (!message.content.some((item) => item.type !== "text")) {
-      // If no multi-media is in the message, just send as text
-      // for compatibility with OpenAI "compatible" servers
-      // that don't support multi-media format
-      return {
-        ...message,
-        content: message.content.map((item) => item.text).join(""),
-      };
-    }
-
-    const parts = message.content.map((part) => {
-      const msg: any = {
-        type: part.type,
-        text: part.text,
-      };
-      if (part.type === "imageUrl") {
-        msg.image_url = { ...part.imageUrl, detail: "low" };
-        msg.type = "image_url";
-      }
-      return msg;
-    });
-    return {
-      ...message,
-      content: parts,
-    };
-  }
+  protected useOpenAIAdapterFor: (LlmApiRequestType | "*")[] = [
+    "chat",
+    "embed",
+    "list",
+    "rerank",
+    "streamChat",
+    "streamFim",
+  ];
 
   protected _convertModelName(model: string): string {
     return model;
@@ -95,30 +82,49 @@ class OpenAI extends BaseLLM {
     );
   }
 
-  protected _convertArgs(options: any, messages: ChatMessage[]) {
-    const url = new URL(this.apiBase!);
-    const finalOptions: any = {
-      messages: messages.map(this._convertMessage),
-      model: this._convertModelName(options.model),
-      max_tokens: options.maxTokens,
-      temperature: options.temperature,
-      top_p: options.topP,
-      frequency_penalty: options.frequencyPenalty,
-      presence_penalty: options.presencePenalty,
-      stream: options.stream ?? true,
-      stop:
-        // Jan + Azure OpenAI don't truncate and will throw an error
-        this.maxStopWords !== undefined
-          ? options.stop?.slice(0, this.maxStopWords)
-          : url.host === "api.deepseek.com"
-            ? options.stop?.slice(0, 16)
-            : url.port === "1337" ||
-                url.host === "api.openai.com" ||
-                url.host === "api.groq.com" ||
-                this.apiType === "azure"
-              ? options.stop?.slice(0, 4)
-              : options.stop,
+  protected supportsPrediction(model: string): boolean {
+    const SUPPORTED_MODELS = ["gpt-4o-mini", "gpt-4o", "mistral-large"];
+    return SUPPORTED_MODELS.some((m) => model.includes(m));
+  }
+
+  private convertTool(tool: Tool): any {
+    return {
+      type: tool.type,
+      function: {
+        name: tool.function.name,
+        description: tool.function.description,
+        parameters: tool.function.parameters,
+        strict: tool.function.strict,
+      },
     };
+  }
+
+  protected getMaxStopWords(): number {
+    const url = new URL(this.apiBase!);
+
+    if (this.maxStopWords !== undefined) {
+      return this.maxStopWords;
+    } else if (url.host === "api.deepseek.com") {
+      return 16;
+    } else if (
+      url.port === "1337" ||
+      url.host === "api.openai.com" ||
+      url.host === "api.groq.com" ||
+      this.apiType === "azure"
+    ) {
+      return 4;
+    } else {
+      return Infinity;
+    }
+  }
+
+  protected _convertArgs(
+    options: CompletionOptions,
+    messages: ChatMessage[],
+  ): ChatCompletionCreateParams {
+    const finalOptions = toChatBody(messages, options);
+
+    finalOptions.stop = options.stop?.slice(0, this.getMaxStopWords());
 
     // OpenAI o1-preview and o1-mini:
     if (this.isO1Model(options.model)) {
@@ -126,13 +132,24 @@ class OpenAI extends BaseLLM {
       finalOptions.max_completion_tokens = options.maxTokens;
       finalOptions.max_tokens = undefined;
 
-      // b) don't support streaming currently
-      finalOptions.stream = false;
-
-      // c) don't support system message
+      // b) don't support system message
       finalOptions.messages = finalOptions.messages?.filter(
         (message: any) => message?.role !== "system",
       );
+    }
+
+    if (options.prediction && this.supportsPrediction(options.model)) {
+      if (finalOptions.presence_penalty) {
+        // prediction doesn't support > 0
+        finalOptions.presence_penalty = undefined;
+      }
+      if (finalOptions.frequency_penalty) {
+        // prediction doesn't support > 0
+        finalOptions.frequency_penalty = undefined;
+      }
+      finalOptions.max_completion_tokens = undefined;
+
+      finalOptions.prediction = options.prediction;
     }
 
     return finalOptions;
@@ -148,11 +165,13 @@ class OpenAI extends BaseLLM {
 
   protected async _complete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): Promise<string> {
     let completion = "";
     for await (const chunk of this._streamChat(
       [{ role: "user", content: prompt }],
+      signal,
       options,
     )) {
       completion += chunk.content;
@@ -166,7 +185,7 @@ class OpenAI extends BaseLLM {
   ) {
     if (this.apiType === "azure") {
       return new URL(
-        `openai/deployments/${this.engine}/${endpoint}?api-version=${this.apiVersion}`,
+        `openai/deployments/${this.deployment}/${endpoint}?api-version=${this.apiVersion}`,
         this.apiBase,
       );
     }
@@ -181,18 +200,53 @@ class OpenAI extends BaseLLM {
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     for await (const chunk of this._streamChat(
       [{ role: "user", content: prompt }],
+      signal,
       options,
     )) {
-      yield stripImages(chunk.content);
+      yield renderChatMessage(chunk);
     }
+  }
+
+  protected modifyChatBody(
+    body: ChatCompletionCreateParams,
+  ): ChatCompletionCreateParams {
+    body.stop = body.stop?.slice(0, this.getMaxStopWords());
+
+    // OpenAI o1-preview and o1-mini:
+    if (this.isO1Model(body.model)) {
+      // a) use max_completion_tokens instead of max_tokens
+      body.max_completion_tokens = body.max_tokens;
+      body.max_tokens = undefined;
+
+      // b) don't support system message
+      body.messages = body.messages?.filter(
+        (message: any) => message?.role !== "system",
+      );
+    }
+
+    if (body.prediction && this.supportsPrediction(body.model)) {
+      if (body.presence_penalty) {
+        // prediction doesn't support > 0
+        body.presence_penalty = undefined;
+      }
+      if (body.frequency_penalty) {
+        // prediction doesn't support > 0
+        body.frequency_penalty = undefined;
+      }
+      body.max_completion_tokens = undefined;
+    }
+
+    return body;
   }
 
   protected async *_legacystreamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const args: any = this._convertArgs(options, []);
@@ -206,6 +260,7 @@ class OpenAI extends BaseLLM {
         ...args,
         stream: true,
       }),
+      signal,
     });
 
     for await (const value of streamSse(response)) {
@@ -217,6 +272,7 @@ class OpenAI extends BaseLLM {
 
   protected async *_streamChat(
     messages: ChatMessage[],
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<ChatMessage> {
     if (
@@ -227,7 +283,8 @@ class OpenAI extends BaseLLM {
         options.raw)
     ) {
       for await (const content of this._legacystreamComplete(
-        stripImages(messages[messages.length - 1]?.content || ""),
+        renderChatMessage(messages[messages.length - 1]),
+        signal,
         options,
       )) {
         yield {
@@ -243,11 +300,15 @@ class OpenAI extends BaseLLM {
     body.messages = body.messages.map((m: any) => ({
       ...m,
       content: m.content === "" ? " " : m.content,
+      // We call it toolCalls, they call it tool_calls
+      tool_calls: m.toolCalls,
+      tool_call_id: m.toolCallId,
     })) as any;
     const response = await this.fetch(this._getEndpoint("chat/completions"), {
       method: "POST",
       headers: this._getHeaders(),
       body: JSON.stringify(body),
+      signal,
     });
 
     // Handle non-streaming response
@@ -258,8 +319,9 @@ class OpenAI extends BaseLLM {
     }
 
     for await (const value of streamSse(response)) {
-      if (value.choices?.[0]?.delta?.content) {
-        yield value.choices[0].delta;
+      const chunk = fromChatCompletionChunk(value);
+      if (chunk) {
+        yield chunk;
       }
     }
   }
@@ -267,6 +329,7 @@ class OpenAI extends BaseLLM {
   protected async *_streamFim(
     prefix: string,
     suffix: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const endpoint = new URL("fim/completions", this.apiBase);
@@ -290,6 +353,7 @@ class OpenAI extends BaseLLM {
         "x-api-key": this.apiKey ?? "",
         Authorization: `Bearer ${this.apiKey}`,
       },
+      signal,
     });
     for await (const chunk of streamSse(resp)) {
       yield chunk.choices[0].delta.content;
@@ -304,6 +368,44 @@ class OpenAI extends BaseLLM {
 
     const data = await response.json();
     return data.data.map((m: any) => m.id);
+  }
+
+  private _getEmbedEndpoint() {
+    if (!this.apiBase) {
+      throw new Error(
+        "No API base URL provided. Please set the 'apiBase' option in config.json",
+      );
+    }
+
+    if (this.apiType === "azure") {
+      return new URL(
+        `openai/deployments/${this.deployment}/embeddings?api-version=${this.apiVersion}`,
+        this.apiBase,
+      );
+    }
+    return new URL("embeddings", this.apiBase);
+  }
+
+  protected async _embed(chunks: string[]): Promise<number[][]> {
+    const resp = await this.fetch(this._getEmbedEndpoint(), {
+      method: "POST",
+      body: JSON.stringify({
+        input: chunks,
+        model: this.model,
+      }),
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+        "api-key": this.apiKey ?? "", // For Azure
+      },
+    });
+
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+
+    const data = (await resp.json()) as any;
+    return data.data.map((result: { embedding: number[] }) => result.embedding);
   }
 }
 

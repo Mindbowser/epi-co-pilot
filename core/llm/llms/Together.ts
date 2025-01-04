@@ -1,13 +1,9 @@
-import type {
-  CompletionOptions,
-  LLMOptions,
-  ModelProvider,
-} from "../../index.js";
-
 import OpenAI from "./OpenAI.js";
 
+import type { CompletionOptions, LLMOptions } from "../../index.js";
+
 class Together extends OpenAI {
-  static providerName: ModelProvider = "together";
+  static providerName = "together";
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.together.xyz/v1/",
   };
@@ -22,6 +18,9 @@ class Together extends OpenAI {
     "llama3.1-8b": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
     "llama3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
     "llama3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+    "llama3.2-3b": "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+    "llama3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo",
+    "llama3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
     "llama2-7b": "togethercomputer/llama-2-7b-chat",
     "llama2-13b": "togethercomputer/llama-2-13b-chat",
     "llama2-70b": "togethercomputer/llama-2-70b-chat",
@@ -37,9 +36,14 @@ class Together extends OpenAI {
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
-    for await (const chunk of this._legacystreamComplete(prompt, options)) {
+    for await (const chunk of this._legacystreamComplete(
+      prompt,
+      signal,
+      options,
+    )) {
       yield chunk;
     }
   }

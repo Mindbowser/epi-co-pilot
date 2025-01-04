@@ -1,4 +1,3 @@
-import ReactDOM from "react-dom";
 import styled from "styled-components";
 import {
   defaultBorderRadius,
@@ -42,20 +41,15 @@ const keyToName: { [key: string]: string } = {
 };
 
 function KeyDiv({ text }: { text: string }) {
-  const tooltipPortalDiv = document.getElementById("tooltip-portal-div");
-
   return (
     <>
       <StyledKeyDiv data-tooltip-id={`header_button_${text}`}>
         {text}
       </StyledKeyDiv>
-      {tooltipPortalDiv &&
-        ReactDOM.createPortal(
-          <ToolTip id={`header_button_${text}`} place="bottom">
-            {keyToName[text]}
-          </ToolTip>,
-          tooltipPortalDiv,
-        )}
+
+      <ToolTip id={`header_button_${text}`} place="bottom">
+        {keyToName[text]}
+      </ToolTip>
     </>
   );
 }
@@ -69,15 +63,9 @@ interface KeyboardShortcutProps {
 function KeyboardShortcut(props: KeyboardShortcutProps) {
   const shortcut = getPlatform() === "mac" ? props.mac : props.windows;
   return (
-    <div className="flex justify-between w-full items-center">
-      <span
-        style={{
-          color: vscForeground,
-        }}
-      >
-        {props.description}
-      </span>
-      <div className="flex gap-2 float-right">
+    <div className="flex w-full items-center justify-between">
+      <span className="text-sm">{props.description}</span>
+      <div className="float-right flex gap-2">
         {shortcut.split(" ").map((key, i) => {
           return <KeyDiv key={i} text={key}></KeyDiv>;
         })}
@@ -125,7 +113,7 @@ const vscodeShortcuts: KeyboardShortcutProps[] = [
   {
     mac: "⌥ ⌘ L",
     windows: "Alt ⌃ L",
-    description: "Toggle Epi-Copilot Sidebar",
+    description: "Toggle Epico-Pilot Sidebar",
   },
   {
     mac: "⌘ ⇧ R",
@@ -146,6 +134,11 @@ const vscodeShortcuts: KeyboardShortcutProps[] = [
     mac: "⌘ '",
     windows: "⌃ '",
     description: "Toggle Selected Model",
+  },
+  {
+    mac: "⌘ K ⌘ A",
+    windows: "⌃ K ⌃ A",
+    description: "Toggle Autocomplete Enabled",
   },
 ];
 

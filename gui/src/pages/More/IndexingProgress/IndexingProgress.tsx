@@ -10,10 +10,7 @@ import IndexingProgressTitleText from "./IndexingProgressTitleText";
 import IndexingProgressSubtext from "./IndexingProgressSubtext";
 import { usePostHog } from "posthog-js/react";
 import ConfirmationDialog from "../../../components/dialogs/ConfirmationDialog";
-import {
-  setShowDialog,
-  setDialogMessage,
-} from "../../../redux/slices/uiStateSlice";
+import { setShowDialog, setDialogMessage } from "../../../redux/slices/uiSlice";
 import IndexingProgressErrorText from "./IndexingProgressErrorText";
 
 export function getProgressPercentage(
@@ -67,7 +64,7 @@ function IndexingProgress() {
               "Your index appears corrupted. We recommend clearing and rebuilding it, " +
               "which may take time for large codebases.\n\n" +
               "For a faster rebuild without clearing data, press 'Shift + Command + P' to open " +
-              "the Command Palette, and type out 'Epi-Copilot: Force Codebase Re-Indexing'"
+              "the Command Palette, and type out 'Epico-Pilot: Force Codebase Re-Indexing'"
             }
             onConfirm={() => {
               posthog.capture("rebuild_index_clicked");
@@ -98,7 +95,9 @@ function IndexingProgress() {
         }
         break;
       case "disabled":
-        ideMessenger.post("openConfigJson", undefined);
+        ideMessenger.post("config/openProfile", {
+          profileId: undefined,
+        });
         break;
       case "done":
         ideMessenger.post("index/forceReIndex", undefined);
@@ -108,8 +107,8 @@ function IndexingProgress() {
   }
 
   return (
-    <div className="flex flex-col mt-6">
-      <div className="flex justify-between mb-0 text-sm">
+    <div className="mt-6 flex flex-col">
+      <div className="mb-0 flex justify-between text-sm">
         <IndexingProgressTitleText update={update} />
         {update.status !== "loading" && (
           <IndexingProgressIndicator update={update} />

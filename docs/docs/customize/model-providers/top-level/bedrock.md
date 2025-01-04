@@ -3,6 +3,8 @@ title: Amazon Bedrock
 slug: ../bedrock
 ---
 
+Amazon Bedrock is a fully managed service on AWS that provides access to foundation models from various AI companies through a single API.
+
 ## Chat model
 
 We recommend configuring **Claude 3.5 Sonnet** as your chat model.
@@ -44,9 +46,19 @@ We recommend configuring [`amazon.titan-embed-text-v2:0`](https://docs.aws.amazo
 
 ## Reranking model
 
-Bedrock currently does not offer any reranking models.
+We recommend configuring `cohere.rerank-v3-5:0` as your reranking model, you may also use `amazon.rerank-v1:0`.
 
-[Click here](../../model-types/reranking.md) to see a list of reranking model providers.
+```json title="~/.continue/config.json"
+{
+  "reranker": {
+    "name": "bedrock",
+    "params": {
+      "model": "cohere.rerank-v3-5:0",
+      "region": "us-west-2"
+    }
+  }
+}
+```
 
 ## Authentication
 

@@ -1,14 +1,28 @@
 import { TRIAL_FIM_MODEL } from "../../config/onboarding.js";
 import { getHeaders } from "../../continueServer/stubs/headers.js";
-import { constants } from "../../deploy/constants.js";
-import { ChatMessage, CompletionOptions, ModelProvider } from "../../index.js";
+import { TRIAL_PROXY_URL } from "../../control-plane/client.js";
+import {
+  ChatMessage,
+  Chunk,
+  CompletionOptions,
+  LLMOptions,
+} from "../../index.js";
 import { BaseLLM } from "../index.js";
 import { streamResponse } from "../stream.js";
 
 class FreeTrial extends BaseLLM {
-  static providerName: ModelProvider = "free-trial";
+  static providerName = "free-trial";
+  static defaultOptions: Partial<LLMOptions> | undefined = {
+    maxEmbeddingBatchSize: 128,
+    model: "voyage-code-2",
+  };
 
   private ghAuthToken: string | undefined = undefined;
+
+  constructor(options: LLMOptions) {
+    super(options);
+    this.embeddingId = `${this.constructor.name}::${this.model}`;
+  }
 
   setupGhAuthToken(ghAuthToken: string | undefined) {
     this.ghAuthToken = ghAuthToken;
@@ -60,19 +74,21 @@ class FreeTrial extends BaseLLM {
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const args = this._convertArgs(this.collectArgs(options));
 
     await this._countTokens(prompt, args.model, true);
 
-    const response = await this.fetch(`${constants.a}/stream_complete`, {
+    const response = await this.fetch(`${TRIAL_PROXY_URL}/stream_complete`, {
       method: "POST",
       headers: await this._getHeaders(),
       body: JSON.stringify({
         prompt,
         ...args,
       }),
+      signal,
     });
 
     let completion = "";
@@ -80,10 +96,18 @@ class FreeTrial extends BaseLLM {
       yield value;
       completion += value;
     }
-    this._countTokens(completion, args.model, false);
+    void this._countTokens(completion, args.model, false);
   }
 
   protected _convertMessage(message: ChatMessage) {
+    if (message.role === "tool") {
+      return {
+        role: "tool",
+        content: message.content,
+        tool_call_id: message.toolCallId,
+      };
+    }
+
     if (typeof message.content === "string") {
       return message;
     }
@@ -103,6 +127,7 @@ class FreeTrial extends BaseLLM {
 
   protected async *_streamChat(
     messages: ChatMessage[],
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<ChatMessage> {
     const args = this._convertArgs(this.collectArgs(options));
@@ -113,13 +138,14 @@ class FreeTrial extends BaseLLM {
       true,
     );
 
-    const response = await this.fetch(`${constants.a}/stream_chat`, {
+    const response = await this.fetch(`${TRIAL_PROXY_URL}/stream_chat`, {
       method: "POST",
       headers: await this._getHeaders(),
       body: JSON.stringify({
         messages: messages.map(this._convertMessage),
         ...args,
       }),
+      signal,
     });
 
     let completion = "";
@@ -130,7 +156,7 @@ class FreeTrial extends BaseLLM {
       };
       completion += chunk;
     }
-    this._countTokens(completion, args.model, false);
+    await this._countTokens(completion, args.model, false);
   }
 
   supportsFim(): boolean {
@@ -140,31 +166,43 @@ class FreeTrial extends BaseLLM {
   async *_streamFim(
     prefix: string,
     suffix: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const args = this._convertArgs(this.collectArgs(options));
-    const resp = await this.fetch(`${constants.a}/stream_fim`, {
-      method: "POST",
-      headers: await this._getHeaders(),
-      body: JSON.stringify({
-        prefix,
-        suffix,
-        ...args,
-      }),
-    });
 
-    let completion = "";
-    for await (const value of streamResponse(resp)) {
-      yield value;
-      completion += value;
+    try {
+      const resp = await this.fetch(`${TRIAL_PROXY_URL}/stream_fim`, {
+        method: "POST",
+        headers: await this._getHeaders(),
+        body: JSON.stringify({
+          prefix,
+          suffix,
+          ...args,
+        }),
+        signal,
+      });
+
+      let completion = "";
+      for await (const value of streamResponse(resp)) {
+        yield value;
+        completion += value;
+      }
+      await this._countTokens(completion, args.model, false);
+    } catch (e: any) {
+      if (e.message.startsWith("HTTP 429")) {
+        throw new Error(
+          "You have reached the 2000 request limit for the autocomplete free trial. To continue using autocomplete, please set up a local model or your own Codestral API key.",
+        );
+      }
+      throw e;
     }
-    this._countTokens(completion, args.model, false);
   }
 
   async listModels(): Promise<string[]> {
     return [
       "codestral-latest",
-      "claude-3-5-sonnet-20240620",
+      "claude-3-5-sonnet-latest",
       "llama3.1-405b",
       "llama3.1-70b",
       "gpt-4o",
@@ -172,6 +210,52 @@ class FreeTrial extends BaseLLM {
       "claude-3-haiku-20240307",
       "gemini-1.5-pro-latest",
     ];
+  }
+
+  protected async _embed(chunks: string[]): Promise<number[][]> {
+    const resp = await this.fetch(new URL("embeddings", TRIAL_PROXY_URL), {
+      method: "POST",
+      body: JSON.stringify({
+        input: chunks,
+        model: this.model,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        ...(await getHeaders()),
+      },
+    });
+
+    if (resp.status !== 200) {
+      throw new Error(`Failed to embed: ${resp.status} ${await resp.text()}`);
+    }
+
+    const data = (await resp.json()) as any;
+    return data.embeddings;
+  }
+
+  async rerank(query: string, chunks: Chunk[]): Promise<number[]> {
+    if (chunks.length === 0) {
+      return [];
+    }
+    const resp = await this.fetch(new URL("rerank", TRIAL_PROXY_URL), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(await getHeaders()),
+      },
+      body: JSON.stringify({
+        query,
+        documents: chunks.map((chunk) => chunk.content),
+      }),
+    });
+
+    if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+
+    const data = (await resp.json()) as any;
+    const results = data.sort((a: any, b: any) => a.index - b.index);
+    return results.map((result: any) => result.relevance_score);
   }
 }
 

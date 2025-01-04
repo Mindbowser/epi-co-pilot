@@ -1,6 +1,8 @@
-import { describe, test } from "mocha";
 import assert from "node:assert";
+
+import { describe, test } from "mocha";
 import * as vscode from "vscode";
+
 import { VsCodeExtension } from "../../extension/VsCodeExtension";
 
 describe("Extension Test Suite", () => {
@@ -12,10 +14,10 @@ describe("Extension Test Suite", () => {
 
   test("Get the default model from webview", async () => {
     const continueExtensionApi =
-      vscode.extensions.getExtension("Mindbowser.epi-copilot");
+      vscode.extensions.getExtension("Mindbowser.epico-pilot");
     const extension: VsCodeExtension = continueExtensionApi?.exports.extension;
     await new Promise((resolve) => setTimeout(resolve, 400));
-    await vscode.commands.executeCommand("epi-copilot.focusContinueInput");
+    await vscode.commands.executeCommand("epico-pilot.focusContinueInput");
     await new Promise((resolve) => setTimeout(resolve, 400));
     const title = await (
       await extension.webviewProtocolPromise

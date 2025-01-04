@@ -1,7 +1,8 @@
 import { ILLM } from "core";
+import { EXTENSION_NAME } from "core/control-plane/env";
 import * as vscode from "vscode";
+
 import { Battery } from "../util/battery";
-import { EXTENSION_NAME } from "../util/constants";
 import {
   CONTINUE_WORKSPACE_KEY,
   getContinueWorkspaceConfig,
@@ -40,15 +41,26 @@ export const getStatusBarStatusFromQuickPickItemLabel = (
   }
 };
 
-const statusBarItemText = (status: StatusBarStatus | undefined) => {
+const statusBarItemText = (
+  status: StatusBarStatus | undefined,
+  loading?: boolean,
+  error?: boolean,
+) => {
+  if (error) {
+    return "$(alert) Epico-Pilot (FATAL ERROR)";
+  }
+
   switch (status) {
     case undefined:
+      if (loading) {
+        return "$(loading~spin) Epico-Pilot";
+      }
     case StatusBarStatus.Disabled:
-      return "$(circle-slash) Continue";
+      return "$(circle-slash) Epico-Pilot";
     case StatusBarStatus.Enabled:
-      return "$(check) Continue";
+      return "$(check) Epico-Pilot";
     case StatusBarStatus.Paused:
-      return "$(debug-pause) Continue";
+      return "$(debug-pause) Epico-Pilot";
   }
 };
 
@@ -67,6 +79,7 @@ const statusBarItemTooltip = (status: StatusBarStatus | undefined) => {
 let statusBarStatus: StatusBarStatus | undefined = undefined;
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 let statusBarFalseTimeout: NodeJS.Timeout | undefined = undefined;
+let statusBarError: boolean = false;
 
 export function stopStatusBarLoading() {
   statusBarFalseTimeout = setTimeout(() => {
@@ -74,9 +87,15 @@ export function stopStatusBarLoading() {
   }, 100);
 }
 
+/**
+ * TODO: We should clean up how status bar is handled.
+ * Ideally, there should be a single 'status' value without
+ * 'loading' and 'error' booleans.
+ */
 export function setupStatusBar(
   status: StatusBarStatus | undefined,
   loading?: boolean,
+  error?: boolean,
 ) {
   if (loading !== false) {
     clearTimeout(statusBarFalseTimeout);
@@ -90,11 +109,21 @@ export function setupStatusBar(
     );
   }
 
-  statusBarItem.text = loading
-    ? "$(loading~spin) Continue"
-    : statusBarItemText(status);
+  if (error !== undefined) {
+    statusBarError = error;
+
+    if (status === undefined) {
+      status = statusBarStatus;
+    }
+
+    if (loading === undefined) {
+      loading = loading;
+    }
+  }
+
+  statusBarItem.text = statusBarItemText(status, loading, statusBarError);
   statusBarItem.tooltip = statusBarItemTooltip(status ?? statusBarStatus);
-  statusBarItem.command = "epi-copilot.openTabAutocompleteConfigMenu";
+  statusBarItem.command = "epico-pilot.openTabAutocompleteConfigMenu";
 
   statusBarItem.show();
   if (status !== undefined) {
@@ -145,7 +174,7 @@ export function getAutocompleteStatusBarDescription(
     return undefined;
   }
 
-  let description = "Currently selected";
+  let description = "Current autocomplete model";
 
   // Only set for Mistral since our default config includes Codestral without
   // an API key

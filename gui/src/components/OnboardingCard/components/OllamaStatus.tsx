@@ -13,9 +13,7 @@ interface OllamaStatusProps {
   isOllamaConnected: boolean;
 }
 
-const {
-  ollama: { downloadUrl },
-} = providers;
+const downloadUrl = providers.ollama!.downloadUrl!;
 
 export function OllamaStatus({ isOllamaConnected }: OllamaStatusProps) {
   const ideMessenger = useContext(IdeMessengerContext);
@@ -35,17 +33,17 @@ export function OllamaStatus({ isOllamaConnected }: OllamaStatusProps) {
     case OllamaConnectionStatuses.WaitingToDownload:
       return (
         <StyledActionButton onClick={onClickDownload}>
-          <p className="underline text-sm truncate mr-1">{downloadUrl}</p>
+          <p className="mr-1 text-sm underline">{downloadUrl}</p>
           <ArrowTopRightOnSquareIcon width={24} height={24} />
         </StyledActionButton>
       );
     case OllamaConnectionStatuses.Downloading:
       return (
-        <div className="flex justify-between items-center">
-          <p className="text-sm w-3/4 font-mono truncate mr-1">
+        <div className="flex items-center justify-between">
+          <p className="mr-1 w-3/4 font-mono text-sm">
             Checking for connection to Ollama at http://localhost:11434
           </p>
-          <ArrowPathIcon className="h-4 w-4 animate-spin-slow mr-1" />
+          <ArrowPathIcon className="animate-spin-slow mr-1 h-4 w-4" />
         </div>
       );
     case OllamaConnectionStatuses.Connected:

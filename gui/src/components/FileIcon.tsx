@@ -1,15 +1,12 @@
 import DOMPurify from "dompurify";
 import { themeIcons } from "seti-file-icons";
 
-const FileIcon = ({
-  filename,
-  height,
-  width,
-}: {
+export interface FileIconProps {
   filename: string;
   height: string;
   width: string;
-}) => {
+}
+export default function FileIcon({ filename, height, width }: FileIconProps) {
   const filenameParts = filename.includes(" (")
     ? filename.split(" ")
     : [filename, ""];
@@ -34,11 +31,15 @@ const FileIcon = ({
   const sanitizedSVG = DOMPurify.sanitize(svg);
 
   return (
-    <div
+    <span
       dangerouslySetInnerHTML={{ __html: sanitizedSVG }}
-      style={{ width: width, height: height, fill: color, flexShrink: 0 }}
+      style={{
+        width: width,
+        height: height,
+        fill: color,
+        flexShrink: 0,
+        display: "block",
+      }}
     />
   );
-};
-
-export default FileIcon;
+}

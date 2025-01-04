@@ -1,18 +1,64 @@
-import {
-  ChatMessage,
-  CompletionOptions,
-  LLMOptions,
-  ModelProvider,
-} from "../../index.js";
-import { stripImages } from "../images.js";
+import { ChatMessage, CompletionOptions, LLMOptions } from "../../index.js";
+import { renderChatMessage } from "../../util/messageContent.js";
 import { BaseLLM } from "../index.js";
 import { streamResponse } from "../stream.js";
 
+type OllamaChatMessage = ChatMessage & { images?: string[] };
+
+// See https://github.com/ollama/ollama/blob/main/docs/modelfile.md for details on each parameter
+interface ModelFileParams {
+  mirostat?: number;
+  mirostat_eta?: number;
+  mirostat_tau?: number;
+  num_ctx?: number;
+  repeat_last_n?: number;
+  repeat_penalty?: number;
+  temperature?: number;
+  seed?: number;
+  stop?: string | string[];
+  tfs_z?: number;
+  num_predict?: number;
+  top_k?: number;
+  top_p?: number;
+  min_p?: number;
+  // deprecated?
+  num_thread?: number;
+  use_mmap?: boolean;
+  num_gqa?: number;
+  num_gpu?: number;
+}
+
+// See https://github.com/ollama/ollama/blob/main/docs/api.md
+interface BaseOptions {
+  model: string; // the model name
+  options?: ModelFileParams; // additional model parameters listed in the documentation for the Modelfile such as temperature
+  format?: "json"; // the format to return a response in. Currently, the only accepted value is json
+  stream?: boolean; // if false the response will be returned as a single response object, rather than a stream of objects
+  keep_alive?: number; // controls how long the model will stay loaded into memory following the request (default: 5m)
+}
+
+interface GenerateOptions extends BaseOptions {
+  prompt: string; // the prompt to generate a response for
+  suffix?: string; // the text after the model response
+  images?: string[]; // a list of base64-encoded images (for multimodal models such as llava)
+  system?: string; // system message to (overrides what is defined in the Modelfile)
+  template?: string; // the prompt template to use (overrides what is defined in the Modelfile)
+  context?: string; // the context parameter returned from a previous request to /generate, this can be used to keep a short conversational memory
+  raw?: boolean; // if true no formatting will be applied to the prompt. You may choose to use the raw parameter if you are specifying a full templated prompt in your request to the API
+}
+
+interface ChatOptions extends BaseOptions {
+  messages: OllamaChatMessage[]; // the messages of the chat, this can be used to keep a chat memory
+  // Not supported yet - tools: tools for the model to use if supported. Requires stream to be set to false
+  // And correspondingly, tool calls in OllamaChatMessage
+}
+
 class Ollama extends BaseLLM {
-  static providerName: ModelProvider = "ollama";
+  static providerName = "ollama";
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "http://localhost:11434/",
     model: "codellama-7b",
+    maxEmbeddingBatchSize: 64,
   };
 
   private fimSupported: boolean = false;
@@ -23,7 +69,6 @@ class Ollama extends BaseLLM {
     if (options.model === "AUTODETECT") {
       return;
     }
-
     this.fetch(this.getEndpoint("api/show"), {
       method: "POST",
       headers: {
@@ -33,7 +78,7 @@ class Ollama extends BaseLLM {
       body: JSON.stringify({ name: this._getModel() }),
     })
       .then(async (response) => {
-        if (response.status !== 200) {
+        if (response?.status !== 200) {
           // console.warn(
           //   "Error calling Ollama /api/show endpoint: ",
           //   await response.text(),
@@ -63,7 +108,7 @@ class Ollama extends BaseLLM {
                   this.completionOptions.stop.push(JSON.parse(value));
                 } catch (e) {
                   console.warn(
-                    'Error parsing stop parameter value "{value}: ${e}',
+                    `Error parsing stop parameter value "{value}: ${e}`,
                   );
                 }
                 break;
@@ -101,6 +146,10 @@ class Ollama extends BaseLLM {
         "llama3.1-8b": "llama3.1:8b",
         "llama3.1-70b": "llama3.1:70b",
         "llama3.1-405b": "llama3.1:405b",
+        "llama3.2-1b": "llama3.2:1b",
+        "llama3.2-3b": "llama3.2:3b",
+        "llama3.2-11b": "llama3.2:11b",
+        "llama3.2-90b": "llama3.2:90b",
         "phi-2": "phi:2.7b",
         "phind-codellama-34b": "phind-codellama:34b-v2",
         "wizardcoder-7b": "wizardcoder:7b-python",
@@ -124,49 +173,75 @@ class Ollama extends BaseLLM {
     );
   }
 
-  private _convertMessage(message: ChatMessage) {
-    if (typeof message.content === "string") {
-      return message;
-    }
-
+  private _getModelFileParams(options: CompletionOptions): ModelFileParams {
     return {
-      role: message.role,
-      content: stripImages(message.content),
-      images: message.content
-        .filter((part) => part.type === "imageUrl")
-        .map((part) => part.imageUrl?.url.split(",").at(-1)),
+      temperature: options.temperature,
+      top_p: options.topP,
+      top_k: options.topK,
+      num_predict: options.maxTokens,
+      stop: options.stop,
+      num_ctx: this.contextLength,
+      mirostat: options.mirostat,
+      num_thread: options.numThreads,
+      use_mmap: options.useMmap,
+      min_p: options.minP,
     };
   }
 
-  private _convertArgs(
-    options: CompletionOptions,
-    prompt: string | ChatMessage[],
-    suffix?: string,
-  ) {
-    const finalOptions: any = {
-      model: this._getModel(),
-      raw: true,
-      keep_alive: options.keepAlive ?? 60 * 30, // 30 minutes
-      suffix,
-      options: {
-        temperature: options.temperature,
-        top_p: options.topP,
-        top_k: options.topK,
-        num_predict: options.maxTokens,
-        stop: options.stop,
-        num_ctx: this.contextLength,
-        mirostat: options.mirostat,
-        num_thread: options.numThreads,
-      },
-    };
-
-    if (typeof prompt === "string") {
-      finalOptions.prompt = prompt;
-    } else {
-      finalOptions.messages = prompt.map(this._convertMessage);
+  private _convertMessage(message: ChatMessage) {
+    if (message.role === "tool") {
+      return null;
     }
 
-    return finalOptions;
+    if (typeof message.content === "string") {
+      return message;
+    }
+    const images: string[] = [];
+    message.content.forEach((part) => {
+      if (part.type === "imageUrl" && part.imageUrl) {
+        const image = part.imageUrl?.url.split(",").at(-1);
+        if (image) {
+          images.push(image);
+        }
+      }
+    });
+
+    return {
+      role: message.role,
+      content: renderChatMessage(message),
+      images,
+    };
+  }
+
+  private _getChatOptions(
+    options: CompletionOptions,
+    messages: ChatMessage[],
+  ): ChatOptions {
+    return {
+      model: this._getModel(),
+      messages: messages.map(this._convertMessage).filter(Boolean) as any,
+      options: this._getModelFileParams(options),
+      keep_alive: options.keepAlive ?? 60 * 30, // 30 minutes
+      stream: options.stream,
+      // format: options.format, // Not currently in base completion options
+    };
+  }
+
+  private _getGenerateOptions(
+    options: CompletionOptions,
+    prompt: string,
+    suffix?: string,
+  ): GenerateOptions {
+    return {
+      model: this._getModel(),
+      prompt,
+      suffix,
+      raw: options.raw,
+      options: this._getModelFileParams(options),
+      keep_alive: options.keepAlive ?? 60 * 30, // 30 minutes
+      stream: options.stream,
+      // Not supported yet: context, images, system, template, format
+    };
   }
 
   private getEndpoint(endpoint: string): URL {
@@ -180,6 +255,7 @@ class Ollama extends BaseLLM {
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const response = await this.fetch(this.getEndpoint("api/generate"), {
@@ -188,7 +264,8 @@ class Ollama extends BaseLLM {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(this._convertArgs(options, prompt)),
+      body: JSON.stringify(this._getGenerateOptions(options, prompt)),
+      signal,
     });
 
     let buffer = "";
@@ -219,6 +296,7 @@ class Ollama extends BaseLLM {
 
   protected async *_streamChat(
     messages: ChatMessage[],
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<ChatMessage> {
     const response = await this.fetch(this.getEndpoint("api/chat"), {
@@ -227,7 +305,8 @@ class Ollama extends BaseLLM {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(this._convertArgs(options, messages)),
+      body: JSON.stringify(this._getChatOptions(options, messages)),
+      signal,
     });
 
     let buffer = "";
@@ -266,6 +345,7 @@ class Ollama extends BaseLLM {
   protected async *_streamFim(
     prefix: string,
     suffix: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const response = await this.fetch(this.getEndpoint("api/generate"), {
@@ -274,7 +354,8 @@ class Ollama extends BaseLLM {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(this._convertArgs(options, prefix, suffix)),
+      body: JSON.stringify(this._getGenerateOptions(options, prefix, suffix)),
+      signal,
     });
 
     let buffer = "";
@@ -312,7 +393,39 @@ class Ollama extends BaseLLM {
       },
     );
     const data = await response.json();
-    return data.models.map((model: any) => model.name);
+    if (response.ok) {
+      return data.models.map((model: any) => model.name);
+    } else {
+      throw new Error(
+        "Failed to list Ollama models. Make sure Ollama is running.",
+      );
+    }
+  }
+
+  protected async _embed(chunks: string[]): Promise<number[][]> {
+    const resp = await this.fetch(new URL("api/embed", this.apiBase), {
+      method: "POST",
+      body: JSON.stringify({
+        model: this.model,
+        input: chunks,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!resp.ok) {
+      throw new Error(`Failed to embed chunk: ${await resp.text()}`);
+    }
+
+    const data = await resp.json();
+    const embedding: number[][] = data.embeddings;
+
+    if (!embedding || embedding.length === 0) {
+      throw new Error("Ollama generated empty embedding");
+    }
+    return embedding;
   }
 }
 

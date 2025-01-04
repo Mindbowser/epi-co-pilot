@@ -1,26 +1,25 @@
 import {
+  InvokeEndpointCommand,
   InvokeEndpointWithResponseStreamCommand,
-  SageMakerRuntimeClient
+  SageMakerRuntimeClient,
 } from "@aws-sdk/client-sagemaker-runtime";
 import { fromIni } from "@aws-sdk/credential-providers";
 
 // @ts-ignore
 import jinja from "jinja-js";
 
-import {
-  ChatMessage,
-  CompletionOptions,
-  LLMOptions,
-  ModelProvider
-} from "../../index.js";
+import { ChatMessage, CompletionOptions, LLMOptions } from "../../index.js";
 import { BaseLLM } from "../index.js";
 
 class SageMaker extends BaseLLM {
-  private static PROFILE_NAME: string = "sagemaker";
-  static providerName: ModelProvider = "sagemaker";
+  private static DEFAULT_PROFILE_NAME: string = "sagemaker";
+
+  static providerName = "sagemaker";
+
   static defaultOptions: Partial<LLMOptions> = {
     region: "us-west-2",
     contextLength: 200_000,
+    maxEmbeddingBatchSize: 1,
   };
 
   constructor(options: LLMOptions) {
@@ -28,10 +27,13 @@ class SageMaker extends BaseLLM {
     if (!options.apiBase) {
       this.apiBase = `https://runtime.sagemaker.${options.region}.amazonaws.com`;
     }
+
+    this.profile ??= SageMaker.DEFAULT_PROFILE_NAME;
   }
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const credentials = await this._getCredentials();
@@ -45,7 +47,7 @@ class SageMaker extends BaseLLM {
     });
     const toolkit = new CompletionAPIToolkit(this);
     const command = toolkit.generateCommand([], prompt, options);
-    const response = await client.send(command);
+    const response = await client.send(command, { abortSignal: signal });
     if (response.Body) {
       let buffer = "";
       for await (const rawValue of response.Body) {
@@ -56,24 +58,21 @@ class SageMaker extends BaseLLM {
         while ((position = buffer.indexOf("\n")) >= 0) {
           const line = buffer.slice(0, position);
           try {
-            const data = JSON.parse(line.replace(/^data:/, ''));
+            const data = JSON.parse(line.replace(/^data:/, ""));
             let text = undefined;
             if ("choices" in data) {
-              if ("delta" in data.choices[0]){
+              if ("delta" in data.choices[0]) {
                 text = data.choices[0].delta.content;
-              }
-              else{
+              } else {
                 text = data.choices[0].text;
               }
-            }
-            else if ("token" in data) {
+            } else if ("token" in data) {
               text = data.token.text;
             }
             if (text !== undefined) {
               yield text;
             }
-          } catch (e) {
-          }
+          } catch (e) {}
           buffer = buffer.slice(position + 1);
         }
       }
@@ -82,6 +81,7 @@ class SageMaker extends BaseLLM {
 
   protected async *_streamChat(
     messages: ChatMessage[],
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<ChatMessage> {
     const credentials = await this._getCredentials();
@@ -96,7 +96,7 @@ class SageMaker extends BaseLLM {
     const toolkit = new MessageAPIToolkit(this);
 
     const command = toolkit.generateCommand(messages, "", options);
-    const response = await client.send(command);
+    const response = await client.send(command, { abortSignal: signal });
     if (response.Body) {
       let buffer = "";
       for await (const rawValue of response.Body) {
@@ -107,24 +107,21 @@ class SageMaker extends BaseLLM {
         while ((position = buffer.indexOf("\n")) >= 0) {
           const line = buffer.slice(0, position);
           try {
-            const data = JSON.parse(line.replace(/^data:/, ''));
+            const data = JSON.parse(line.replace(/^data:/, ""));
             let text = undefined;
             if ("choices" in data) {
-              if ("delta" in data.choices[0]){
+              if ("delta" in data.choices[0]) {
                 text = data.choices[0].delta.content;
-              }
-              else{
+              } else {
                 text = data.choices[0].text;
               }
-            }
-            else if ("token" in data) {
+            } else if ("token" in data) {
               text = data.token.text;
             }
             if (text !== undefined) {
               yield { role: "assistant", content: text };
             }
-          } catch (e) {
-          }
+          } catch (e) {}
           buffer = buffer.slice(position + 1);
         }
       }
@@ -134,16 +131,61 @@ class SageMaker extends BaseLLM {
   private async _getCredentials() {
     try {
       return await fromIni({
-        profile: SageMaker.PROFILE_NAME,
+        profile: this.profile,
       })();
     } catch (e) {
       console.warn(
-        `AWS profile with name ${SageMaker.PROFILE_NAME} not found in ~/.aws/credentials, using default profile`,
+        `AWS profile with name ${this.profile} not found in ~/.aws/credentials, using default profile`,
       );
       return await fromIni()();
     }
   }
 
+  async embed(chunks: string[]) {
+    const credentials = await this._getCredentials();
+    const client = new SageMakerRuntimeClient({
+      region: this.region,
+      credentials: {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken || "",
+      },
+    });
+
+    const input = this._generateInvokeModelCommandInput(chunks);
+    const command = new InvokeEndpointCommand(input);
+    const response = await client.send(command);
+
+    if (response.Body) {
+      const responseBody = JSON.parse(new TextDecoder().decode(response.Body));
+      // If the body contains a key called "embedding" or "embeddings", return the value, otherwise return the whole body
+      if (responseBody.embedding) {
+        return responseBody.embedding;
+      } else if (responseBody.embeddings) {
+        return responseBody.embeddings;
+      } else {
+        return responseBody;
+      }
+    }
+  }
+  private _generateInvokeModelCommandInput(prompts: string | string[]): any {
+    const payload = {
+      inputs: prompts,
+      normalize: true,
+      // ...(options.requestOptions?.extraBodyProperties || {}),
+    };
+
+    if (this.requestOptions?.extraBodyProperties) {
+      Object.assign(payload, this.requestOptions.extraBodyProperties);
+    }
+
+    return {
+      EndpointName: this.model,
+      Body: JSON.stringify(payload),
+      ContentType: "application/json",
+      CustomAttributes: "accept_eula=false",
+    };
+  }
 }
 
 interface SageMakerModelToolkit {
@@ -155,19 +197,20 @@ interface SageMakerModelToolkit {
 }
 
 class MessageAPIToolkit implements SageMakerModelToolkit {
-  constructor(private sagemaker: SageMaker) { }
+  constructor(private sagemaker: SageMaker) {}
   generateCommand(
     messages: ChatMessage[],
     prompt: string,
     options: CompletionOptions,
   ): InvokeEndpointWithResponseStreamCommand {
-
     if ("chat_template" in this.sagemaker.completionOptions) {
       // for some model you can apply chat_template to the model
-      let prompt = jinja.compile(this.sagemaker.completionOptions.chat_template).render(
-        { messages: messages, add_generation_prompt: true },
-        { autoEscape: false }
-      );
+      let prompt = jinja
+        .compile(this.sagemaker.completionOptions.chat_template)
+        .render(
+          { messages: messages, add_generation_prompt: true },
+          { autoEscape: false },
+        );
       const payload = {
         inputs: prompt,
         parameters: this.sagemaker.completionOptions,
@@ -180,8 +223,7 @@ class MessageAPIToolkit implements SageMakerModelToolkit {
         ContentType: "application/json",
         CustomAttributes: "accept_eula=false",
       });
-    }
-    else {
+    } else {
       const payload = {
         messages: messages,
         max_tokens: options.maxTokens,
@@ -201,11 +243,10 @@ class MessageAPIToolkit implements SageMakerModelToolkit {
         CustomAttributes: "accept_eula=false",
       });
     }
-
   }
 }
 class CompletionAPIToolkit implements SageMakerModelToolkit {
-  constructor(private sagemaker: SageMaker) { }
+  constructor(private sagemaker: SageMaker) {}
   generateCommand(
     messages: ChatMessage[],
     prompt: string,

@@ -1,22 +1,23 @@
-import { ContinueProxyReranker } from "../../context/rerankers/ContinueProxyReranker.js";
-import { ControlPlaneProxyInfo } from "../../control-plane/analytics/IAnalyticsProvider.js";
-import {
-  ControlPlaneClient,
-  DEFAULT_CONTROL_PLANE_PROXY_URL,
-} from "../../control-plane/client.js";
-import { TeamAnalytics } from "../../control-plane/TeamAnalytics.js";
+import fs from "fs";
+
 import {
   ContinueConfig,
   ContinueRcJson,
   IDE,
   IdeSettings,
   SerializedContinueConfig,
-} from "../../index.js";
-import ContinueProxyEmbeddingsProvider from "../../indexing/embeddings/ContinueProxyEmbeddingsProvider.js";
-import ContinueProxy from "../../llm/llms/stubs/ContinueProxy.js";
-import { Telemetry } from "../../util/posthog.js";
-import { TTS } from "../../util/tts.js";
-import { loadFullConfigNode } from "../load.js";
+} from "../../";
+import { ControlPlaneProxyInfo } from "../../control-plane/analytics/IAnalyticsProvider.js";
+import { ControlPlaneClient } from "../../control-plane/client.js";
+import { controlPlaneEnv } from "../../control-plane/env.js";
+import { TeamAnalytics } from "../../control-plane/TeamAnalytics.js";
+import ContinueProxy from "../../llm/llms/stubs/ContinueProxy";
+import { getConfigYamlPath } from "../../util/paths";
+import { Telemetry } from "../../util/posthog";
+import { TTS } from "../../util/tts";
+import { ConfigResult, loadFullConfigNode } from "../load";
+import { ConfigValidationError } from "../validation";
+import { loadContinueConfigFromYaml } from "../yaml/loadYaml";
 
 export default async function doLoadConfig(
   ide: IDE,
@@ -25,29 +26,54 @@ export default async function doLoadConfig(
   writeLog: (message: string) => Promise<void>,
   overrideConfigJson: SerializedContinueConfig | undefined,
   workspaceId?: string,
-) {
-  let workspaceConfigs: ContinueRcJson[] = [];
-  try {
-    workspaceConfigs = await ide.getWorkspaceConfigs();
-  } catch (e) {
-    console.warn("Failed to load workspace configs");
-  }
-
+): Promise<ConfigResult<ContinueConfig>> {
+  const workspaceConfigs = await getWorkspaceConfigs(ide);
   const ideInfo = await ide.getIdeInfo();
   const uniqueId = await ide.getUniqueId();
   const ideSettings = await ideSettingsPromise;
   const workOsAccessToken = await controlPlaneClient.getAccessToken();
 
-  let newConfig = await loadFullConfigNode(
-    ide,
-    workspaceConfigs,
-    ideSettings,
-    ideInfo.ideType,
-    uniqueId,
-    writeLog,
-    workOsAccessToken,
-    overrideConfigJson,
-  );
+  const configYamlPath = getConfigYamlPath(ideInfo.ideType);
+
+  let newConfig: ContinueConfig | undefined;
+  let errors: ConfigValidationError[] | undefined;
+  let configLoadInterrupted = false;
+
+  if (fs.existsSync(configYamlPath)) {
+    const result = await loadContinueConfigFromYaml(
+      ide,
+      workspaceConfigs.map((c) => JSON.stringify(c)),
+      ideSettings,
+      ideInfo.ideType,
+      uniqueId,
+      writeLog,
+      workOsAccessToken,
+      undefined,
+      // overrideConfigYaml, TODO
+    );
+    newConfig = result.config;
+    errors = result.errors;
+    configLoadInterrupted = result.configLoadInterrupted;
+  } else {
+    const result = await loadFullConfigNode(
+      ide,
+      workspaceConfigs,
+      ideSettings,
+      ideInfo.ideType,
+      uniqueId,
+      writeLog,
+      workOsAccessToken,
+      overrideConfigJson,
+    );
+    newConfig = result.config;
+    errors = result.errors;
+    configLoadInterrupted = result.configLoadInterrupted;
+  }
+
+  if (configLoadInterrupted || !newConfig) {
+    return { errors, config: newConfig, configLoadInterrupted: true };
+  }
+
   newConfig.allowAnonymousTelemetry =
     newConfig.allowAnonymousTelemetry && (await ide.isTelemetryEnabled());
 
@@ -62,9 +88,13 @@ export default async function doLoadConfig(
   await TTS.setup();
 
   // Set up control plane proxy if configured
-  let controlPlaneProxyUrl: string =
-    (newConfig as any).controlPlane?.proxyUrl ??
-    DEFAULT_CONTROL_PLANE_PROXY_URL;
+  const controlPlane = (newConfig as any).controlPlane;
+  const useOnPremProxy =
+    controlPlane?.useContinueForTeamsProxy === false && controlPlane?.proxyUrl;
+  let controlPlaneProxyUrl: string = useOnPremProxy
+    ? controlPlane?.proxyUrl
+    : controlPlaneEnv.DEFAULT_CONTROL_PLANE_PROXY_URL;
+
   if (!controlPlaneProxyUrl.endsWith("/")) {
     controlPlaneProxyUrl += "/";
   }
@@ -89,7 +119,7 @@ export default async function doLoadConfig(
     controlPlaneProxyInfo,
   );
 
-  return newConfig;
+  return { config: newConfig, errors, configLoadInterrupted: false };
 }
 
 // Pass ControlPlaneProxyInfo to objects that need it
@@ -106,14 +136,30 @@ async function injectControlPlaneProxyInfo(
   );
 
   if (config.embeddingsProvider?.providerName === "continue-proxy") {
-    (
-      config.embeddingsProvider as ContinueProxyEmbeddingsProvider
-    ).controlPlaneProxyInfo = info;
+    (config.embeddingsProvider as ContinueProxy).controlPlaneProxyInfo = info;
   }
 
-  if (config.reranker?.name === "continue-proxy") {
-    (config.reranker as ContinueProxyReranker).controlPlaneProxyInfo = info;
+  if (config.reranker?.providerName === "continue-proxy") {
+    (config.reranker as ContinueProxy).controlPlaneProxyInfo = info;
   }
 
   return config;
+}
+
+async function getWorkspaceConfigs(ide: IDE): Promise<ContinueRcJson[]> {
+  const ideInfo = await ide.getIdeInfo();
+  let workspaceConfigs: ContinueRcJson[] = [];
+
+  try {
+    workspaceConfigs = await ide.getWorkspaceConfigs();
+
+    // Config is sent over the wire from JB so we need to parse it
+    if (ideInfo.ideType === "jetbrains") {
+      workspaceConfigs = (workspaceConfigs as any).map(JSON.parse);
+    }
+  } catch (e) {
+    console.debug("Failed to load workspace configs: ", e);
+  }
+
+  return workspaceConfigs;
 }

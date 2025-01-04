@@ -1,15 +1,23 @@
-import { getContinueRcPath, getTsConfigPath, migrate } from "core/util/paths";
-import { Telemetry } from "core/util/posthog";
+import * as fs from "fs";
 import path from "node:path";
+import { getContinueGlobalPath, getContinueRcPath, getTsConfigPath } from "core/util/paths";
+import { Telemetry } from "core/util/posthog";
 import * as vscode from "vscode";
+
 import { VsCodeExtension } from "../extension/VsCodeExtension";
 import registerQuickFixProvider from "../lang-server/codeActions";
 import { getExtensionVersion } from "../util/util";
-import { getExtensionUri } from "../util/vscode";
+
 import { VsCodeContinueApi } from "./api";
 import { setupInlineTips } from "./inlineTips";
+import { defaultConfig, defaultConfigJetBrains } from "core/config/default";
 
 export async function activateExtension(context: vscode.ExtensionContext) {
+  const p = path.join(getContinueGlobalPath(), "config.json");
+
+  fs.unlink(p, () => 
+    fs.writeFileSync(p, JSON.stringify(defaultConfig, null, 2))
+  );
   // Add necessary files
   getTsConfigPath();
   getContinueRcPath();

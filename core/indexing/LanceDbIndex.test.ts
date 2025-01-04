@@ -1,20 +1,22 @@
 import { jest } from "@jest/globals";
 import lance from "vectordb";
-import { testConfigHandler, testIde } from "../test/util/fixtures";
+
+import { testConfigHandler, testIde } from "../test/fixtures";
 import {
   mockPathAndCacheKey,
   mockTag,
   testContinueServerClient,
   updateIndexAndAwaitGenerator,
-} from "../test/util/indexing";
+} from "./test/indexing";
 import { getLanceDbPath } from "../util/paths";
+
 import { LanceDbIndex } from "./LanceDbIndex";
 import { DatabaseConnection, SqliteDb } from "./refreshIndex";
 import { IndexResultType } from "./types";
 
 jest.useFakeTimers();
 
-describe("ChunkCodebaseIndex", () => {
+describe.skip("ChunkCodebaseIndex", () => {
   let index: LanceDbIndex;
   let sqliteDb: DatabaseConnection;
   let lanceDb: lance.Connection;

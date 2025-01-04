@@ -30,6 +30,7 @@ export function useSubmitOnboarding(mode: OnboardingModes) {
 
       // Local state
       setLocalStorage("onboardingStatus", "Completed");
+      setLocalStorage("isLoggedIn", true);
 
       // Show tutorial card
       openTutorialCard();

@@ -1,7 +1,8 @@
-import { runTests } from "@vscode/test-electron";
-import { defaultConfig } from "core/config/default";
 import fs from "node:fs";
 import * as path from "node:path";
+
+import { runTests } from "@vscode/test-electron";
+import { defaultConfig } from "core/config/default";
 
 export const testWorkspacePath = path.resolve(
   __dirname,
@@ -18,7 +19,7 @@ const continueGlobalDir = path.resolve(
   "src",
   "test",
   "fixtures",
-  ".epi-copilot",
+  ".epico-pilot",
 );
 
 function setupTestWorkspace() {

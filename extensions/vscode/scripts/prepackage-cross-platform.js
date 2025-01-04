@@ -85,7 +85,7 @@ function isWin() {
 async function package(target, os, arch, exe) {
   console.log("[info] Packaging extension for target ", target);
 
-  // Copy config_schema.json to config.json in docs and intellij
+  // Copy config_schema to intellij
   copyConfigSchema();
 
   // Install node_modules
@@ -157,10 +157,9 @@ async function package(target, os, arch, exe) {
       os === "darwin"
         ? "libonnxruntime.1.14.0.dylib"
         : os === "linux"
-        ? "libonnxruntime.so.1.14.0"
-        : "onnxruntime.dll"
+          ? "libonnxruntime.so.1.14.0"
+          : "onnxruntime.dll"
     }`,
-    "builtin-themes/dark_modern.json",
 
     // Code/styling for the sidebar
     "gui/assets/index.js",
@@ -197,8 +196,8 @@ async function package(target, os, arch, exe) {
       target === "win32-arm64"
         ? "esbuild.exe"
         : target === "win32-x64"
-        ? "win32-x64/esbuild.exe"
-        : `${target}/bin/esbuild`
+          ? "win32-x64/esbuild.exe"
+          : `${target}/bin/esbuild`
     }`,
     `out/node_modules/@lancedb/vectordb-${
       os === "win32"

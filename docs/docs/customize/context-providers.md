@@ -58,7 +58,7 @@ Reference all of the changes you've made to your current branch. This is useful 
 
 ### `@Terminal`
 
-Reference the contents of your IDE's terminal.
+Reference the last command you ran in your IDE's terminal and its output.
 
 ```json title="config.json"
 {
@@ -100,6 +100,20 @@ Reference the contents of all of your open files. Set `onlyPinned` to `true` to 
       "params": {
         "onlyPinned": true
       }
+    }
+  ]
+}
+```
+
+### `@Web`
+
+Reference relevant pages from across the web, automatically determined from your input.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "web"
     }
   ]
 }
@@ -277,7 +291,7 @@ Reference the conversation in a Jira issue.
       "name": "jira",
       "params": {
         "domain": "company.atlassian.net",
-        "token ": "ATATT..."
+        "token": "ATATT..."
       }
     }
   ]
@@ -315,6 +329,36 @@ assignee = currentUser() AND resolution = Unresolved order by updated DESC
 
 You can override this query by setting the `issueQuery` parameter.
 
+### `@Discord`
+
+Reference the messages in a Discord channel.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "discord",
+      "params": {
+        "discordKey": "bot token",
+        "guildId": "1234567890",
+        "channels": [
+          {
+            "id": "123456",
+            "name": "example-channel"
+          },
+          {
+            "id": "678901",
+            "name": "example-channel-2"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Make sure to include your own [Bot Token](https://discord.com/developers/applications), and join it to your related server . If you want more granular control over which channels are searched, you can specify a list of channel IDs to search in. If you don't want to specify any channels, just include the guild id(Server ID) and all channels will be included. The provider only reads text channels.
+
 ### `@Postgres`
 
 Reference the schema of a table, and some sample rows
@@ -346,7 +390,7 @@ By default, the `schema` filter is set to `public`, and the `sampleRows` is set 
 
 ### `@Database`
 
-Reference table schemas from Sqlite, Postgres, and MySQL databases.
+Reference table schemas from Sqlite, Postgres, MSSQL, and MySQL databases.
 
 ```json title="config.json"
 {
@@ -364,6 +408,16 @@ Reference table schemas from Sqlite, Postgres, and MySQL databases.
               "database": "exampleDB",
               "password": "yourPassword",
               "port": 5432
+            }
+          },
+          {
+            "name": "exampleMssql",
+            "connection_type": "mssql",
+            "connection": {
+              "user": "username",
+              "server": "localhost",
+              "database": "exampleDB",
+              "password": "yourPassword"
             }
           },
           {
@@ -388,15 +442,15 @@ Available connection types:
 - `mysql`
 - `sqlite`
 
-### `@Locals`
+### `@Debugger`
 
-Reference the contents of the local variables in the debugger.
+Reference the contents of the local variables in the debugger. Currently only available in VS Code.
 
 ```json title="config.json"
 {
   "contextProviders": [
     {
-      "name": "locals",
+      "name": "debugger",
       "params": {
         "stackDepth": 3
       }
@@ -440,6 +494,28 @@ Reference the architecture and platform of your current operating system.
   ]
 }
 ```
+
+### Model Context Protocol
+
+The [Model Context Protocol](https://modelcontextprotocol.io/introduction) is a standard proposed by Anthropic to unify prompts, context, and tool use. Continue supports any MCP server with the MCP context provider. Read their [quickstart](https://modelcontextprotocol.io/quickstart) to learn how to set up a local server and then configure your `config.json` like this:
+
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": ["mcp-server-sqlite", "--db-path", "/Users/NAME/test.db"]
+        }
+      }
+    ]
+  }
+}
+```
+
+You'll then be able to type "@" and see "MCP" in the context providers dropdown.
 
 ### `@HTTP`
 

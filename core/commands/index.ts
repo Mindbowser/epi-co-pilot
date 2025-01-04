@@ -1,6 +1,7 @@
 import { CustomCommand, SlashCommand, SlashCommandDescription } from "../";
-import { stripImages } from "../llm/images";
-import { renderTemplatedString } from "../promptFiles/renderTemplatedString";
+import { renderTemplatedString } from "../promptFiles/v1/renderTemplatedString";
+import { renderChatMessage } from "../util/messageContent";
+
 import SlashCommands from "./slash";
 
 export function slashFromCustomCommand(
@@ -28,7 +29,8 @@ export function slashFromCustomCommand(
       const messages = [...history];
       // Find the last chat message with this slash command and replace it with the user input
       for (let i = messages.length - 1; i >= 0; i--) {
-        const { role, content } = messages[i];
+        const message = messages[i];
+        const { role, content } = message;
         if (role !== "user") {
           continue;
         }
@@ -40,7 +42,7 @@ export function slashFromCustomCommand(
           )
         ) {
           messages[i] = {
-            ...messages[i],
+            ...message,
             content: content.map((part) => {
               return part.text?.startsWith(`/${customCommand.name}`)
                 ? { ...part, text: promptUserInput }
@@ -52,13 +54,16 @@ export function slashFromCustomCommand(
           typeof content === "string" &&
           content.startsWith(`/${customCommand.name}`)
         ) {
-          messages[i] = { ...messages[i], content: promptUserInput };
+          messages[i] = { ...message, content: promptUserInput };
           break;
         }
       }
 
-      for await (const chunk of llm.streamChat(messages)) {
-        yield stripImages(chunk.content);
+      for await (const chunk of llm.streamChat(
+        messages,
+        new AbortController().signal,
+      )) {
+        yield renderChatMessage(chunk);
       }
     },
   };
@@ -67,7 +72,7 @@ export function slashFromCustomCommand(
 export function slashCommandFromDescription(
   desc: SlashCommandDescription,
 ): SlashCommand | undefined {
-  const cmd = SlashCommands.find((cmd) => cmd.name === desc.name);
+  const cmd = SlashCommands.find((cmd) => cmd?.name === desc.name);
   if (!cmd) {
     return undefined;
   }

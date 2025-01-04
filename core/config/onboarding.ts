@@ -3,7 +3,7 @@ import { DEFAULT_CHAT_MODEL_CONFIG } from "./default";
 
 export const TRIAL_FIM_MODEL = "codestral-latest";
 export const ONBOARDING_LOCAL_MODEL_TITLE = "Ollama";
-export const LOCAL_ONBOARDING_FIM_MODEL = "starcoder2:3b";
+export const LOCAL_ONBOARDING_FIM_MODEL = "qwen2.5-coder:1.5b";
 export const LOCAL_ONBOARDING_CHAT_MODEL = "llama3.1:8b";
 export const LOCAL_ONBOARDING_CHAT_TITLE = "Llama 3.1 8B";
 
@@ -34,7 +34,7 @@ export function setupLocalConfig(
       ...config.models.filter((model) => model.provider !== "free-trial"),
     ],
     tabAutocompleteModel: {
-      title: "Starcoder 3b",
+      title: "Qwen2.5-Coder 1.5B",
       provider: "ollama",
       model: LOCAL_ONBOARDING_FIM_MODEL,
     },

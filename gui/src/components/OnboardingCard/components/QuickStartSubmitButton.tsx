@@ -3,14 +3,12 @@ import { useContext } from "react";
 import { useDispatch } from "react-redux";
 import { Button, ButtonSubtext } from "../..";
 import { IdeMessengerContext } from "../../../context/IdeMessenger";
-import { setDefaultModel } from "../../../redux/slices/stateSlice";
-import {
-  setDialogMessage,
-  setShowDialog,
-} from "../../../redux/slices/uiStateSlice";
+import { setDialogMessage, setShowDialog } from "../../../redux/slices/uiSlice";
 import { isJetBrains } from "../../../util";
 import { useSubmitOnboarding } from "../hooks";
 import JetBrainsFetchGitHubTokenDialog from "./JetBrainsFetchGitHubTokenDialog";
+import { setAccount } from "../../../redux/slices/configSlice";
+import { setDefaultModel } from "../../../redux/slices/configSlice";
 
 function QuickstartSubmitButton() {
   const ideMessenger = useContext(IdeMessengerContext);
@@ -21,7 +19,6 @@ function QuickstartSubmitButton() {
   function onComplete() {
     submitOnboarding();
 
-    // Set Sonnet as the default model
     dispatch(
       setDefaultModel({ title: DEFAULT_CHAT_MODEL_CONFIG[0].title, force: true }),
     );
@@ -40,16 +37,27 @@ function QuickstartSubmitButton() {
     const result = await ideMessenger.request("getGitHubAuthToken", {
       force: true,
     });
+
     if (result.status === "success") {
       onComplete();
+    } else {
+      ideMessenger.post("showToast", [
+        "error",
+        "Failed to sign up for Continue free trial through GitHub",
+      ]);
     }
   }
 
+  
+
   async function onClick() {
-    if (isJetBrains()) {
-      openJetBrainsDialog();
-    } else {
-      await fetchGitHubAuthToken();
+    const result = await ideMessenger.request("getAuthToken", null);
+    
+    if (result.status === "success") {
+      onComplete();
+      dispatch(
+        setAccount({ accountName: result?.content.account.label, accountEmail: result.content.account.id }),
+      );
     }
   }
 
@@ -57,11 +65,10 @@ function QuickstartSubmitButton() {
     <div className="mt-4 w-full">
       <Button
         onClick={onClick}
-        className="grid grid-flow-col items-center gap-2 w-full"
+        className="grid w-full grid-flow-col items-center gap-2"
       >
-        Get started using our API keys
+        Login with Epico
       </Button>
-      <ButtonSubtext>Try 50 chat and 2k autocomplete requests</ButtonSubtext>
     </div>
   );
 }

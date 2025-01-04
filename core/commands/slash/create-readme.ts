@@ -1,13 +1,13 @@
 import { IDE, SlashCommand } from "../..";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { stripImages } from "../../llm/images";
 import ignore from "ignore";
 import {
   defaultIgnoreDir,
   defaultIgnoreFile,
   gitIgArrayFromFile,
 } from "../../indexing/ignore";
+import { renderChatMessage } from "../../util/messageContent";
 
 const LANGUAGE_DEP_MGMT_FILENAMES = [
   "package.json", // JavaScript (Node.js)
@@ -41,12 +41,13 @@ const CreateReadmeSlashCommand: SlashCommand = {
     const [workspaceDir] = await ide.getWorkspaceDirs();
 
     const context = await gatherProjectContext(workspaceDir, ide);
-    const prompt = createProjectFlowPrompt(context, input);
+    const prompt = createReadmePrompt(context, input);
 
-    for await (const chunk of llm.streamChat([
-      { role: "user", content: prompt },
-    ])) {
-      yield stripImages(chunk.content);
+    for await (const chunk of llm.streamChat(
+      [{ role: "user", content: prompt }],
+      new AbortController().signal,
+    )) {
+      yield renderChatMessage(chunk);
     }
   },
 };
@@ -112,16 +113,23 @@ async function gatherProjectContext(
   return context;
 }
 
-function createProjectFlowPrompt(context: string, input: string): string {
+function createReadmePrompt(context: string, input: string): string {
   return `
-    Create a detailed readme.md for the project.
-    Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
+    Please help me generate a detailed and professional README file for my codebase. Below is the context of the codebase, including its purpose, features, setup instructions, and any other relevant information.
 
-    ${context}
+    Context:
 
-    Please include all key processes.
-
-    ${input}
+     - Project Name: [Name of the project]
+     - Description: [Brief description of what the project does and its purpose]
+     - Technologies Used: [List of frameworks, libraries, languages, or tools]
+     - Features: [Highlight the main features of the codebase]
+     - Setup Instructions: [Steps for users to clone, install dependencies, and run the project]
+     - Usage Instructions: [Any special instructions for using the project or running tests]
+     - Contributors: [List of contributors or teams, if any]
+     - License: [Specify the license type]
+     - Additional Notes: [Anything extra, like future improvements, acknowledgments, or contact info]
+   
+    Format the README with appropriate Markdown syntax for headings, bullet points, and code blocks. Make it clear and user-friendly.
   `;
 }
 

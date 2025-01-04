@@ -1,14 +1,12 @@
 import path from "path";
+
 import * as vscode from "vscode";
+
 import { DiffManager, DIFF_DIRECTORY } from "../../../diff/horizontal";
 import { getMetaKeyLabel } from "../../../util/util";
 
 export class DiffViewerCodeLensProvider implements vscode.CodeLensProvider {
-  diffManager: DiffManager;
-
-  constructor(diffManager: DiffManager) {
-    this.diffManager = diffManager;
-  }
+  constructor(private diffManager: DiffManager) {}
 
   public provideCodeLenses(
     document: vscode.TextDocument,
@@ -24,12 +22,12 @@ export class DiffViewerCodeLensProvider implements vscode.CodeLensProvider {
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: `Accept All ✅ (${getMetaKeyLabel()}⇧⏎)`,
-          command: "epi-copilot.acceptDiff",
+          command: "epico-pilot.acceptDiff",
           arguments: [document.uri.fsPath],
         }),
         new vscode.CodeLens(range, {
           title: `Reject All ❌ (${getMetaKeyLabel()}⇧⌫)`,
-          command: "epi-copilot.rejectDiff",
+          command: "epico-pilot.rejectDiff",
           arguments: [document.uri.fsPath],
         }),
       );

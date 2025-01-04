@@ -1,13 +1,16 @@
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
 import React, { PropsWithChildren, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useAppSelector } from "../redux/hooks";
 import { RootState } from "../redux/store";
 
 const CustomPostHogProvider = ({ children }: PropsWithChildren) => {
-  const allowAnonymousTelemetry = useSelector(
-    (store: RootState) => store?.state?.config.allowAnonymousTelemetry,
+  const allowAnonymousTelemetry = useAppSelector(
+    (store) => store?.config?.config?.allowAnonymousTelemetry,
   );
+  const config = useAppSelector(
+    (store: RootState) => store.config
+  )
 
   const [client, setClient] = React.useState<any>(undefined);
 
@@ -21,13 +24,16 @@ const CustomPostHogProvider = ({ children }: PropsWithChildren) => {
         capture_pageleave: false,
         capture_pageview: false,
       });
-      posthog.identify(window.vscMachineId);
+      posthog.identify(window.vscMachineId, {
+        accountName: config.accountName,
+        accountEmail: config.accountEmail
+      });
       posthog.opt_in_capturing();
       setClient(client);
     } else {
       setClient(undefined);
     }
-  }, [allowAnonymousTelemetry]);
+  }, [allowAnonymousTelemetry, config]);
 
   return allowAnonymousTelemetry ? (
     <PostHogProvider client={client}>{children}</PostHogProvider>

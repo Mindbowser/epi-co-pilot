@@ -1,8 +1,8 @@
 {
-  "name": "epi-copilot",
+  "name": "epico-pilot",
   "icon": "media/icon.png",
   "author": "Mindbowser",
-  "version": "0.0.5",
+  "version": "0.1.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/Mindbowser/co-pilot"
@@ -13,12 +13,12 @@
   ],
   "bugs": {
     "url": "https://github.com/Mindbowser/co-pilot/issues",
-    "email": "nate@continue.dev"
+    "email": "nate@epico-pilot.dev"
   },
-  "homepage": "https://continue.dev",
+  "homepage": "https://epico-pilot.dev",
   "qna": "https://github.com/Mindbowser/co-pilot/issues/new/choose",
   "license": "Apache-2.0",
-  "displayName": "Epi-Copilot",
+  "displayName": "Epico-Pilot",
   "pricing": "Free",
   "description": "The leading open-source AI code assistant",
   "publisher": "Mindbowser",
@@ -57,6 +57,12 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "authentication": [
+      {
+        "id": "epico-pilot",
+        "label": "Epico-Pilot"
+      }
+    ],
     "languages": [
       {
         "filenames": [
@@ -64,62 +70,79 @@
           ".continuerc.json"
         ],
         "id": "jsonc"
+      },
+      {
+        "id": "promptLanguage",
+        "extensions": [
+          ".prompt"
+        ],
+        "aliases": [
+          "Prompt Language"
+        ],
+        "configuration": "./prompt-file-language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "promptLanguage",
+        "scopeName": "source.prompt",
+        "path": "./media/prompt.tmLanguage.json"
       }
     ],
     "configuration": {
-      "title": "Continue",
+      "title": "Epico-Pilot",
       "properties": {
-        "epi-copilot.telemetryEnabled": {
+        "epico-pilot.telemetryEnabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Continue collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [continue.dev › Telemetry](https://docs.continue.dev/telemetry)."
+          "markdownDescription": "Epico-Pilot collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [epico-pilot.dev › Telemetry](https://docs.epico-pilot.dev/telemetry)."
         },
-        "epi-copilot.enableContinueForTeams": {
+        "epico-pilot.enableContinueForTeams": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "_(Requires window reload)_ Enable Continue for teams beta features. To sign in, click the person icon in the bottom right of the sidebar."
+          "markdownDescription": "Enable Epico-Pilot for teams beta features. To sign in, click the person icon in the bottom right of the sidebar."
         },
-        "epi-copilot.showInlineTip": {
+        "epico-pilot.showInlineTip": {
           "type": "boolean",
           "default": true,
-          "description": "Show inline suggestion to use the Continue keyboard shortcuts (e.g. \"Cmd/Ctrl L to select code, Cmd/Ctrl I to edit\")."
+          "description": "Show inline suggestion to use the Epico-Pilot keyboard shortcuts (e.g. \"Cmd/Ctrl L to select code, Cmd/Ctrl I to edit\")."
         },
-        "epi-copilot.enableQuickActions": {
+        "epico-pilot.enableQuickActions": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Enable the experimental Quick Actions feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Quick Actions (experimental)](https://docs.continue.dev/features/quick-actions)"
+          "markdownDescription": "Enable the experimental Quick Actions feature. Read our walkthrough to learn about configuration and how to share feedback: [epico-pilot.dev › Walkthrough: Quick Actions (experimental)](https://docs.epico-pilot.dev/features/quick-actions)"
         },
-        "epi-copilot.enableTabAutocomplete": {
+        "epico-pilot.enableTabAutocomplete": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Enable Continue's tab autocomplete feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Tab Autocomplete (beta)](https://docs.continue.dev/features/tab-autocomplete)"
+          "markdownDescription": "Enable Epico-Pilot's tab autocomplete feature. Read our walkthrough to learn about configuration and how to share feedback: [epico-pilot.dev › Walkthrough: Tab Autocomplete (beta)](https://docs.epico-pilot.dev/features/tab-autocomplete)"
         },
-        "epi-copilot.pauseTabAutocompleteOnBattery": {
+        "epico-pilot.pauseTabAutocompleteOnBattery": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Pause Continue's tab autocomplete feature when your battery is low."
+          "markdownDescription": "Pause Epico-Pilot's tab autocomplete feature when your battery is low."
         },
-        "epi-copilot.pauseCodebaseIndexOnStart": {
+        "epico-pilot.pauseCodebaseIndexOnStart": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Pause Continue's codebase index on start."
+          "markdownDescription": "Pause Epico-Pilot's codebase index on start."
         },
-        "epi-copilot.enableDebugLogs": {
+        "epico-pilot.enableDebugLogs": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Enable Continue Debug Logs in the Output panel."
+          "markdownDescription": "Enable Epico-Pilot Debug Logs in the Output panel."
         },
-        "epi-copilot.remoteConfigServerUrl": {
+        "epico-pilot.remoteConfigServerUrl": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter the server URL here and your user token below to enable automatic syncing."
         },
-        "epi-copilot.userToken": {
+        "epico-pilot.userToken": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter your user token here and your server URL above to enable automatic syncing."
         },
-        "epi-copilot.remoteConfigSyncPeriod": {
+        "epico-pilot.remoteConfigSyncPeriod": {
           "type": "number",
           "default": 60,
           "description": "The period of time in minutes between automatic syncs."
@@ -128,336 +151,418 @@
     },
     "commands": [
       {
-        "command": "epi-copilot.applyCodeFromChat",
-        "category": "Continue",
+        "command": "epico-pilot.applyCodeFromChat",
+        "category": "Epico-Pilot",
         "title": "Apply code from chat",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.acceptDiff",
-        "category": "Continue",
+        "command": "epico-pilot.acceptDiff",
+        "category": "Epico-Pilot",
         "title": "Accept Diff",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.rejectDiff",
-        "category": "Continue",
+        "command": "epico-pilot.rejectDiff",
+        "category": "Epico-Pilot",
         "title": "Reject Diff",
-        "group": "Continue",
+        "group": "Epico-Pilot",
         "icon": "$(stop)"
       },
       {
-        "command": "epi-copilot.acceptVerticalDiffBlock",
-        "category": "Continue",
+        "command": "epico-pilot.acceptVerticalDiffBlock",
+        "category": "Epico-Pilot",
         "title": "Accept Vertical Diff Block",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.rejectVerticalDiffBlock",
-        "category": "Continue",
+        "command": "epico-pilot.rejectVerticalDiffBlock",
+        "category": "Epico-Pilot",
         "title": "Reject Vertical Diff Block",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.quickEdit",
-        "category": "Continue",
+        "command": "epico-pilot.focusEdit",
+        "category": "Epico-Pilot",
         "title": "Generate Code",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.focusContinueInput",
-        "category": "Continue",
+        "command": "epico-pilot.focusContinueInput",
+        "category": "Epico-Pilot",
         "title": "Add Highlighted Code to Context",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.focusContinueInputWithoutClear",
-        "category": "Continue",
+        "command": "epico-pilot.focusContinueInputWithoutClear",
+        "category": "Epico-Pilot",
         "title": "Add Highlighted Code to Context",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.debugTerminal",
-        "category": "Continue",
+        "command": "epico-pilot.debugTerminal",
+        "category": "Epico-Pilot",
         "title": "Debug Terminal",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.toggleFullScreen",
-        "category": "Continue",
+        "command": "epico-pilot.exitEditMode",
+        "category": "Epico-Pilot",
+        "title": "Exit Edit Mode",
+        "group": "Epico-Pilot"
+      },
+      {
+        "command": "epico-pilot.toggleFullScreen",
+        "category": "Epico-Pilot",
         "title": "Toggle Full Screen",
         "icon": "$(fullscreen)",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.openConfigJson",
-        "category": "Continue",
-        "title": "Open config.json",
-        "group": "Continue"
+        "command": "epico-pilot.openConfig",
+        "category": "Epico-Pilot",
+        "title": "Open Epico-Pilot Config",
+        "icon": "$(gear)",
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.toggleTabAutocompleteEnabled",
-        "category": "Continue",
+        "command": "epico-pilot.toggleTabAutocompleteEnabled",
+        "category": "Epico-Pilot",
         "title": "Toggle Autocomplete Enabled",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.selectFilesAsContext",
-        "category": "Continue",
+        "command": "epico-pilot.selectFilesAsContext",
+        "category": "Epico-Pilot",
         "title": "Select Files as Context",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.newSession",
-        "category": "Continue",
+        "command": "epico-pilot.newSession",
+        "category": "Epico-Pilot",
         "title": "New Session",
         "icon": "$(add)",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.viewHistory",
-        "category": "Continue",
+        "command": "epico-pilot.viewHistory",
+        "category": "Epico-Pilot",
         "title": "View History",
         "icon": "$(history)",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.writeCommentsForCode",
-        "category": "Continue",
+        "command": "epico-pilot.viewLogs",
+        "category": "Epico-Pilot",
+        "title": "View History",
+        "group": "Epico-Pilot"
+      },
+      {
+        "command": "epico-pilot.navigateTo",
+        "category": "Epico-Pilot",
+        "title": "Navigate to a path",
+        "group": "Epico-Pilot"
+      },
+      {
+        "command": "epico-pilot.openMorePage",
+        "category": "Epico-Pilot",
+        "title": "More",
+        "icon": "$(ellipsis)",
+        "group": "Epico-Pilot"
+      },
+      {
+        "command": "epico-pilot.writeCommentsForCode",
+        "category": "Epico-Pilot",
         "title": "Write Comments for this Code",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.writeDocstringForCode",
-        "category": "Continue",
+        "command": "epico-pilot.writeDocstringForCode",
+        "category": "Epico-Pilot",
         "title": "Write a Docstring for this Code",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.fixCode",
-        "category": "Continue",
+        "command": "epico-pilot.fixCode",
+        "category": "Epico-Pilot",
         "title": "Fix this Code",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.optimizeCode",
-        "category": "Continue",
+        "command": "epico-pilot.optimizeCode",
+        "category": "Epico-Pilot",
         "title": "Optimize this Code",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.fixGrammar",
-        "category": "Continue",
+        "command": "epico-pilot.fixGrammar",
+        "category": "Epico-Pilot",
         "title": "Fix Grammar / Spelling",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.codebaseForceReIndex",
-        "category": "Continue",
+        "command": "epico-pilot.codebaseForceReIndex",
+        "category": "Epico-Pilot",
         "title": "Codebase Force Re-Index",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.rebuildCodebaseIndex",
-        "category": "Continue",
+        "command": "epico-pilot.rebuildCodebaseIndex",
+        "category": "Epico-Pilot",
         "title": "Rebuild codebase index",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.docsIndex",
-        "category": "Continue",
+        "command": "epico-pilot.docsIndex",
+        "category": "Epico-Pilot",
         "title": "Docs Index",
-        "group": "Continue"
+        "group": "Epico-Pilot"
       },
       {
-        "command": "epi-copilot.docsReIndex",
-        "category": "Continue",
+        "command": "epico-pilot.docsReIndex",
+        "category": "Epico-Pilot",
         "title": "Docs Force Re-Index",
-        "group": "Continue"
+        "group": "Epico-Pilot"
+      },
+      {
+        "command": "epico-pilot.focusContinueSessionId",
+        "category": "Epico-Pilot",
+        "title": "Focus Epico-Pilot Chat",
+        "group": "Epico-Pilot"
+      },
+      {
+        "command": "epico-pilot.signInToControlPlane",
+        "title": "Sign In",
+        "category": "Epico-Pilot",
+        "group": "Epico-Pilot",
+        "icon": "$(account)"
+      },
+      {
+        "command": "epico-pilot.openAccountDialog",
+        "title": "Account",
+        "category": "Epico-Pilot",
+        "group": "Epico-Pilot",
+        "icon": "$(account)"
       }
     ],
     "keybindings": [
       {
-        "command": "epi-copilot.focusContinueInput",
+        "command": "epico-pilot.focusContinueInput",
         "mac": "cmd+l",
         "key": "ctrl+l"
       },
       {
-        "command": "epi-copilot.focusContinueInputWithoutClear",
+        "command": "epico-pilot.focusContinueInputWithoutClear",
         "mac": "cmd+shift+l",
         "key": "ctrl+shift+l"
       },
       {
-        "command": "epi-copilot.acceptDiff",
+        "command": "epico-pilot.acceptDiff",
         "mac": "shift+cmd+enter",
-        "key": "shift+ctrl+enter"
+        "key": "shift+ctrl+enter",
+        "when": "epico-pilot.diffVisible"
       },
       {
-        "command": "epi-copilot.rejectDiff",
+        "command": "epico-pilot.rejectDiff",
         "mac": "shift+cmd+backspace",
-        "key": "shift+ctrl+backspace"
+        "key": "shift+ctrl+backspace",
+        "when": "epico-pilot.diffVisible"
       },
       {
-        "command": "epi-copilot.rejectDiff",
+        "command": "epico-pilot.rejectDiff",
         "mac": "cmd+z",
         "key": "ctrl+z",
-        "when": "epi-copilot.diffVisible"
+        "when": "epico-pilot.diffVisible"
       },
       {
-        "command": "epi-copilot.quickEditHistoryUp",
+        "command": "epico-pilot.quickEditHistoryUp",
         "mac": "up",
         "key": "up",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && epico-pilot.quickEditHistoryFocused"
       },
       {
-        "command": "epi-copilot.quickEditHistoryDown",
+        "command": "epico-pilot.quickEditHistoryDown",
         "mac": "down",
         "key": "down",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && epico-pilot.quickEditHistoryFocused"
       },
       {
-        "command": "epi-copilot.acceptVerticalDiffBlock",
+        "command": "epico-pilot.acceptVerticalDiffBlock",
         "mac": "alt+cmd+y",
         "key": "alt+ctrl+y"
       },
       {
-        "command": "epi-copilot.rejectVerticalDiffBlock",
+        "command": "epico-pilot.rejectVerticalDiffBlock",
         "mac": "alt+cmd+n",
         "key": "alt+ctrl+n"
       },
       {
-        "command": "epi-copilot.quickEdit",
+        "command": "epico-pilot.focusEdit",
+        "title": "Edit code with natural language",
         "mac": "cmd+i",
         "key": "ctrl+i"
       },
       {
-        "command": "epi-copilot.debugTerminal",
+        "command": "epico-pilot.focusEditWithoutClear",
+        "mac": "cmd+shift+i",
+        "key": "ctrl+shift+i"
+      },
+      {
+        "command": "epico-pilot.exitEditMode",
+        "mac": "escape",
+        "key": "escape",
+        "when": "epico-pilot.inEditMode && editorFocus"
+      },
+      {
+        "command": "epico-pilot.debugTerminal",
         "mac": "cmd+shift+r",
         "key": "ctrl+shift+r"
       },
       {
-        "command": "epi-copilot.toggleFullScreen",
+        "command": "epico-pilot.toggleFullScreen",
         "mac": "cmd+k cmd+m",
         "key": "ctrl+k ctrl+m",
         "when": "!terminalFocus"
       },
       {
-        "command": "epi-copilot.toggleTabAutocompleteEnabled",
+        "command": "epico-pilot.toggleTabAutocompleteEnabled",
         "mac": "cmd+k cmd+a",
         "key": "ctrl+k ctrl+a",
         "when": "!terminalFocus"
       },
       {
-        "command": "epi-copilot.applyCodeFromChat",
+        "command": "epico-pilot.applyCodeFromChat",
         "mac": "alt+a",
         "key": "alt+a"
       }
     ],
     "submenus": [
       {
-        "id": "epi-copilot.continueSubMenu",
-        "label": "Continue"
+        "id": "epico-pilot.continueSubMenu",
+        "label": "Epico-Pilot"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "epi-copilot.quickEdit"
+          "command": "epico-pilot.focusContinueInput"
         },
         {
-          "command": "epi-copilot.focusContinueInput"
+          "command": "epico-pilot.focusContinueInputWithoutClear"
         },
         {
-          "command": "epi-copilot.focusContinueInputWithoutClear"
+          "command": "epico-pilot.debugTerminal"
         },
         {
-          "command": "epi-copilot.debugTerminal"
+          "command": "epico-pilot.toggleFullScreen"
         },
         {
-          "command": "epi-copilot.toggleFullScreen"
-        },
-        {
-          "command": "epi-copilot.newSession"
+          "command": "epico-pilot.newSession"
         }
       ],
       "editor/context": [
         {
-          "submenu": "epi-copilot.continueSubMenu",
+          "submenu": "epico-pilot.continueSubMenu",
           "group": "0_acontinue"
         }
       ],
       "editor/title/run": [
         {
-          "command": "epi-copilot.rejectDiff",
-          "group": "Continue",
-          "when": "epi-copilot.streamingDiff"
+          "command": "epico-pilot.rejectDiff",
+          "group": "Epico-Pilot",
+          "when": "epico-pilot.streamingDiff"
         }
       ],
-      "epi-copilot.continueSubMenu": [
+      "epico-pilot.continueSubMenu": [
         {
-          "command": "epi-copilot.focusContinueInputWithoutClear",
-          "group": "Continue",
+          "command": "epico-pilot.focusContinueInputWithoutClear",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.writeCommentsForCode",
-          "group": "Continue",
+          "command": "epico-pilot.writeCommentsForCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.writeDocstringForCode",
-          "group": "Continue",
+          "command": "epico-pilot.writeDocstringForCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.fixCode",
-          "group": "Continue",
+          "command": "epico-pilot.fixCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.optimizeCode",
-          "group": "Continue",
+          "command": "epico-pilot.optimizeCode",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection"
         },
         {
-          "command": "epi-copilot.fixGrammar",
-          "group": "Continue",
+          "command": "epico-pilot.fixGrammar",
+          "group": "Epico-Pilot",
           "when": "editorHasSelection && editorLangId == 'markdown'"
         }
       ],
       "explorer/context": [
         {
-          "command": "epi-copilot.selectFilesAsContext",
+          "command": "epico-pilot.selectFilesAsContext",
           "group": "1_debug@1"
         }
       ],
       "view/title": [
         {
-          "command": "epi-copilot.newSession",
+          "command": "epico-pilot.newSession",
           "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "when": "view == epico-pilot.continueGUIView"
         },
         {
-          "command": "epi-copilot.toggleFullScreen",
-          "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "command": "epico-pilot.viewHistory",
+          "group": "navigation@2",
+          "when": "view == epico-pilot.continueGUIView"
         },
         {
-          "command": "epi-copilot.viewHistory",
-          "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "command": "epico-pilot.toggleFullScreen",
+          "group": "navigation@3",
+          "when": "view == epico-pilot.continueGUIView"
+        },
+        {
+          "command": "epico-pilot.openConfig",
+          "group": "navigation@4",
+          "when": "view == epico-pilot.continueGUIView"
+        },
+        {
+          "command": "epico-pilot.signInToControlPlane",
+          "group": "navigation@5",
+          "when": "(view == epico-pilot.continueGUIView) && config.epico-pilot.enableContinueForTeams && !epico-pilot.isSignedInToControlPlane"
+        },
+        {
+          "command": "epico-pilot.openAccountDialog",
+          "group": "navigation@5",
+          "when": "(view == epico-pilot.continueGUIView) && config.epico-pilot.enableContinueForTeams && epico-pilot.isSignedInToControlPlane"
+        },
+        {
+          "command": "epico-pilot.openMorePage",
+          "group": "navigation@6",
+          "when": "view == epico-pilot.continueGUIView"
         }
       ],
       "editor/title": [
         {
-          "command": "epi-copilot.toggleFullScreen",
+          "command": "epico-pilot.newSession",
           "group": "navigation@1",
-          "when": "activeWebviewPanelId == continue.continueGUIView"
+          "when": "activeWebviewPanelId == epico-pilot.continueGUIView"
+        },
+        {
+          "command": "epico-pilot.viewHistory",
+          "group": "navigation@2",
+          "when": "activeWebviewPanelId == epico-pilot.continueGUIView"
         }
       ],
       "terminal/context": [
         {
-          "command": "epi-copilot.debugTerminal",
+          "command": "epico-pilot.debugTerminal",
           "group": "navigation@top"
         }
       ]
@@ -465,17 +570,17 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "continue",
-          "title": "Continue",
+          "id": "epico-pilot",
+          "title": "Epico-Pilot",
           "icon": "media/sidebar-icon.png"
         }
       ]
     },
     "views": {
-      "continue": [
+      "epico-pilot": [
         {
           "type": "webview",
-          "id": "epi-copilot.continueGUIView",
+          "id": "epico-pilot.continueGUIView",
           "name": "",
           "visibility": "visible"
         }
@@ -483,7 +588,7 @@
     },
     "jsonValidation": [
       {
-        "fileMatch": "config.json",
+        "fileMatch": "**/.epico-pilot*/config.json",
         "url": "./config_schema.json"
       },
       {
@@ -497,10 +602,14 @@
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "esbuild-notify": "npm run esbuild-base -- --sourcemap --notify",
+    "esbuild:visualize": "esbuild-visualizer --metadata ./build/meta.json --filename ./build/stats.html --open",
     "tsc": "tsc -p ./",
+    "tsc:check": "tsc -p ./ --noEmit",
     "tsc-watch": "tsc -watch -p ./",
     "rebuild": "electron-rebuild -v 19.1.8 node-pty",
     "lint": "eslint src --ext ts",
+    "lint:fix": "eslint . --ext ts --fix",
     "build-test": "npm run esbuild && node esbuild.test.mjs",
     "test": "npm run build-test && node ./out/runTestOnVSCodeHost.js",
     "quick-test": "npm run build-test && node ./out/runTestOnVSCodeHost.js",
@@ -510,12 +619,26 @@
     "package:pre-release": "node scripts/package.js --pre-release",
     "build:rust": "cargo-cp-artifact -ac sync sync.node -- cargo build --manifest-path ../../sync/Cargo.toml --message-format=json-render-diagnostics",
     "build-debug:rust": "npm run build:rust --",
-    "build-release:rust": "npm run build:rust -- --release"
+    "build-release:rust": "npm run build:rust -- --release",
+    "e2e:compile": "tsc -p ./tsconfig.e2e.json",
+    "e2e:build": "npm --prefix ../../gui run build && npm run package",
+    "e2e:create-storage": "mkdir -p ./e2e/storage",
+    "e2e:get-chromedriver": "extest get-chromedriver --storage ./e2e/storage",
+    "e2e:get-vscode": "extest get-vscode --storage ./e2e/storage",
+    "e2e:sign-vscode": "codesign --entitlements entitlements.plist --deep --force -s - './e2e/storage/Visual Studio Code.app'",
+    "e2e:copy-vsix": "chmod +x ./e2e/get-latest-vsix.sh && bash ./e2e/get-latest-vsix.sh",
+    "e2e:install-vsix": "extest install-vsix -f ./e2e/vsix/epico-pilot.vsix --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
+    "e2e:test": "extest run-tests './e2e/_output/tests/*.test.js' --code_settings settings.json --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
+    "e2e:clean": "rm -rf ./e2e/_output",
+    "e2e:all": "npm run e2e:build && npm run e2e:compile && npm run e2e:create-storage && npm run e2e:get-chromedriver && npm run e2e:get-vscode && npm run e2e:sign-vscode && npm run e2e:copy-vsix && npm run e2e:install-vsix && CONTINUE_GLOBAL_DIR=e2e/test-epico-pilot npm run e2e:test && npm run e2e:clean",
+    "e2e:quick": "npm run e2e:compile && CONTINUE_GLOBAL_DIR=e2e/test-epico-pilot npm run e2e:test && npm run e2e:clean",
+    "e2e:ci": "npm run e2e:compile && npm run e2e:create-storage && npm run e2e:get-chromedriver && npm run e2e:get-vscode && npm run e2e:copy-vsix && npm run e2e:install-vsix && CONTINUE_GLOBAL_DIR=e2e/test-epico-pilot npm run e2e:test"
   },
   "devDependencies": {
     "@biomejs/biome": "1.6.4",
     "@nestjs/common": "^8.4.7",
     "@openapitools/openapi-generator-cli": "^2.5.2",
+    "@types/chai": "^5.0.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/follow-redirects": "^1.14.4",
@@ -527,10 +650,11 @@
     "@types/vscode": "1.70",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
-    "@typescript-eslint/parser": "^5.45.0",
     "@vscode/vsce": "^2.22.0",
     "cargo-cp-artifact": "^0.1",
+    "chai": "^4.5.0",
     "esbuild": "0.17.19",
+    "esbuild-visualizer": "^0.6.0",
     "eslint": "^8.28.0",
     "glob": "^8.0.3",
     "json-schema-to-typescript": "^12.0.0",
@@ -539,9 +663,11 @@
     "rimraf": "^5.0.5",
     "typescript": "^5.3.3",
     "vite": "^4.3.9",
-    "vsce": "^2.15.0"
+    "vsce": "^2.15.0",
+    "vscode-extension-tester": "^8.10.0"
   },
   "dependencies": {
+    "@continuedev/fetch": "^1.0.3",
     "@electron/rebuild": "^3.2.10",
     "@reduxjs/toolkit": "^1.9.3",
     "@types/node-fetch": "^2.6.11",
@@ -551,7 +677,7 @@
     "axios": "^1.2.5",
     "core": "file:../../core",
     "cors": "^2.8.5",
-    "dbinfoz": "^0.11.0",
+    "dbinfoz": "^0.14.0",
     "downshift": "^7.6.0",
     "esbuild": "^0.17.19",
     "express": "^4.18.2",

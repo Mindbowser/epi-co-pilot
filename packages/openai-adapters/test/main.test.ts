@@ -120,6 +120,69 @@ function testConfig(config: LlmApiConfig, chatOnly: boolean = false) {
     expect(completion.length).toBeGreaterThan(0);
   });
 
+  test("should successfully stream multi-part chat with empty text", async () => {
+    const stream = api.chatCompletionStream({
+      model: config.model,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Hello! Who are you?",
+            },
+            {
+              // @ts-ignore
+              type: "text",
+              text: "",
+            },
+          ],
+        },
+      ],
+      stream: true,
+    });
+    let completion = "";
+    for await (const result of stream) {
+      completion += result.choices[0].delta.content ?? "";
+
+      expect(result.choices.length).toBeGreaterThan(0);
+    }
+    expect(completion.length).toBeGreaterThan(0);
+  });
+
+  test.skip("should successfully stream multi-part chat with image", async () => {
+    const stream = api.chatCompletionStream({
+      model: config.model,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Hello! Who are you?",
+            },
+            {
+              // @ts-ignore
+              type: "image_url",
+              imageUrl: {
+                url: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Image_created_with_a_mobile_phone.png/1280px-Image_created_with_a_mobile_phone.png",
+                detail: "low",
+              },
+            },
+          ],
+        },
+      ],
+      stream: true,
+    });
+    let completion = "";
+    for await (const result of stream) {
+      completion += result.choices[0].delta.content ?? "";
+
+      expect(result.choices.length).toBeGreaterThan(0);
+    }
+    expect(completion.length).toBeGreaterThan(0);
+  });
+
   test("should successfully non-stream chat", async () => {
     const response = await api.chatCompletionNonStream({
       model: config.model,
@@ -210,6 +273,18 @@ const COMPLETION_TESTS: ({ chatOnly?: boolean } & LlmApiConfig)[] = [
     apiKey: process.env.SAMBANOVA_API_KEY!,
     chatOnly: true,
   },
+  {
+    provider: "nebius",
+    model: "llama3.1-8b",
+    apiKey: process.env.NEBIUS_API_KEY!,
+    chatOnly: true,
+  },
+  {
+    provider: "scaleway",
+    model: "llama3.1-8b",
+    apiKey: process.env.SCALEWAY_API_KEY!,
+    chatOnly: true,
+  },  
 ];
 
 const FIM_TESTS: LlmApiConfig[] = [
@@ -234,7 +309,7 @@ const EMBEDDINGS_TESTS: LlmApiConfig[] = [
   },
   {
     provider: "openai",
-    model: "voyage-code-2",
+    model: "voyage-code-3",
     apiKey: process.env.VOYAGE_API_KEY!,
     apiBase: "https://api.voyageai.com/v1/",
   },
@@ -248,6 +323,16 @@ const EMBEDDINGS_TESTS: LlmApiConfig[] = [
     model: "models/text-embedding-004",
     apiKey: process.env.GEMINI_API_KEY!,
   },
+  {
+    provider: "nebius",
+    model: "BAAI/bge-en-icl",
+    apiKey: process.env.NEBIUS_API_KEY!,
+  },
+  {
+    provider: "scaleway",
+    model: "bge-multilingual-gemma2",
+    apiKey: process.env.SCALEWAY_API_KEY!,
+  },  
 ];
 
 const RERANK_TESTS: LlmApiConfig[] = [

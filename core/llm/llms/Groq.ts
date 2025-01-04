@@ -1,8 +1,9 @@
-import { LLMOptions, ModelProvider } from "../../index.js";
+import { LLMOptions } from "../../index.js";
+
 import OpenAI from "./OpenAI.js";
 
 class Groq extends OpenAI {
-  static providerName: ModelProvider = "groq";
+  static providerName = "groq";
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.groq.com/openai/v1/",
   };
@@ -18,6 +19,10 @@ class Groq extends OpenAI {
     "llama3.1-8b": "llama-3.1-8b-instant",
     "llama3.1-70b": "llama-3.1-70b-versatile",
     "llama3.1-405b": "llama-3.1-405b-reasoning",
+    "llama3.2-1b": "llama-3.2-1b-preview",
+    "llama3.2-3b": "llama-3.2-3b-preview",
+    "llama3.2-11b": "llama-3.2-11b-vision-preview",
+    "llama3.2-90b": "llama-3.2-90b-vision-preview",
   };
   protected _convertModelName(model: string): string {
     return Groq.modelConversion[model] ?? model;

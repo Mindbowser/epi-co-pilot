@@ -3,14 +3,26 @@ import dotenv from "dotenv";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { defaultConfig, defaultConfigJetBrains } from "../config/default.js";
-import Types from "../config/types.js";
-import { IdeType, SerializedContinueConfig } from "../index.js";
+import { pathToFileURL } from "url";
+
+import { IdeType, SerializedContinueConfig } from "../";
+import { defaultConfig, defaultConfigJetBrains } from "../config/default";
+import Types from "../config/types";
 
 dotenv.config();
 
 const CONTINUE_GLOBAL_DIR =
-  process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".epi-copilot");
+  process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".epico-pilot");
+
+const REMOTE_LANCE_DB_URL = process.env.REMOTE_LANCE_DB_URL ?? "s3://epico-pilot-lance-db/lancedb/";
+
+// export const DEFAULT_CONFIG_TS_CONTENTS = `import { Config } from "./types"\n\nexport function modifyConfig(config: Config): Config {
+//   return config;
+// }`;
+
+export const DEFAULT_CONFIG_TS_CONTENTS = `export function modifyConfig(config: Config): Config {
+  return config;
+}`;
 
 export function getChromiumPath(): string {
   return path.join(getContinueUtilsPath(), ".chromium-browser-snapshots");
@@ -24,13 +36,31 @@ export function getContinueUtilsPath(): string {
   return utilsPath;
 }
 
+export function getGlobalContinueIgnorePath(): string {
+  const continueIgnorePath = path.join(
+    getContinueGlobalPath(),
+    ".continueignore",
+  );
+  if (!fs.existsSync(continueIgnorePath)) {
+    fs.writeFileSync(continueIgnorePath, "");
+  }
+  return continueIgnorePath;
+}
+
+/*
+  Deprecated, replace with getContinueGlobalUri where possible
+*/
 export function getContinueGlobalPath(): string {
-  // This is ~/.continue on mac/linux
+  // This is ~/.epico-pilot on mac/linux
   const continuePath = CONTINUE_GLOBAL_DIR;
   if (!fs.existsSync(continuePath)) {
     fs.mkdirSync(continuePath);
   }
   return continuePath;
+}
+
+export function getContinueGlobalUri(): string {
+  return pathToFileURL(CONTINUE_GLOBAL_DIR).href;
 }
 
 export function getSessionsFolderPath(): string {
@@ -69,23 +99,30 @@ export function getConfigJsonPath(ideType: IdeType = "vscode"): string {
   const p = path.join(getContinueGlobalPath(), "config.json");
   if (!fs.existsSync(p)) {
     if (ideType === "jetbrains") {
-      fs.writeFileSync(p, JSON.stringify(defaultConfigJetBrains, null, 2));
+        fs.writeFileSync(p, JSON.stringify(defaultConfigJetBrains, null, 2));
     } else {
-      fs.writeFileSync(p, JSON.stringify(defaultConfig, null, 2));
+        fs.writeFileSync(p, JSON.stringify(defaultConfig, null, 2));
     }
   }
+  return p;
+}
+
+export function getConfigYamlPath(ideType: IdeType): string {
+  const p = path.join(getContinueGlobalPath(), "config.yaml");
+  // if (!fs.existsSync(p)) {
+  //   if (ideType === "jetbrains") {
+  //     fs.writeFileSync(p, YAML.stringify(defaultConfigYamlJetBrains));
+  //   } else {
+  //     fs.writeFileSync(p, YAML.stringify(defaultConfigYaml));
+  //   }
+  // }
   return p;
 }
 
 export function getConfigTsPath(): string {
   const p = path.join(getContinueGlobalPath(), "config.ts");
   if (!fs.existsSync(p)) {
-    fs.writeFileSync(
-      p,
-      `export function modifyConfig(config: Config): Config {
-  return config;
-}`,
-    );
+    fs.writeFileSync(p, DEFAULT_CONFIG_TS_CONTENTS);
   }
 
   const typesPath = path.join(getContinueGlobalPath(), "types");
@@ -242,6 +279,10 @@ export function getLanceDbPath(): string {
   return path.join(getIndexFolderPath(), "lancedb");
 }
 
+export function getRemoteLanceDbPath(): string {
+  return REMOTE_LANCE_DB_URL;
+}
+
 export function getTabAutocompleteCacheSqlitePath(): string {
   return path.join(getIndexFolderPath(), "autocompleteCache.sqlite");
 }
@@ -315,7 +356,7 @@ export function getPromptLogsPath(): string {
 }
 
 export function getGlobalPromptsPath(): string {
-  return path.join(getContinueGlobalPath(), ".prompts");
+  return path.join(getContinueGlobalPath(), "prompts");
 }
 
 export function readAllGlobalPromptFiles(
@@ -344,4 +385,24 @@ export function readAllGlobalPromptFiles(
 
 export function getRepoMapFilePath(): string {
   return path.join(getContinueUtilsPath(), "repo_map.txt");
+}
+
+export function getEsbuildBinaryPath(): string {
+  return path.join(getContinueUtilsPath(), "esbuild");
+}
+
+export function setupInitialDotContinueDirectory() {
+  const devDataTypes = [
+    "chat",
+    "autocomplete",
+    "quickEdit",
+    "tokens_generated",
+    "session",
+  ];
+  devDataTypes.forEach((p) => {
+    const devDataPath = getDevDataFilePath(p);
+    if (!fs.existsSync(devDataPath)) {
+      fs.writeFileSync(devDataPath, "");
+    }
+  });
 }

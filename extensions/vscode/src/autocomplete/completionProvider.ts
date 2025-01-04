@@ -1,15 +1,15 @@
-import type { IDE } from "core";
+import { CompletionProvider } from "core/autocomplete/CompletionProvider";
 import {
-  AutocompleteOutcome,
-  CompletionProvider,
   type AutocompleteInput,
-} from "core/autocomplete/completionProvider";
+  type AutocompleteOutcome,
+} from "core/autocomplete/util/types";
 import { ConfigHandler } from "core/config/ConfigHandler";
 import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
-import type { TabAutocompleteModel } from "../util/loadAutocompleteModel";
+
 import { showFreeTrialLoginMessage } from "../util/messages";
 import { VsCodeWebviewProtocol } from "../webviewProtocol";
+
 import { getDefinitionsFromLsp } from "./lsp";
 import { RecentlyEditedTracker } from "./recentlyEdited";
 import {
@@ -18,6 +18,9 @@ import {
   setupStatusBar,
   stopStatusBarLoading,
 } from "./statusBar";
+
+import type { IDE } from "core";
+import type { TabAutocompleteModel } from "../util/loadAutocompleteModel";
 
 interface VsCodeCompletionInput {
   document: vscode.TextDocument;
@@ -38,7 +41,9 @@ export class ContinueCompletionProvider
       showFreeTrialLoginMessage(
         e.message,
         this.configHandler.reloadConfig.bind(this.configHandler),
-        () => this.webviewProtocol.request("openOnboardingCard", undefined),
+        () => {
+          void this.webviewProtocol.request("openOnboardingCard", undefined);
+        },
       );
       return;
     }
@@ -96,6 +101,10 @@ export class ContinueCompletionProvider
       return null;
     }
 
+    if (document.uri.scheme === "vscode-scm") {
+      return null;
+    }
+
     // If the text at the range isn't a prefix of the intellisense text,
     // no completion will be displayed, regardless of what we return
     if (
@@ -148,12 +157,6 @@ export class ContinueCompletionProvider
       const signal = abortController.signal;
       token.onCancellationRequested(() => abortController.abort());
 
-      const config = await this.configHandler.loadConfig();
-      let clipboardText = "";
-      if (config.tabAutocompleteOptions?.useCopyBuffer === true) {
-        clipboardText = await vscode.env.clipboard.readText();
-      }
-
       // Handle notebook cells
       const pos = {
         line: position.line,
@@ -189,12 +192,6 @@ export class ContinueCompletionProvider
       }
       // Handle commit message input box
       let manuallyPassPrefix: string | undefined = undefined;
-      if (document.uri.scheme === "vscode-scm") {
-        return null;
-        // let diff = await this.ide.getDiff();
-        // diff = diff.split("\n").splice(-150).join("\n");
-        // manuallyPassPrefix = `${diff}\n\nCommit message: `;
-      }
 
       const input: AutocompleteInput = {
         completionId: uuidv4(),
@@ -203,7 +200,6 @@ export class ContinueCompletionProvider
         recentlyEditedFiles: [],
         recentlyEditedRanges:
           await this.recentlyEditedTracker.getRecentlyEditedRanges(),
-        clipboardText: clipboardText,
         manuallyPassFileContents,
         manuallyPassPrefix,
         selectedCompletionInfo,
@@ -262,7 +258,7 @@ export class ContinueCompletionProvider
         completionRange,
         {
           title: "Log Autocomplete Outcome",
-          command: "epi-copilot.logAutocompleteOutcome",
+          command: "epico-pilot.logAutocompleteOutcome",
           arguments: [input.completionId, this.completionProvider],
         },
       );

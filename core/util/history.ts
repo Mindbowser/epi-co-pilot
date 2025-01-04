@@ -1,16 +1,32 @@
 import * as fs from "fs";
-import { PersistedSessionInfo, SessionInfo } from "../index.js";
+
+import { Session, SessionMetadata } from "../index.js";
 import { ListHistoryOptions } from "../protocol/core.js";
+
+import { NEW_SESSION_TITLE } from "./constants.js";
 import { getSessionFilePath, getSessionsListPath } from "./paths.js";
+function safeParseArray<T>(
+  value: string,
+  errorMessage: string = "Error parsing array",
+): T[] | undefined {
+  try {
+    return JSON.parse(value) as T[];
+  } catch (e: any) {
+    console.warn(`${errorMessage}: ${e}`);
+    return undefined;
+  }
+}
 
 class HistoryManager {
-  list(options: ListHistoryOptions): SessionInfo[] {
+  list(options: ListHistoryOptions): SessionMetadata[] {
     const filepath = getSessionsListPath();
     if (!fs.existsSync(filepath)) {
       return [];
     }
     const content = fs.readFileSync(filepath, "utf8");
-    let sessions = JSON.parse(content).filter((session: any) => {
+
+    let sessions = safeParseArray<SessionMetadata>(content) ?? [];
+    sessions = sessions.filter((session: any) => {
       // Filter out old format
       return typeof session.session_id !== "string";
     });
@@ -35,14 +51,11 @@ class HistoryManager {
     // Read and update the sessions list
     const sessionsListFile = getSessionsListPath();
     const sessionsListRaw = fs.readFileSync(sessionsListFile, "utf-8");
-    let sessionsList: SessionInfo[];
-    try {
-      sessionsList = JSON.parse(sessionsListRaw);
-    } catch (error) {
-      throw new Error(
-        `It looks like there is a JSON formatting error in your sessions.json file (${sessionsListFile}). Please fix this before creating a new session.`,
-      );
-    }
+    let sessionsList =
+      safeParseArray<SessionMetadata>(
+        sessionsListRaw,
+        "Error parsing sessions.json",
+      ) ?? [];
 
     sessionsList = sessionsList.filter(
       (session) => session.sessionId !== sessionId,
@@ -54,33 +67,39 @@ class HistoryManager {
     );
   }
 
-  load(sessionId: string): PersistedSessionInfo {
+  load(sessionId: string): Session {
     try {
       const sessionFile = getSessionFilePath(sessionId);
       if (!fs.existsSync(sessionFile)) {
         throw new Error(`Session file ${sessionFile} does not exist`);
       }
-      const session: PersistedSessionInfo = JSON.parse(
-        fs.readFileSync(sessionFile, "utf8"),
-      );
+      const session: Session = JSON.parse(fs.readFileSync(sessionFile, "utf8"));
       session.sessionId = sessionId;
       return session;
     } catch (e) {
       console.log(`Error loading session: ${e}`);
       return {
         history: [],
-        title: "Failed to load session",
+        title: NEW_SESSION_TITLE,
         workspaceDirectory: "",
         sessionId: sessionId,
       };
     }
   }
 
-  save(session: PersistedSessionInfo) {
+  save(session: Session) {
     // Save the main session json file
+    // Explicitely rewriting here to influence the written key order in the file!
+    // e.g. id at the top, history next, etc.
+    const orderedSession: Session = {
+      sessionId: session.sessionId,
+      title: session.title,
+      workspaceDirectory: session.workspaceDirectory,
+      history: session.history,
+    };
     fs.writeFileSync(
       getSessionFilePath(session.sessionId),
-      JSON.stringify(session, undefined, 2),
+      JSON.stringify(orderedSession, undefined, 2),
     );
 
     // Read and update the sessions list
@@ -88,7 +107,7 @@ class HistoryManager {
     try {
       const rawSessionsList = fs.readFileSync(sessionsListFilePath, "utf-8");
 
-      let sessionsList: SessionInfo[];
+      let sessionsList: SessionMetadata[];
       try {
         sessionsList = JSON.parse(rawSessionsList);
       } catch (e) {
@@ -101,23 +120,23 @@ class HistoryManager {
       }
 
       let found = false;
-      for (const sessionInfo of sessionsList) {
-        if (sessionInfo.sessionId === session.sessionId) {
-          sessionInfo.title = session.title;
-          sessionInfo.workspaceDirectory = session.workspaceDirectory;
+      for (const sessionMetadata of sessionsList) {
+        if (sessionMetadata.sessionId === session.sessionId) {
+          sessionMetadata.title = session.title;
+          sessionMetadata.workspaceDirectory = session.workspaceDirectory;
           found = true;
           break;
         }
       }
 
       if (!found) {
-        const sessionInfo: SessionInfo = {
+        const sessionMetadata: SessionMetadata = {
           sessionId: session.sessionId,
           title: session.title,
           dateCreated: String(Date.now()),
           workspaceDirectory: session.workspaceDirectory,
         };
-        sessionsList.push(sessionInfo);
+        sessionsList.push(sessionMetadata);
       }
 
       fs.writeFileSync(

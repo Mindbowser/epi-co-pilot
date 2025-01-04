@@ -1,11 +1,12 @@
 import { Chunk, ContinueConfig, IDE, ILLM } from "../..";
 import { getModelByRole } from "../../config/util";
-import { stripImages } from "../../llm/images";
 import generateRepoMap from "../../util/generateRepoMap";
+import { renderChatMessage } from "../../util/messageContent";
 
 const SUPPORTED_MODEL_TITLE_FAMILIES = [
   "claude-3",
   "llama3.1",
+  "llama3.2",
   "gemini-1.5",
   "gpt-4",
 ];
@@ -57,12 +58,14 @@ After this, your response should begin with a <results> tag, followed by a list 
 
 This is the question that you should select relevant files for: "${input}"`;
 
-    const response = await llm.chat([
-      { role: "user", content: prompt },
-      { role: "assistant", content: "<reasoning>" },
-    ]);
-    const content = stripImages(response.content);
-    console.debug("Repo map retrieval response: ", content);
+    const response = await llm.chat(
+      [
+        { role: "user", content: prompt },
+        { role: "assistant", content: "<reasoning>" },
+      ],
+      new AbortController().signal,
+    );
+    const content = renderChatMessage(response);
 
     if (!content.includes("\n")) {
       return [];

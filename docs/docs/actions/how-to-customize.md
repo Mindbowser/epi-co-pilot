@@ -7,7 +7,7 @@ sidebar_position: 5
 
 ## Built-in slash commands
 
-Continue has a large library of built-in slash commands, but when you first install we only display the most commonly used ones, like “/edit”, “/comment”, and “/share”. To add more actions, you can open [config.json](../customize/config.mdx) and add them to the `slashCommands` array.
+Continue has a large library of built-in slash commands, but when you first install we only display the most commonly used ones, like “/edit”, “/comment”, and “/share”. To add more actions, you can open [config.json](../reference.md) and add them to the `slashCommands` array.
 
 ## Custom slash commands
 
@@ -20,7 +20,7 @@ There are two ways to add custom slash commands:
 
 <!-- TODO: We need a config.ts reference -->
 <!-- :::tip[config.ts]
-Before adding a custom slash command, we recommend reading the [introduction to `config.ts`](../customize/config.mdx).
+Before adding a custom slash command, we recommend reading the [introduction to `config.ts`](../customize/deep-dives/ways-to-configure.md).
 ::: -->
 
 If you want to go a step further than writing custom commands with natural language, you can write a custom function that returns the response. This requires using `config.ts` instead of `config.json`.
@@ -33,9 +33,12 @@ export function modifyConfig(config: Config): Config {
     name: "commit",
     description: "Write a commit message",
     run: async function* (sdk) {
-      const diff = await sdk.ide.getDiff();
+      // The getDiff function takes a boolean parameter that indicates whether
+      // to include unstaged changes in the diff or not.
+      const diff = await sdk.ide.getDiff(false); // Pass false to exclude unstaged changes
       for await (const message of sdk.llm.streamComplete(
         `${diff}\n\nWrite a commit message for the above changes. Use no more than 20 tokens to give a brief description in the imperative mood (e.g. 'Add feature' not 'Added feature'):`,
+        new AbortController().signal,
         {
           maxTokens: 20,
         },
@@ -47,7 +50,6 @@ export function modifyConfig(config: Config): Config {
   return config;
 }
 ```
-
 <!-- TODO: We need a config.ts reference -->
 <!-- For full `config.ts` reference, see [here](reference/config-ts.md). -->
 

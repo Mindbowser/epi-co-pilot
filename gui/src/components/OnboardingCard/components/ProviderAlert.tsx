@@ -1,9 +1,6 @@
 import { useDispatch } from "react-redux";
 import AddModelForm from "../../../forms/AddModelForm";
-import {
-  setDialogMessage,
-  setShowDialog,
-} from "../../../redux/slices/uiStateSlice";
+import { setDialogMessage, setShowDialog } from "../../../redux/slices/uiSlice";
 import Alert from "../../gui/Alert";
 import { useSubmitOnboarding } from "../hooks";
 
@@ -19,12 +16,12 @@ function ProviderAlert() {
   return (
     <div className="w-full">
       <Alert type="info">
-        <p className="font-semibold text-sm m-0">
-          Prefer to use an different provider like OpenAI?
+        <p className="m-0 text-sm font-semibold">
+          Prefer to use a different provider like OpenAI?
         </p>
-        <p className="m-0 mt-1">
+        <p className="m-0 mt-1 text-xs">
           <a
-            className="text-inherit underline cursor-pointer hover:text-inherit"
+            className="cursor-pointer text-inherit underline hover:text-inherit"
             onClick={onClick}
           >
             Click here

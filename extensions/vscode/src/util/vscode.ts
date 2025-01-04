@@ -1,5 +1,6 @@
-import { machineIdSync } from "node-machine-id";
 import * as path from "node:path";
+
+import { machineIdSync } from "node-machine-id";
 import * as vscode from "vscode";
 
 export function translate(range: vscode.Range, lines: number): vscode.Range {
@@ -22,7 +23,7 @@ export function getNonce() {
 }
 
 export function getExtensionUri(): vscode.Uri {
-  return vscode.extensions.getExtension("Mindbowser.epi-copilot")!.extensionUri;
+  return vscode.extensions.getExtension("Mindbowser.epico-pilot")!.extensionUri;
 }
 
 export function getViewColumnOfFile(

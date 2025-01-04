@@ -1,4 +1,5 @@
 import { dedent } from "../util";
+
 import { myersDiff } from "./myers";
 
 describe("Test myers diff function", () => {
@@ -18,6 +19,14 @@ describe("Test myers diff function", () => {
               E
             `;
     const diffLines = myersDiff(linesA, linesB);
-    console.log(diffLines);
+    expect(diffLines).toEqual([
+      { type: "same", line: "A" },
+      { type: "same", line: "B" },
+      { type: "old", line: "C" },
+      { type: "old", line: "D" },
+      { type: "new", line: "C'" },
+      { type: "new", line: "D'" },
+      { type: "same", line: "E" },
+    ]);
   });
 });

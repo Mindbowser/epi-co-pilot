@@ -15,6 +15,7 @@ const STATUS_TO_SUBTITLE_TEXT: Record<
   paused: "Click to resume",
   failed: "Click to retry",
   disabled: "Click to open config.json and enable indexing (requires reload)",
+  cancelled: "Click to restart",
 };
 
 function IndexingProgressSubtext({
@@ -26,7 +27,7 @@ function IndexingProgressSubtext({
   return (
     <div className="flex justify-between">
       <span
-        className={`text-xs text-stone-500 underline cursor-pointer text-stone-500 ${
+        className={`cursor-pointer text-xs text-stone-500 underline ${
           showIndexingDesc ? "w-1/3" : "w-full"
         }`}
         onClick={onClick}
@@ -35,7 +36,7 @@ function IndexingProgressSubtext({
       </span>
 
       {showIndexingDesc && (
-        <span className="text-xs text-stone-500 truncate w-2/3 text-right">
+        <span className="w-2/3 truncate text-right text-xs text-stone-500">
           {update.desc}
         </span>
       )}

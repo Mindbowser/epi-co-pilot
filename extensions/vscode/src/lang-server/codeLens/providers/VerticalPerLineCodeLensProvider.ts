@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+
 import { VerticalDiffCodeLens } from "../../../diff/vertical/manager";
 import { getMetaKeyLabel } from "../../../util/util";
 
@@ -43,12 +44,12 @@ export class VerticalDiffCodeLensProvider implements vscode.CodeLensProvider {
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: `Accept`,
-          command: "epi-copilot.acceptVerticalDiffBlock",
+          command: "epico-pilot.acceptVerticalDiffBlock",
           arguments: [filepath, i],
         }),
         new vscode.CodeLens(range, {
           title: `Reject`,
-          command: "epi-copilot.rejectVerticalDiffBlock",
+          command: "epico-pilot.rejectVerticalDiffBlock",
           arguments: [filepath, i],
         }),
       );

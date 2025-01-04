@@ -11,14 +11,19 @@ import {
   ProviderInfo,
   providers,
 } from "../pages/AddNewModel/configs/providers";
-import { setDefaultModel } from "../redux/slices/stateSlice";
 import { FREE_TRIAL_LIMIT_REQUESTS, hasPassedFTL } from "../util/freeTrial";
 import { completionParamsInputs } from "../pages/AddNewModel/configs/completionParamsInputs";
+import { setDefaultModel } from "../redux/slices/configSlice";
 
 interface QuickModelSetupProps {
   onDone: () => void;
   hideFreeTrialLimitMessage?: boolean;
 }
+
+const MODEL_PROVIDERS_URL =
+  "https://docs.continue.dev/customize/model-providers";
+const CODESTRAL_URL = "https://console.mistral.ai/codestral";
+const CONTINUE_SETUP_URL = "https://docs.continue.dev/setup/overview";
 
 function AddModelForm({
   onDone,
@@ -39,7 +44,7 @@ function AddModelForm({
   const selectedProviderApiKeyUrl = selectedModel.params.model.startsWith(
     "codestral",
   )
-    ? "https://console.mistral.ai/codestral"
+    ? CODESTRAL_URL
     : selectedProvider.apiKeyUrl;
 
   function isDisabled() {
@@ -82,7 +87,9 @@ function AddModelForm({
     };
 
     ideMessenger.post("config/addModel", { model });
-    ideMessenger.post("openConfigJson", undefined);
+    ideMessenger.post("config/openProfile", {
+      profileId: "local",
+    });
 
     dispatch(setDefaultModel({ title: model.title, force: true }));
 
@@ -97,23 +104,16 @@ function AddModelForm({
   return (
     <FormProvider {...formMethods}>
       <form onSubmit={formMethods.handleSubmit(onSubmit)}>
-        <div className="p-6 max-w-md mx-auto">
-          <h1 className="text-center mb-0">Add Chat model</h1>
+        <div className="mx-auto max-w-md p-6">
+          <h1 className="mb-0 text-center text-2xl">Add Chat model</h1>
           {!hideFreeTrialLimitMessage && hasPassedFTL() && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400">
               You've reached the free trial limit of {FREE_TRIAL_LIMIT_REQUESTS}{" "}
-              free inputs. To keep using Epi-Copilot, you can either use your own
+              free inputs. To keep using Epico-Pilot, you can either use your own
               API key, or use a local LLM. To read more about the options, see
               our{" "}
               <a
-                href="https://docs.continue.dev/setup/overview"
-                target="_blank"
-                onClick={() =>
-                  ideMessenger.post(
-                    "openUrl",
-                    "https://docs.continue.dev/setup/overview",
-                  )
-                }
+                onClick={() => ideMessenger.post("openUrl", CONTINUE_SETUP_URL)}
               >
                 documentation
               </a>
@@ -121,7 +121,7 @@ function AddModelForm({
             </p>
           )}
 
-          <div className="flex flex-col gap-6 my-8">
+          <div className="my-8 flex flex-col gap-6">
             <div>
               <label className="block text-sm font-medium">Provider</label>
               <ModelSelectionListbox
@@ -132,13 +132,14 @@ function AddModelForm({
                     ([key]) => !["freetrial", "openai-aiohttp"].includes(key),
                   )
                   .map(([, provider]) => provider)}
-              ></ModelSelectionListbox>
+              />
               <InputSubtext className="mb-0">
                 Don't see your provider?{" "}
                 <a
-                  href="https://docs.continue.dev/customize/model-providers"
-                  target="_blank"
-                  className="text-inherit underline cursor-pointer hover:text-inherit"
+                  className="cursor-pointer text-inherit underline hover:text-inherit"
+                  onClick={() =>
+                    ideMessenger.post("openUrl", MODEL_PROVIDERS_URL)
+                  }
                 >
                   Click here
                 </a>{" "}
@@ -148,12 +149,12 @@ function AddModelForm({
 
             {selectedProvider.downloadUrl && (
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="mb-1 block text-sm font-medium">
                   Install provider
                 </label>
 
                 <StyledActionButton onClick={onClickDownloadProvider}>
-                  <p className="underline text-sm">
+                  <p className="text-sm underline">
                     {selectedProvider.downloadUrl}
                   </p>
                   <ArrowTopRightOnSquareIcon width={24} height={24} />
@@ -171,13 +172,13 @@ function AddModelForm({
                     ([, provider]) => provider.title === selectedProvider.title,
                   )?.[1].packages
                 }
-              ></ModelSelectionListbox>
+              />
             </div>
 
             {selectedModel.params.model.startsWith("codestral") && (
               <div className="my-2">
                 <Alert>
-                  <p className="font-bold text-sm m-0">Codestral API key</p>
+                  <p className="m-0 text-sm font-bold">Codestral API key</p>
                   <p className="m-0 mt-1">
                     Note that codestral requires a different API key from other
                     Mistral models
@@ -189,7 +190,7 @@ function AddModelForm({
             {selectedProvider.apiKeyUrl && (
               <div>
                 <>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="mb-1 block text-sm font-medium">
                     API key
                   </label>
                   <Input
@@ -200,9 +201,10 @@ function AddModelForm({
                   />
                   <InputSubtext className="mb-0">
                     <a
-                      href={selectedProviderApiKeyUrl}
-                      target="_blank"
-                      className="text-inherit underline cursor-pointer hover:text-inherit"
+                      className="cursor-pointer text-inherit underline hover:text-inherit"
+                      onClick={() =>
+                        ideMessenger.post("openUrl", selectedProviderApiKeyUrl)
+                      }
                     >
                       Click here
                     </a>{" "}
@@ -211,7 +213,7 @@ function AddModelForm({
                 </>
               </div>
             )}
-            
+
             {selectedProvider.collectInputFor &&
               selectedProvider.collectInputFor
                 .filter(
@@ -225,7 +227,7 @@ function AddModelForm({
                 .map((field) => (
                   <div>
                     <>
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="mb-1 block text-sm font-medium">
                         {field.label}
                       </label>
                       <Input

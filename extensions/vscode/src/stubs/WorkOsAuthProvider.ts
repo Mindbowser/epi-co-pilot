@@ -14,18 +14,14 @@ import {
   UriHandler,
   window,
 } from "vscode";
-import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 
-const AUTH_NAME = "Continue";
-const CLIENT_ID =
-  process.env.CONTROL_PLANE_ENV === "local"
-    ? "client_01J0FW6XCPMJMQ3CG51RB4HBZQ"
-    : "client_01J0FW6XN8N2XJAECF7NE0Y65J";
-const APP_URL =
-  process.env.CONTROL_PLANE_ENV === "local"
-    ? "http://localhost:3000"
-    : "https://app.continue.dev";
-const SESSIONS_SECRET_KEY = `${AUTH_TYPE}.sessions`;
+import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
+import * as path from "node:path";
+import * as fs from "fs";
+
+const AUTH_NAME = "Epico-Pilot";
+
+const SESSIONS_SECRET_KEY = `${controlPlaneEnv.AUTH_TYPE}.sessions`;
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   public handleUri(uri: Uri) {
@@ -33,16 +29,16 @@ class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
   }
 }
 
-import {
-  CONTROL_PLANE_URL,
-  ControlPlaneSessionInfo,
-} from "core/control-plane/client";
+import { ControlPlaneSessionInfo } from "core/control-plane/client";
+import { controlPlaneEnv } from "core/control-plane/env";
+
 import crypto from "crypto";
-import { AUTH_TYPE } from "../util/constants";
+
 import { SecretStorage } from "./SecretStorage";
+import { devDataPath } from "core/util/paths";
 
 // Function to generate a random string of specified length
-function generateRandomString(length: number): string {
+export function generateRandomString(length: number): string {
   const possibleCharacters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
   let randomString = "";
@@ -55,7 +51,7 @@ function generateRandomString(length: number): string {
 
 // Function to generate a code challenge from the code verifier
 
-async function generateCodeChallenge(verifier: string) {
+export async function generateCodeChallenge(verifier: string) {
   // Create a SHA-256 hash of the verifier
   const hash = crypto.createHash("sha256").update(verifier).digest();
 
@@ -82,7 +78,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   private _pendingStates: string[] = [];
   private _codeExchangePromises = new Map<
     string,
-    { promise: Promise<string>; cancel: EventEmitter<void> }
+    { promise: Promise<{access_token: string, refresh_token: string}>; cancel: EventEmitter<void> }
   >();
   private _uriHandler = new UriEventHandler();
 
@@ -90,10 +86,12 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
   private secretStorage: SecretStorage;
 
+  private callRefreshTokenTimeout: NodeJS.Timer | null = null;
+
   constructor(private readonly context: ExtensionContext) {
     this._disposable = Disposable.from(
       authentication.registerAuthenticationProvider(
-        AUTH_TYPE,
+        controlPlaneEnv.AUTH_TYPE,
         AUTH_NAME,
         this,
         { supportsMultipleAccounts: false },
@@ -104,47 +102,36 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     this.secretStorage = new SecretStorage(context);
   }
 
-  private decodeJwt(jwt: string): any {
-    const decodedToken = JSON.parse(
-      Buffer.from(jwt.split(".")[1], "base64").toString(),
-    );
-    return decodedToken;
+  private decodeJwt(jwt: string): Record<string, any> | null {
+    try {
+      const decodedToken = JSON.parse(
+        Buffer.from(jwt.split(".")[1], "base64").toString(),
+      );
+      return decodedToken;
+    } catch (e: any) {
+      console.warn(`Error decoding JWT: ${e}`);
+      return null;
+    }
   }
 
-  private getExpirationTimeMs(jwt: string): number {
-    const decodedToken = this.decodeJwt(jwt);
-    return decodedToken.exp && decodedToken.iat
-      ? (decodedToken.exp - decodedToken.iat) * 1000
-      : WorkOsAuthProvider.EXPIRATION_TIME_MS;
+  private createExpirationTimeMs(): number {
+    return (new Date()).getTime() + 60*60*1000;
   }
 
-  private jwtIsExpired(jwt: string): boolean {
+  private jwtIsExpiredOrInvalid(jwt: string): boolean {
     const decodedToken = this.decodeJwt(jwt);
+    if (!decodedToken) {
+      return true;
+    }
     return decodedToken.exp * 1000 < Date.now();
   }
 
-  private async serverThinksAccessTokenIsValid(
-    accessToken: string,
-  ): Promise<boolean> {
-    const url = new URL(CONTROL_PLANE_URL);
-    url.pathname = "/hello-secure";
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    return response.status === 200;
-  }
-
   private async debugAccessTokenValidity(jwt: string, refreshToken: string) {
-    const expired = this.jwtIsExpired(jwt);
-    const serverThinksInvalid = await this.serverThinksAccessTokenIsValid(jwt);
-    if (expired || serverThinksInvalid) {
-      console.debug(`Invalid JWT: ${expired}, ${serverThinksInvalid}`);
+    const expiredOrInvalid = this.jwtIsExpiredOrInvalid(jwt);
+    if (expiredOrInvalid) {
+      console.debug("Invalid JWT");
     } else {
-      console.debug(`Valid JWT: ${expired}, ${serverThinksInvalid}`);
+      console.debug("Valid JWT");
     }
   }
 
@@ -161,8 +148,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
       return [];
     }
 
-    const value = JSON.parse(data) as ContinueAuthenticationSession[];
-    return value;
+    try {
+      const value = JSON.parse(data) as ContinueAuthenticationSession[];
+      return value;
+    } catch (e: any) {
+      console.warn(`Error parsing sessions.json: ${e}`);
+      return [];
+    }
   }
 
   get onDidChangeSessions() {
@@ -176,35 +168,46 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   get redirectUri() {
-    if (env.uriScheme === "vscode-insiders" || env.uriScheme === "vscode") {
-      // We redirect to a page that says "you can close this page", and that page finishes the redirect
-      const url = new URL(APP_URL);
-      url.pathname = `/auth/${env.uriScheme}-redirect`;
-      return url.toString();
-    }
-    return this.ideRedirectUri;
+    return 'Mindbowser.epico-pilot';
   }
 
   async refreshSessions() {
-    await this._refreshSessions();
+    try {
+      await this._refreshSessions();
+    } catch (e) {
+      console.error(`Error refreshing sessions: ${e}`);
+    }
   }
 
   private async _refreshSessions(): Promise<void> {
-    const sessions = await this.getSessions();
-    if (!sessions.length) {
-      return;
+    let session: ContinueAuthenticationSession | null = null;
+    const devDataDir = devDataPath();
+    const sessionPath = path.join(devDataDir, "session.jsonl");
+
+    try {
+      session = JSON.parse(fs.readFileSync(
+        sessionPath,
+        "utf8"
+      ));
+    } catch {
+      console.log("Error:", "No session file found!");
     }
 
     const finalSessions = [];
-    for (const session of sessions) {
+    if (session) {
       try {
         const newSession = await this._refreshSession(session.refreshToken);
-        finalSessions.push({
+        const finalSession = {
           ...session,
           accessToken: newSession.accessToken,
           refreshToken: newSession.refreshToken,
-          expiresInMs: newSession.expiresInMs,
-        });
+          expiresInMs: this.createExpirationTimeMs(),
+        }
+        finalSessions.push(finalSession);
+        fs.writeFileSync(
+          sessionPath,
+          JSON.stringify(finalSession, null, 4),
+        );
       } catch (e: any) {
         // If the refresh token doesn't work, we just drop the session
         console.debug(`Error refreshing session token: ${e.message}`);
@@ -217,25 +220,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
           removed: [session],
           changed: [],
         });
-        // We don't need to refresh the sessions again, since we'll get a new one when we need it
-        // setTimeout(() => this._refreshSessions(), 60 * 1000);
-        // return;
       }
-    }
-    await this.storeSessions(finalSessions);
-    this._sessionChangeEmitter.fire({
-      added: [],
-      removed: [],
-      changed: finalSessions,
-    });
 
-    if (finalSessions[0]?.expiresInMs) {
-      setTimeout(
-        async () => {
-          await this._refreshSessions();
-        },
-        (finalSessions[0].expiresInMs * 2) / 3,
-      );
+      this._sessionChangeEmitter.fire({
+        added: finalSessions,
+        removed: [],
+        changed: [],
+      });
     }
   }
 
@@ -244,55 +235,60 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     refreshToken: string;
     expiresInMs: number;
   }> {
-    const response = await fetch(new URL("/auth/refresh", CONTROL_PLANE_URL), {
+    const response = await fetch("https://api-gateway.epico.ai/m2/v1/access-token", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        refreshToken,
-      }),
+      body: JSON.stringify({ refreshToken }),
     });
     if (!response.ok) {
       const text = await response.text();
       throw new Error("Error refreshing token: " + text);
     }
     const data = (await response.json()) as any;
+    
+    if (this.callRefreshTokenTimeout) clearInterval(this.callRefreshTokenTimeout);
+
+    this.callRefreshTokenTimeout = setTimeout(
+      () => this._refreshSessions(),
+      60*1000,
+    );
+
     return {
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      expiresInMs: this.getExpirationTimeMs(data.accessToken),
+      accessToken: data?.data?.accessToken,
+      refreshToken: data?.data?.refreshToken,
+      expiresInMs: this.createExpirationTimeMs(),
     };
+  }
+
+  private _formatProfileLabel(
+    firstName: string | null,
+    lastName: string | null,
+  ) {
+    return ((firstName ?? "") + " " + (lastName ?? "")).trim();
   }
 
   /**
    * Create a new auth session
-   * @param scopes
    * @returns
    */
-  public async createSession(
-    scopes: string[],
-  ): Promise<ContinueAuthenticationSession> {
+  public async createSession(): Promise<ContinueAuthenticationSession> {
     try {
-      const codeVerifier = generateRandomString(64);
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
-      const token = await this.login(codeChallenge, scopes);
-      if (!token) {
+      const { access_token, refresh_token, name, email } = await this.login();
+      if (!access_token && !refresh_token) {
         throw new Error(`Continue login failure`);
       }
-
-      const userInfo = (await this.getUserInfo(token, codeVerifier)) as any;
-      const { user, access_token, refresh_token } = userInfo;
 
       const session: ContinueAuthenticationSession = {
         id: uuidv4(),
         accessToken: access_token,
         refreshToken: refresh_token,
-        expiresInMs: this.getExpirationTimeMs(access_token),
+        expiresInMs: this.createExpirationTimeMs(),
         loginNeeded: false,
         account: {
-          label: user.first_name + " " + user.last_name,
-          id: user.email,
+          label: name,
+          id: email,
         },
         scopes: [],
       };
@@ -305,9 +301,20 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         changed: [],
       });
 
-      setTimeout(
+      const devDataDir = devDataPath();
+      const sessionPath = path.join(devDataDir, "session.jsonl");
+
+      // Write the updated suggestions back to the file
+      fs.writeFileSync(
+        sessionPath,
+        JSON.stringify(session, null, 4),
+      );
+
+      if (this.callRefreshTokenTimeout) clearInterval(this.callRefreshTokenTimeout);
+
+      this.callRefreshTokenTimeout = setTimeout(
         () => this._refreshSessions(),
-        (this.getExpirationTimeMs(session.accessToken) * 2) / 3,
+        60*1000,
       );
 
       return session;
@@ -315,6 +322,31 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
       window.showErrorMessage(`Sign in failed: ${e}`);
       throw e;
     }
+  }
+
+  public async getSession(): Promise<ContinueAuthenticationSession | null> {
+    let session: ContinueAuthenticationSession | null = null;
+    const devDataDir = devDataPath();
+    const sessionPath = path.join(devDataDir, "session.jsonl");
+    try {
+      session = JSON.parse(fs.readFileSync(
+        sessionPath,
+        "utf8"
+      ));
+
+      if (this.callRefreshTokenTimeout) clearInterval(this.callRefreshTokenTimeout);
+
+      if (session?.expiresInMs) {
+        this.callRefreshTokenTimeout = setTimeout(
+          () => this._refreshSessions(),
+          session?.expiresInMs - (new Date()).getTime(),
+        );
+      }
+    } catch {
+      console.log("Error:", "No session file found!");
+    }
+
+    return session;
   }
 
   /**
@@ -346,13 +378,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   /**
-   * Log in to Epi-Copilot
+   * Log in to Epico-Pilot
    */
-  private async login(codeChallenge: string, scopes: string[] = []) {
-    return await window.withProgress<string>(
+  async login(scopes: string[] = []) {
+    return await window.withProgress<{access_token: string, refresh_token: string, name: string, email: string}>(
       {
         location: ProgressLocation.Notification,
-        title: "Signing in to Epi-Copilot...",
+        title: "Signing in to Epico-Pilot...",
         cancellable: true,
       },
       async (_, token) => {
@@ -362,28 +394,17 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
         const scopeString = scopes.join(" ");
 
-        const url = new URL("https://api.workos.com/user_management/authorize");
+        const url = "https://mindbowser.epico.ai/login";
         const params = {
-          response_type: "code",
-          client_id: CLIENT_ID,
           redirect_uri: this.redirectUri,
-          state: stateId,
-          code_challenge: codeChallenge,
-          code_challenge_method: "S256",
-          provider: "authkit",
+          source: "vscode",
         };
 
-        Object.keys(params).forEach((key) =>
-          url.searchParams.append(key, params[key as keyof typeof params]),
-        );
+        const qs = new URLSearchParams(params);
 
-        const oauthUrl = url;
-        if (oauthUrl) {
-          await env.openExternal(Uri.parse(oauthUrl.toString()));
-        } else {
-          return;
-        }
+        await env.openExternal(Uri.parse(`${url}?${qs.toString()}`));
 
+        
         let codeExchangePromise = this._codeExchangePromises.get(scopeString);
         if (!codeExchangePromise) {
           codeExchangePromise = promiseFromEvent(
@@ -397,7 +418,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
           return await Promise.race([
             codeExchangePromise.promise,
             new Promise<string>((_, reject) =>
-              setTimeout(() => reject("Cancelled"), 60000),
+              setTimeout(() => reject("Cancelled"), 15 * 60 * 1_000),
             ),
             promiseFromEvent<any, any>(
               token.onCancellationRequested,
@@ -424,62 +445,36 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    */
   private handleUri: (
     scopes: readonly string[],
-  ) => PromiseAdapter<Uri, string> =
+  ) => PromiseAdapter<Uri, {access_token: string, refresh_token: string, name: string, email: string}> =
     (scopes) => async (uri, resolve, reject) => {
       const query = new URLSearchParams(uri.query);
-      const access_token = query.get("code");
-      const state = query.get("state");
+      const access_token = query.get('accessToken');
+      const refresh_token = query.get('refreshToken');
+      const name = query.get('name');
+      const email = query.get('email');
 
       if (!access_token) {
-        reject(new Error("No token"));
+        reject(new Error("No access token"));
         return;
       }
-      if (!state) {
-        reject(new Error("No state"));
+      if (!refresh_token) {
+        reject(new Error("No refresh state"));
+        return;
+      }
+      if (!email || !name) {
+        reject(new Error("No user details"));
         return;
       }
 
-      // Check if it is a valid auth request started by the extension
-      if (!this._pendingStates.some((n) => n === state)) {
-        reject(new Error("State not found"));
-        return;
-      }
-
-      resolve(access_token);
+      resolve(({access_token, refresh_token, name, email}));
     };
-
-  /**
-   * Get the user info from WorkOS
-   * @param token
-   * @returns
-   */
-  private async getUserInfo(token: string, codeVerifier: string) {
-    const resp = await fetch(
-      "https://api.workos.com/user_management/authenticate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          client_id: CLIENT_ID,
-          code_verifier: codeVerifier,
-          grant_type: "authorization_code",
-          code: token,
-        }),
-      },
-    );
-    const text = await resp.text();
-    const data = JSON.parse(text);
-    return data;
-  }
 }
 
 export async function getControlPlaneSessionInfo(
   silent: boolean,
 ): Promise<ControlPlaneSessionInfo | undefined> {
   const session = await authentication.getSession(
-    AUTH_TYPE,
+    controlPlaneEnv.AUTH_TYPE,
     [],
     silent ? { silent: true } : { createIfNone: true },
   );

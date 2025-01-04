@@ -2,16 +2,17 @@
 import { RunResult } from "sqlite3";
 import { v4 as uuidv4 } from "uuid";
 import lance, { Table } from "vectordb";
+
 import { IContinueServerClient } from "../continueServer/interface.js";
 import {
   BranchAndDir,
   Chunk,
-  EmbeddingsProvider,
+  ILLM,
   IndexTag,
   IndexingProgressUpdate,
 } from "../index.js";
 import { getBasename } from "../util/index.js";
-import { getLanceDbPath, migrate } from "../util/paths.js";
+import { getLanceDbPath, getRemoteLanceDbPath, migrate } from "../util/paths.js";
 import { chunkDocument, shouldChunk } from "./chunk/chunk.js";
 import { DatabaseConnection, SqliteDb, tagToString } from "./refreshIndex.js";
 import {
@@ -21,6 +22,9 @@ import {
   PathAndCacheKey,
   RefreshIndexResults,
 } from "./types.js";
+
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_KEY = process.env.AWS_SECRET_KEY;
 
 // LanceDB  converts to lowercase, so names must all be lowercase
 interface LanceDbRow {
@@ -38,11 +42,11 @@ type ChunkMap = Map<string, ItemWithChunks>;
 export class LanceDbIndex implements CodebaseIndex {
   relativeExpectedTime: number = 13;
   get artifactId(): string {
-    return `vectordb::${this.embeddingsProvider.id}`;
+    return `vectordb::${this.embeddingsProvider.embeddingId}`;
   }
 
   constructor(
-    private readonly embeddingsProvider: EmbeddingsProvider,
+    private readonly embeddingsProvider: ILLM,
     private readonly readFile: (filepath: string) => Promise<string>,
     private readonly pathSep: string,
     private readonly continueServerClient?: IContinueServerClient,
@@ -121,14 +125,16 @@ export class LanceDbIndex implements CodebaseIndex {
 
     for (const item of items) {
       try {
-        const content = await this.readFile(item.path);
-
-        if (!shouldChunk(this.pathSep, item.path, content)) {
-          continue;
+        if (this.readFile && this.pathSep) {
+          const content = await this.readFile(item.path);
+  
+          if (!shouldChunk(this.pathSep, item.path, content)) {
+            continue;
+          }
+  
+          const chunks = await this.getChunks(item, content);
+          chunkMap.set(item.path, { item, chunks });
         }
-
-        const chunks = await this.getChunks(item, content);
-        chunkMap.set(item.path, { item, chunks });
       } catch (err) {
         console.log(`LanceDBIndex, skipping ${item.path}: ${err}`);
       }
@@ -146,7 +152,7 @@ export class LanceDbIndex implements CodebaseIndex {
     const chunkParams = {
       filepath: item.path,
       contents: content,
-      maxChunkSize: this.embeddingsProvider.maxChunkSize,
+      maxChunkSize: this.embeddingsProvider.maxEmbeddingChunkSize,
       digest: item.cacheKey,
     };
 
@@ -166,7 +172,7 @@ export class LanceDbIndex implements CodebaseIndex {
       return await this.embeddingsProvider.embed(chunks.map((c) => c.content));
     } catch (err) {
       throw new Error(
-        `Failed to generate embeddings for ${chunks.length} chunks with provider: ${this.embeddingsProvider.id}: ${err}`,
+        `Failed to generate embeddings for ${chunks.length} chunks with provider: ${this.embeddingsProvider.embeddingId}: ${err}`,
         { cause: err },
       );
     }
@@ -403,28 +409,29 @@ export class LanceDbIndex implements CodebaseIndex {
     };
   }
 
+  async updateRemote() {
+    
+  }
+
   private async _retrieveForTag(
     tag: IndexTag,
     n: number,
     directory: string | undefined,
     vector: number[],
-    db: any, /// lancedb.Connection
+    db: any, /// lancedb.Connection,
+    remote?: boolean,
   ): Promise<LanceDbRow[]> {
-    const tableName = this.tableNameForTag(tag);
+    const tableName = remote ? directory : this.tableNameForTag(tag);
     const tableNames = await db.tableNames();
     if (!tableNames.includes(tableName)) {
       console.warn("Table not found in LanceDB", tableName);
       return [];
     }
 
+
     const table = await db.openTable(tableName);
     let query = table.search(vector);
-    if (directory) {
-      // seems like lancedb is only post-filtering, so have to return a bunch of results and slice after
-      query = query.where(`path LIKE '${directory}%'`).limit(300);
-    } else {
-      query = query.limit(n);
-    }
+    query = query.limit(n);
     const results = await query.execute();
     return results.slice(0, n) as any;
   }
@@ -434,11 +441,36 @@ export class LanceDbIndex implements CodebaseIndex {
     n: number,
     tags: BranchAndDir[],
     filterDirectory: string | undefined,
+    remote: boolean = false
   ): Promise<Chunk[]> {
     const [vector] = await this.embeddingsProvider.embed([query]);
-    const db = await lance.connect(getLanceDbPath());
+    let lanceDbPath = "";
+    let db;
+    if (remote) { 
+      lanceDbPath = getRemoteLanceDbPath(); 
+      db = await lance.connect({
+        uri: lanceDbPath,
+        awsRegion: "ap-south-1",
+        awsCredentials: {
+          accessKeyId:AWS_ACCESS_KEY_ID,
+          secretKey: AWS_SECRET_KEY,
+        }
+      });
+    }
+    else { 
+      lanceDbPath = getLanceDbPath(); 
+      db = await lance.connect(lanceDbPath);
+    }
+    
 
-    let allResults = [];
+    let allResults: LanceDbRow[] = [];
+    if (tags[0].directory === "all") {
+      const existingLanceTables = await db.tableNames();
+      tags = existingLanceTables.map(folder => ({
+        directory: folder,
+        branch: "NONE"
+      }));
+    }
     for (const tag of tags) {
       const results = await this._retrieveForTag(
         { ...tag, artifactId: this.artifactId },
@@ -446,6 +478,7 @@ export class LanceDbIndex implements CodebaseIndex {
         filterDirectory,
         vector,
         db,
+        remote,
       );
       allResults.push(...results);
     }
@@ -454,23 +487,36 @@ export class LanceDbIndex implements CodebaseIndex {
       .sort((a, b) => a._distance - b._distance)
       .slice(0, n);
 
-    const sqliteDb = await SqliteDb.get();
-    const data = await sqliteDb.all(
-      `SELECT * FROM lance_db_cache WHERE uuid in (${allResults
-        .map((r) => `'${r.uuid}'`)
-        .join(",")})`,
-    );
-
-    return data.map((d) => {
-      return {
-        digest: d.cacheKey,
-        filepath: d.path,
-        startLine: d.startLine,
-        endLine: d.endLine,
-        index: 0,
-        content: d.contents,
-      };
-    });
+    if (remote) {
+      return allResults.map((d) => {
+        return {
+          digest: d.cacheKey,
+          filepath: d.path,
+          startLine: d.startLine,
+          endLine: d.endLine,
+          index: 0,
+          content: d.contents,
+        };
+      });
+    } else  {
+      const sqliteDb = await SqliteDb.get();
+      const data = await sqliteDb.all(
+        `SELECT * FROM lance_db_cache WHERE uuid in (${allResults
+          .map((r) => `'${r.uuid}'`)
+          .join(",")})`,
+      );
+  
+      return data.map((d) => {
+        return {
+          digest: d.cacheKey,
+          filepath: d.path,
+          startLine: d.startLine,
+          endLine: d.endLine,
+          index: 0,
+          content: d.contents,
+        };
+      });
+    }
   }
 
   private async insertRows(

@@ -1,37 +1,76 @@
 import os from "node:os";
+
 import { TeamAnalytics } from "../control-plane/TeamAnalytics.js";
 import { IdeInfo } from "../index.js";
+import type { PostHog as PostHogType } from "posthog-node";
+import { devDataPath } from "./paths.js";
+import * as path from 'path';
+import * as fs from 'fs';
+
+export enum PosthogFeatureFlag {
+  AutocompleteTemperature = "autocomplete-temperature",
+}
+
+export const EXPERIMENTS: {
+  [key in PosthogFeatureFlag]: {
+    [key: string]: { value: number };
+  };
+} = {
+  [PosthogFeatureFlag.AutocompleteTemperature]: {
+    control: { value: 0.01 },
+    "0_33": { value: 0.33 },
+    "0_66": { value: 0.66 },
+    "0_99": { value: 0.99 },
+  },
+};
 
 export class Telemetry {
   // Set to undefined whenever telemetry is disabled
-  static client: any = undefined;
+  static client: PostHogType | undefined = undefined;
   static uniqueId = "NOT_UNIQUE";
   static os: string | undefined = undefined;
   static ideInfo: IdeInfo | undefined = undefined;
+  static personName: string = "";
+  static personEmail: string = "";
 
   static async capture(
     event: string,
     properties: { [key: string]: any },
     sendToTeam: boolean = false,
+    isExtensionActivationError: boolean = false,
   ) {
-    if (process.env.NODE_ENV === "test") {
-      return;
-    }
     try {
-      Telemetry.client?.capture({
+      const augmentedProperties = {
+        ...properties,
+        os: Telemetry.os,
+        extensionVersion: Telemetry.ideInfo?.extensionVersion,
+        ideName: Telemetry.ideInfo?.name,
+        ideType: Telemetry.ideInfo?.ideType,
+        accountName: Telemetry.personName,
+        accountEmail: Telemetry.personEmail
+      };
+      const payload = {
         distinctId: Telemetry.uniqueId,
         event,
-        properties: {
-          ...properties,
-          os: Telemetry.os,
-          extensionVersion: Telemetry.ideInfo?.extensionVersion,
-          ideName: Telemetry.ideInfo?.name,
-          ideType: Telemetry.ideInfo?.ideType,
-        },
-      });
+        properties: augmentedProperties,
+        sendFeatureFlags: true,
+      };
+
+      // In cases where an extremely early fatal error occurs, we may not have initialized yet
+      if (isExtensionActivationError && !Telemetry.client) {
+        const client = await Telemetry.getTelemetryClient();
+        client?.capture(payload);
+        return;
+      }
+
+      if (process.env.NODE_ENV === "test") {
+        return;
+      }
+
+      Telemetry.client?.capture(payload);
 
       if (sendToTeam) {
-        TeamAnalytics.capture(event, properties);
+        void TeamAnalytics.capture(event, properties);
       }
     } catch (e) {
       console.error(`Failed to capture event: ${e}`);
@@ -42,27 +81,58 @@ export class Telemetry {
     Telemetry.client?.shutdown();
   }
 
+  static async getTelemetryClient(): Promise<PostHogType | undefined> {
+    try {
+      const { PostHog } = await import("posthog-node");
+      return new PostHog(process.env.POSTHOG_API_KEY ?? "", {
+        host: "https://us.i.posthog.com",
+      });
+    } catch (e) {
+      console.error(`Failed to setup telemetry: ${e}`);
+    }
+  }
+
   static async setup(allow: boolean, uniqueId: string, ideInfo: IdeInfo) {
     Telemetry.uniqueId = uniqueId;
     Telemetry.os = os.platform();
     Telemetry.ideInfo = ideInfo;
+    const devDataDir = devDataPath();
+    const sessionPath = path.join(devDataDir, "session.jsonl");
+    
+    let session;
+    try {
+      session = JSON.parse(fs.readFileSync(
+        sessionPath,
+        "utf8"
+      ));
+      Telemetry.personName = session.account.label ?? "";
+      Telemetry.personEmail = session.account.id ?? "";
+    } catch {
+      console.log("Error:", "Need to login first");
+    }
+
 
     if (!allow || process.env.NODE_ENV === "test") {
       Telemetry.client = undefined;
-    } else {
-      try {
-        if (!Telemetry.client) {
-          const { PostHog } = await import("posthog-node");
-          Telemetry.client = new PostHog(
-            "phc_JS6XFROuNbhJtVCEdTSYk6gl5ArRrTNMpCcguAXlSPs",
-            {
-              host: "https://app.posthog.com",
-            },
-          );
-        }
-      } catch (e) {
-        console.error(`Failed to setup telemetry: ${e}`);
+    } else if (!Telemetry.client) {
+      Telemetry.client = await Telemetry.getTelemetryClient();
+    }
+  }
+
+  static async getFeatureFlag(flag: PosthogFeatureFlag) {
+    return Telemetry.client?.getFeatureFlag(flag, Telemetry.uniqueId);
+  }
+
+  static async getValueForFeatureFlag(flag: PosthogFeatureFlag) {
+    try {
+      const userGroup = await Telemetry.getFeatureFlag(flag);
+      if (typeof userGroup === "string") {
+        return EXPERIMENTS[flag][userGroup].value;
       }
+
+      return undefined;
+    } catch {
+      return undefined;
     }
   }
 }

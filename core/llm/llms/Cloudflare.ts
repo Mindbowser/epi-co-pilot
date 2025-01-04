@@ -1,10 +1,10 @@
+import { ChatMessage, CompletionOptions } from "../../index.js";
+import { renderChatMessage } from "../../util/messageContent.js";
 import { BaseLLM } from "../index.js";
-import { ChatMessage, CompletionOptions, ModelProvider } from "../../index.js";
-import { stripImages } from "../images.js";
 import { streamSse } from "../stream.js";
 
 export default class Cloudflare extends BaseLLM {
-  static providerName: ModelProvider = "cloudflare";
+  static providerName = "cloudflare";
 
   private _convertArgs(options: CompletionOptions) {
     const finalOptions = {
@@ -16,6 +16,7 @@ export default class Cloudflare extends BaseLLM {
 
   protected async *_streamChat(
     messages: ChatMessage[],
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<ChatMessage, any, unknown> {
     const headers = {
@@ -35,24 +36,30 @@ export default class Cloudflare extends BaseLLM {
         model: this.model,
         ...this._convertArgs(options),
       }),
+      signal,
     });
 
     for await (const value of streamSse(resp)) {
       if (value.choices?.[0]?.delta?.content) {
-        yield value.choices[0].delta;
+        yield {
+          role: "assistant",
+          content: value.choices[0].delta.content,
+        };
       }
     }
   }
 
   protected async *_streamComplete(
     prompt: string,
+    signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     for await (const chunk of this._streamChat(
       [{ role: "user", content: prompt }],
+      signal,
       options,
     )) {
-      yield stripImages(chunk.content);
+      yield renderChatMessage(chunk);
     }
   }
 }

@@ -110,6 +110,7 @@ const sidebars = {
     },
     "customize/context-providers",
     "customize/slash-commands",
+    "customize/tools",
     "customize/development-data",
     {
       type: "category",
@@ -131,8 +132,12 @@ const sidebars = {
         },
       ],
     },
-    "customize/config",
     "customize/changelog",
+    {
+      type: "link",
+      label: "Reference",
+      href: "/reference",
+    },
   ],
 };
 

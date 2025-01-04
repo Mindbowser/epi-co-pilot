@@ -9,29 +9,23 @@ export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription[] = [
   {
     "model": "codellama-7b",
     "provider": "ollama",
-    "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
-    "title": "MB 1"
-  },
-  {
-    "model": "llama3.2",
-    "provider": "ollama",
-    "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
-    "title": "MB 0"
-  },
+    "apiBase": "https://pilot.epico.ai/",
+    "title": "Epico Pilot"
+  }
 ];
 
 export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {
   "title": "Tab Autocomplete Model",
   "model": "codellama-7b",
   "provider": "ollama",
-  "apiBase": "https://apparently-vital-mutt.ngrok-free.app/"
+  "apiBase": "https://pilot.epico.ai/"
 };
 
 export const FREE_TRIAL_MODELS: ModelDescription[] = [
   {
     title: "Claude 3.5 Sonnet (Free Trial)",
     provider: "free-trial",
-    model: "claude-3-5-sonnet-20240620",
+    model: "claude-3-5-sonnet-latest",
     systemMessage:
       "You are an expert software developer. You give helpful and concise responses.",
   },
@@ -65,7 +59,8 @@ export const defaultContextProvidersVsCode: ContextProviderWithParams[] = [
   { name: "terminal", params: {} },
   { name: "problems", params: {} },
   { name: "folder", params: {} },
-  { name: "custom-codebase", params: {} },
+  { name: "local-codebase", params: {} },
+  { name: "remote-codebase", params: {} },
   { name: "codebase", params: {} },
 ];
 
@@ -76,14 +71,6 @@ export const defaultContextProvidersJetBrains: ContextProviderWithParams[] = [
 ];
 
 export const defaultSlashCommandsVscode: SlashCommandDescription[] = [
-  {
-    name: "edit",
-    description: "Edit selected code",
-  },
-  {
-    name: "comment",
-    description: "Write comments for the selected code",
-  },
   {
     name: "share",
     description: "Export the current chat session to markdown",
@@ -119,18 +106,18 @@ export const defaultSlashCommandsVscode: SlashCommandDescription[] = [
   {
     name: "create-readme",
     description: "Create readme file context.",
-  }
+  },
+  {
+    name: "impact-analysis",
+    description: "Generate a real-time impact analysis report",
+  },
+  {
+    name: "code-stats",
+    description: "Generate stats of the codebase.",
+  },
 ];
 
 export const defaultSlashCommandsJetBrains = [
-  {
-    name: "edit",
-    description: "Edit selected code",
-  },
-  {
-    name: "comment",
-    description: "Write comments for the selected code",
-  },
   {
     name: "share",
     description: "Export the current chat session to markdown",
@@ -144,14 +131,6 @@ export const defaultSlashCommandsJetBrains = [
 export const defaultConfig: SerializedContinueConfig = {
   models: [...DEFAULT_CHAT_MODEL_CONFIG],
   tabAutocompleteModel: DEFAULT_AUTOCOMPLETE_MODEL_CONFIG,
-  customCommands: [
-    {
-      name: "test",
-      prompt:
-        "{{{ input }}}\n\nWrite a comprehensive set of unit tests for the selected code. It should setup, run tests that check for correctness including important edge cases, and teardown. Ensure that the tests are complete and sophisticated. Give the tests just as chat output, don't edit any file.",
-      description: "Write unit tests for highlighted code",
-    },
-  ],
   contextProviders: defaultContextProvidersVsCode,
   slashCommands: defaultSlashCommandsVscode,
 };
@@ -159,14 +138,6 @@ export const defaultConfig: SerializedContinueConfig = {
 export const defaultConfigJetBrains: SerializedContinueConfig = {
   models: [...DEFAULT_CHAT_MODEL_CONFIG],
   tabAutocompleteModel: DEFAULT_AUTOCOMPLETE_MODEL_CONFIG,
-  customCommands: [
-    {
-      name: "test",
-      prompt:
-        "{{{ input }}}\n\nWrite a comprehensive set of unit tests for the selected code. It should setup, run tests that check for correctness including important edge cases, and teardown. Ensure that the tests are complete and sophisticated. Give the tests just as chat output, don't edit any file.",
-      description: "Write unit tests for highlighted code",
-    },
-  ],
   contextProviders: defaultContextProvidersJetBrains,
   slashCommands: defaultSlashCommandsJetBrains,
 };

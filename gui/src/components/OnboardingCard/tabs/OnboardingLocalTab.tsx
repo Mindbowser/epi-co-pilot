@@ -8,12 +8,12 @@ import { useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Button } from "../..";
 import { IdeMessengerContext } from "../../../context/IdeMessenger";
-import { setDefaultModel } from "../../../redux/slices/stateSlice";
 import { hasPassedFTL } from "../../../util/freeTrial";
 import AddModelButtonSubtext from "../../AddModelButtonSubtext";
 import OllamaModelDownload from "../components/OllamaModelDownload";
 import { OllamaStatus } from "../components/OllamaStatus";
 import { useSubmitOnboarding } from "../hooks";
+import { setDefaultModel } from "../../../redux/slices/configSlice";
 
 const OLLAMA_CHECK_INTERVAL_MS = 3000;
 
@@ -30,13 +30,17 @@ function OnboardingLocalTab() {
 
   const [isOllamaConnected, setIsOllamaConnected] = useState(false);
 
-  const hasDownloadedChatModel = downloadedOllamaModels.some((ollamaModel) =>
-    ollamaModel.startsWith(LOCAL_ONBOARDING_CHAT_MODEL),
-  );
+  const hasDownloadedChatModel = Array.isArray(downloadedOllamaModels)
+    ? downloadedOllamaModels.some((ollamaModel) =>
+        ollamaModel.startsWith(LOCAL_ONBOARDING_CHAT_MODEL),
+      )
+    : false;
 
-  const hasDownloadedAutocompleteModel = downloadedOllamaModels.some(
-    (ollamaModel) => ollamaModel.startsWith(LOCAL_ONBOARDING_CHAT_MODEL),
-  );
+  const hasDownloadedAutocompleteModel = Array.isArray(downloadedOllamaModels)
+    ? downloadedOllamaModels.some((ollamaModel) =>
+        ollamaModel.startsWith(LOCAL_ONBOARDING_CHAT_MODEL),
+      )
+    : false;
 
   /**
    * The first time we detect that a chat model has been loaded,
@@ -57,13 +61,19 @@ function OnboardingLocalTab() {
   useEffect(() => {
     const fetchDownloadedModels = async () => {
       try {
-        const result = (await ideMessenger.request("llm/listModels", {
+        const result = await ideMessenger.request("llm/listModels", {
           title: ONBOARDING_LOCAL_MODEL_TITLE,
-        })) as any;
-
-        if (result.status === "success" && Array.isArray(result.content)) {
-          setDownloadedOllamaModels(result.content);
-          setIsOllamaConnected(true);
+        });
+        if (result.status === "success") {
+          // TODO - temporary fix, see notes
+          // https://github.com/continuedev/continue/pull/3059
+          if (Array.isArray(result.content)) {
+            setDownloadedOllamaModels(result.content);
+            setIsOllamaConnected(true);
+          } else {
+            setDownloadedOllamaModels([]);
+            setIsOllamaConnected(false);
+          }
         } else {
           throw new Error("Failed to fetch models");
         }
@@ -78,7 +88,7 @@ function OnboardingLocalTab() {
       OLLAMA_CHECK_INTERVAL_MS,
     );
 
-    fetchDownloadedModels();
+    void fetchDownloadedModels();
 
     return () => clearInterval(intervalId);
   }, []);
@@ -86,7 +96,7 @@ function OnboardingLocalTab() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col">
-        <p className="text-lg font-bold leading-tight mb-2">Install Ollama</p>
+        <p className="mb-2 text-lg font-bold leading-tight">Install Ollama</p>
         <OllamaStatus isOllamaConnected={isOllamaConnected} />
       </div>
 

@@ -1,13 +1,15 @@
-import { IDE, SlashCommand } from "../..";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { stripImages } from "../../llm/images";
+
 import ignore from "ignore";
+
+import { IDE, SlashCommand } from "../..";
 import {
   defaultIgnoreDir,
   defaultIgnoreFile,
   gitIgArrayFromFile,
 } from "../../indexing/ignore";
+import { renderChatMessage } from "../../util/messageContent";
 
 const LANGUAGE_DEP_MGMT_FILENAMES = [
   "package.json", // JavaScript (Node.js)
@@ -43,10 +45,11 @@ const OnboardSlashCommand: SlashCommand = {
     const context = await gatherProjectContext(workspaceDir, ide);
     const prompt = createOnboardingPrompt(context);
 
-    for await (const chunk of llm.streamChat([
-      { role: "user", content: prompt },
-    ])) {
-      yield stripImages(chunk.content);
+    for await (const chunk of llm.streamChat(
+      [{ role: "user", content: prompt }],
+      new AbortController().signal,
+    )) {
+      yield renderChatMessage(chunk);
     }
   },
 };
@@ -70,7 +73,10 @@ async function getEntriesFilteredByIgnore(dir: string, ide: IDE) {
     ig = ig.add(igPatterns);
   }
 
-  const filteredEntries = entries.filter((entry) => !ig.ignores(entry.name));
+  const filteredEntries = entries.filter((entry) => {
+    const name = entry.isDirectory() ? `${entry.name}/` : entry.name;
+    return !ig.ignores(name);
+  });
 
   return filteredEntries;
 }
@@ -114,13 +120,47 @@ async function gatherProjectContext(
 
 function createOnboardingPrompt(context: string): string {
   return `
-    I'm a new developer joining the project.
+    As a helpful AI assistant, your task is to onboard a new developer to this project.
     Use the following context about the project structure, READMEs, and dependency files to create a comprehensive overview:
 
-    ${context}
+  Please provide an overview of the project with the following guidelines:
 
-    Can you provide a comprehensive overview of the project, including its goals, objectives, and current status? 
-    Please also explain the technologies, frameworks, and tools used, as well as any specific coding conventions or guidelines we should follow.
+  1. Important Folders
+
+   - Identify the critical folders in the project and explain their purpose.
+   - Highlight key packages or technologies used within these folders.
+   - Summarize relevant details from README files or configuration files like package.json.
+  
+  2. Project Architecture
+
+    Here is an example of a valid response:
+
+    ## Important folders
+
+   - Summarize the project's coding standards, including formatting, naming conventions, code structure, and documentation practices.
+   - Highlight approaches to error handling and testing standards.
+  
+  4. UI Frameworks
+
+   - Explain how UI frameworks are utilized in the project.
+   - Describe specific use cases and the rationale for using frameworks like MUI, Bootstrap, or Tailwind CSS.
+  
+  5.  Environment Configurations
+
+   - Detail how environment configurations are managed, including where they are stored and how they are accessed in the codebase.
+  
+  6. Additional Architectural Insights
+
+   - Provide up to five additional insights about the architecture, such as scalability strategies, CI/CD pipelines, or performance optimizations.
+  
+  7. Unit Testing and Coverage
+
+   - Mention the testing framework(s) used and the approach to ensure sufficient test coverage.
+   - Highlight strategies for maintaining code quality through testing.
+  
+  8. How to Run the Project
+
+   - Include step-by-step instructions for setting up the project, running it locally, and accessing key functionalities.
   `;
 }
 

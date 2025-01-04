@@ -1,6 +1,7 @@
 import { ContinueConfig, QuickActionConfig } from "core";
 import { Telemetry } from "core/util/posthog";
 import * as vscode from "vscode";
+
 import { QuickEditShowParams } from "../../../quickEdit/QuickEditQuickPick";
 import {
   CONTINUE_WORKSPACE_KEY,
@@ -62,13 +63,7 @@ export class QuickActionsCodeLensProvider implements vscode.CodeLensProvider {
     vscode.SymbolKind.Constructor,
   ];
 
-  customQuickActionsConfig?: QuickActionConfig[];
-
-  constructor(customQuickActionsConfigs?: QuickActionConfig[]) {
-    if (customQuickActionsConfigs) {
-      this.customQuickActionsConfig = customQuickActionsConfigs;
-    }
-  }
+  constructor(private customQuickActionsConfigs?: QuickActionConfig[]) {}
 
   getCustomCommands(
     range: vscode.Range,
@@ -78,12 +73,12 @@ export class QuickActionsCodeLensProvider implements vscode.CodeLensProvider {
       return sendToChat
         ? {
             title,
-            command: "epi-copilot.customQuickActionSendToChat",
+            command: "epico-pilot.customQuickActionSendToChat",
             arguments: [prompt, range],
           }
         : {
             title,
-            command: "epi-copilot.customQuickActionStreamInlineEdit",
+            command: "epico-pilot.customQuickActionStreamInlineEdit",
             arguments: [prompt, range],
           };
     });
@@ -91,8 +86,8 @@ export class QuickActionsCodeLensProvider implements vscode.CodeLensProvider {
 
   getDefaultCommand(range: vscode.Range): vscode.Command[] {
     const quickEdit: vscode.Command = {
-      command: "epi-copilot.defaultQuickAction",
-      title: "Continue",
+      command: "epico-pilot.defaultQuickAction",
+      title: "Epico-Pilot",
       arguments: [{ range } as QuickEditShowParams],
     };
 
@@ -145,8 +140,8 @@ export class QuickActionsCodeLensProvider implements vscode.CodeLensProvider {
     const symbols = await this.getTopLevelAndChildrenSymbols(document.uri);
 
     return symbols.flatMap(({ range }) => {
-      const commands: vscode.Command[] = !!this.customQuickActionsConfig
-        ? this.getCustomCommands(range, this.customQuickActionsConfig)
+      const commands: vscode.Command[] = !!this.customQuickActionsConfigs
+        ? this.getCustomCommands(range, this.customQuickActionsConfigs)
         : this.getDefaultCommand(range);
 
       return commands.map((command) => new vscode.CodeLens(range, command));

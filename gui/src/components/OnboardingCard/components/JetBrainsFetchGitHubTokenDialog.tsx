@@ -2,7 +2,7 @@ import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import { useContext, useState } from "react";
 import { StyledActionButton, Input, Button, ButtonSubtext } from "../..";
 import { IdeMessengerContext } from "../../../context/IdeMessenger";
-import { setShowDialog } from "../../../redux/slices/uiStateSlice";
+import { setShowDialog } from "../../../redux/slices/uiSlice";
 import { useDispatch } from "react-redux";
 
 interface JetBrainsFetchGitHubTokenDialogProps {
@@ -34,13 +34,13 @@ function JetBrainsFetchGitHubTokenDialog({
   }
 
   return (
-    <div className="p-8 flex flex-col gap-3">
+    <div className="flex flex-col gap-3 p-8">
       <div className="text-center">
         <h1 className="my-0">Sign in with GitHub</h1>
         <p>
-          Epi-Copilot will request read access to your GitHub email so that we can
+          Epico-Pilot will request read access to your GitHub email so that we can
           prevent abuse of the free trial. If you prefer not to sign in, you can
-          use Epi-Copilot with your own API keys or local model.
+          use Epico-Pilot with your own API keys or local model.
         </p>
       </div>
 
@@ -66,7 +66,7 @@ function JetBrainsFetchGitHubTokenDialog({
           <Button
             onClick={submitJetBrainsToken}
             disabled={!jbGhAuthToken}
-            className="grid grid-flow-col items-center gap-2 w-full mt-2"
+            className="mt-2 grid w-full grid-flow-col items-center gap-2"
           >
             Get started using our API keys
           </Button>

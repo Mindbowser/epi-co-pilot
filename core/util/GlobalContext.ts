@@ -1,6 +1,6 @@
 import fs from "node:fs";
-import { getGlobalContextFilePath } from "./paths.js";
-import { EmbeddingsProvider } from "../index.js";
+
+import { getGlobalContextFilePath } from "./paths";
 
 export type GlobalContextType = {
   indexingPaused: boolean;
@@ -12,7 +12,9 @@ export type GlobalContextType = {
    *
    * For VS Code users, it is unnecessary since we use transformers.js by default.
    */
-  curEmbeddingsProviderId: EmbeddingsProvider["id"];
+  curEmbeddingsProviderId: string;
+  hasDismissedConfigTsNoticeJetBrains: boolean;
+  hasAlreadyCreatedAPromptFile: boolean;
 };
 
 /**
@@ -36,7 +38,15 @@ export class GlobalContext {
       );
     } else {
       const data = fs.readFileSync(getGlobalContextFilePath(), "utf-8");
-      const parsed = JSON.parse(data);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(data);
+      } catch (e: any) {
+        console.warn(`Error updating global context: ${e}`);
+        return;
+      }
+
       parsed[key] = value;
       fs.writeFileSync(
         getGlobalContextFilePath(),
@@ -53,7 +63,12 @@ export class GlobalContext {
     }
 
     const data = fs.readFileSync(getGlobalContextFilePath(), "utf-8");
-    const parsed = JSON.parse(data);
-    return parsed[key];
+    try {
+      const parsed = JSON.parse(data);
+      return parsed[key];
+    } catch (e: any) {
+      console.warn(`Error parsing global context: ${e}`);
+      return undefined;
+    }
   }
 }

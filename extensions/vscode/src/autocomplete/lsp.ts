@@ -1,16 +1,22 @@
-import type { IDE, Range, RangeInFile } from "core";
-import { getAst, getTreePathAtCursor } from "core/autocomplete/ast";
-import { GetLspDefinitionsFunction } from "core/autocomplete/completionProvider";
-import { AutocompleteLanguageInfo } from "core/autocomplete/languages";
-import { AutocompleteSnippet } from "core/autocomplete/ranking";
-import { RangeInFileWithContents } from "core/commands/util";
+import { AutocompleteLanguageInfo } from "core/autocomplete/constants/AutocompleteLanguageInfo";
+import { getAst, getTreePathAtCursor } from "core/autocomplete/util/ast";
 import {
   FUNCTION_BLOCK_NODE_TYPES,
   FUNCTION_DECLARATION_NODE_TYPEs,
 } from "core/indexing/chunk/code";
 import { intersection } from "core/util/ranges";
 import * as vscode from "vscode";
+
+import type { IDE, Range, RangeInFile, RangeInFileWithContents } from "core";
 import type Parser from "web-tree-sitter";
+import {
+  AutocompleteSnippetDeprecated,
+  GetLspDefinitionsFunction,
+} from "core/autocomplete/types";
+import {
+  AutocompleteCodeSnippet,
+  AutocompleteSnippetType,
+} from "core/autocomplete/snippets/types";
 
 type GotoProviderName =
   | "vscode.executeDefinitionProvider"
@@ -133,7 +139,9 @@ async function crawlTypes(
 
   // Parse AST
   const ast = await getAst(rif.filepath, contents);
-  if (!ast) return results;
+  if (!ast) {
+    return results;
+  }
   const astLineCount = ast.rootNode.text.split("\n").length;
 
   // Find type identifiers
@@ -339,13 +347,17 @@ export const getDefinitionsFromLsp: GetLspDefinitionsFunction = async (
   cursorIndex: number,
   ide: IDE,
   lang: AutocompleteLanguageInfo,
-): Promise<AutocompleteSnippet[]> => {
+): Promise<AutocompleteCodeSnippet[]> => {
   try {
     const ast = await getAst(filepath, contents);
-    if (!ast) return [];
+    if (!ast) {
+      return [];
+    }
 
     const treePath = await getTreePathAtCursor(ast, cursorIndex);
-    if (!treePath) return [];
+    if (!treePath) {
+      return [];
+    }
 
     const results: RangeInFileWithContents[] = [];
     for (const node of treePath.reverse()) {
@@ -359,8 +371,9 @@ export const getDefinitionsFromLsp: GetLspDefinitionsFunction = async (
     }
 
     return results.map((result) => ({
-      ...result,
-      score: 0.8,
+      filepath: result.filepath,
+      content: result.contents,
+      type: AutocompleteSnippetType.Code,
     }));
   } catch (e) {
     console.warn("Error getting definitions from LSP: ", e);
