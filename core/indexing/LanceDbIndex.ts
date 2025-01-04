@@ -483,8 +483,6 @@ export class LanceDbIndex implements CodebaseIndex {
       allResults.push(...results);
     }
 
-    console.log("allResults", allResults)
-
     allResults = allResults
       .sort((a, b) => a._distance - b._distance)
       .slice(0, n);

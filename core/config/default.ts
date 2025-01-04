@@ -11,19 +11,7 @@ export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription[] = [
     "provider": "ollama",
     "apiBase": "https://pilot.epico.ai/",
     "title": "Epico Pilot"
-  },
-  {
-    "model": "codellama-7b",
-    "provider": "ollama",
-    "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
-    "title": "MB 1"
-  },
-  {
-    "model": "llama3.2",
-    "provider": "ollama",
-    "apiBase": "https://apparently-vital-mutt.ngrok-free.app/",
-    "title": "MB 0"
-  },
+  }
 ];
 
 export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {

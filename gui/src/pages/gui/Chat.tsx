@@ -142,6 +142,9 @@ export function Chat() {
   const selectedModelTitle = useAppSelector(
     (store) => store.config.defaultModelTitle,
   );
+  const accountEmail = useAppSelector(
+    (state: RootState) => state.config?.accountEmail,
+  );
   const defaultModel = useAppSelector(selectDefaultModel);
   const ttsActive = useAppSelector((state) => state.ui.ttsActive);
   const isStreaming = useAppSelector((state) => state.session.isStreaming);
@@ -345,6 +348,14 @@ export function Chat() {
 
   const showScrollbar = showChatScrollbar || window.innerHeight > 5000;
 
+  if (!accountEmail && onboardingCard.show) {
+    return (
+      <div className="mx-2 mt-10">
+        <OnboardingCard />
+      </div>
+    )
+  }
+
   return (
     <>
       {isInEditMode && (
@@ -535,15 +546,6 @@ export function Chat() {
                 }
               }}
             />
-          )}
-          {history.length === 0 && (
-            <>
-              {onboardingCard.show && (
-                <div className="mx-2 mt-10">
-                  <OnboardingCard />
-                </div>
-              )}
-            </>
           )}
         </div>
       </div>

@@ -6,6 +6,8 @@ import {
   constructLlmApi,
 } from "@continuedev/openai-adapters";
 import Handlebars from "handlebars";
+import * as path from "node:path";
+import * as fs from "fs";
 
 import {
   CacheBehavior,
@@ -54,6 +56,9 @@ import {
   toCompleteBody,
   toFimBody,
 } from "./openaiTypeConverters.js";
+import * as os from "os";
+
+const CONTINUE_GLOBAL_DIR = path.join(os.homedir(), ".epico-pilot");
 
 export abstract class BaseLLM implements ILLM {
   static providerName: string;
@@ -143,6 +148,18 @@ export abstract class BaseLLM implements ILLM {
   constructor(_options: LLMOptions) {
     this._llmOptions = _options;
 
+    let session = null;
+    const devDataDir = path.join(CONTINUE_GLOBAL_DIR, "dev_data");
+    const sessionPath = path.join(devDataDir, "session.jsonl");
+    try {
+      session = JSON.parse(fs.readFileSync(
+        sessionPath,
+        "utf8"
+      ));
+    } catch {
+      console.log("Error:", "No session file found!");
+    }
+
     // Set default options
     const options = {
       title: (this.constructor as typeof BaseLLM).providerName,
@@ -191,7 +208,7 @@ export abstract class BaseLLM implements ILLM {
       );
     this.writeLog = options.writeLog;
     this.llmRequestHook = options.llmRequestHook;
-    this.apiKey = options.apiKey;
+    this.apiKey = session?.accessToken;
     this.aiGatewaySlug = options.aiGatewaySlug;
     this.apiBase = options.apiBase;
     this.cacheBehavior = options.cacheBehavior;

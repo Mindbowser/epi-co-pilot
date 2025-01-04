@@ -68,6 +68,7 @@ const Layout = () => {
   const accountEmail = useAppSelector(
     (state: RootState) => state.config?.accountEmail,
   );
+  
   const dialogMessage = useAppSelector((state) => state.ui.dialogMessage);
 
   const showDialog = useAppSelector((state) => state.ui.showDialog);

@@ -86,6 +86,8 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
 
   private secretStorage: SecretStorage;
 
+  private callRefreshTokenTimeout: NodeJS.Timer | null = null;
+
   constructor(private readonly context: ExtensionContext) {
     this._disposable = Disposable.from(
       authentication.registerAuthenticationProvider(
@@ -112,14 +114,8 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     }
   }
 
-  private getExpirationTimeMs(jwt: string): number {
-    const decodedToken = this.decodeJwt(jwt);
-    if (!decodedToken) {
-      return WorkOsAuthProvider.EXPIRATION_TIME_MS;
-    }
-    return decodedToken.exp && decodedToken.iat
-      ? (decodedToken.exp - decodedToken.iat) * 1000
-      : WorkOsAuthProvider.EXPIRATION_TIME_MS;
+  private createExpirationTimeMs(): number {
+    return (new Date()).getTime() + 60*60*1000;
   }
 
   private jwtIsExpiredOrInvalid(jwt: string): boolean {
@@ -184,21 +180,34 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
   }
 
   private async _refreshSessions(): Promise<void> {
-    const sessions = await this.getSessions();
-    if (!sessions.length) {
-      return;
+    let session: ContinueAuthenticationSession | null = null;
+    const devDataDir = devDataPath();
+    const sessionPath = path.join(devDataDir, "session.jsonl");
+
+    try {
+      session = JSON.parse(fs.readFileSync(
+        sessionPath,
+        "utf8"
+      ));
+    } catch {
+      console.log("Error:", "No session file found!");
     }
 
     const finalSessions = [];
-    for (const session of sessions) {
+    if (session) {
       try {
         const newSession = await this._refreshSession(session.refreshToken);
-        finalSessions.push({
+        const finalSession = {
           ...session,
           accessToken: newSession.accessToken,
           refreshToken: newSession.refreshToken,
-          expiresInMs: newSession.expiresInMs,
-        });
+          expiresInMs: this.createExpirationTimeMs(),
+        }
+        finalSessions.push(finalSession);
+        fs.writeFileSync(
+          sessionPath,
+          JSON.stringify(finalSession, null, 4),
+        );
       } catch (e: any) {
         // If the refresh token doesn't work, we just drop the session
         console.debug(`Error refreshing session token: ${e.message}`);
@@ -211,25 +220,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
           removed: [session],
           changed: [],
         });
-        // We don't need to refresh the sessions again, since we'll get a new one when we need it
-        // setTimeout(() => this._refreshSessions(), 60 * 1000);
-        // return;
       }
-    }
-    await this.storeSessions(finalSessions);
-    this._sessionChangeEmitter.fire({
-      added: [],
-      removed: [],
-      changed: finalSessions,
-    });
 
-    if (finalSessions[0]?.expiresInMs) {
-      setTimeout(
-        async () => {
-          await this._refreshSessions();
-        },
-        (finalSessions[0].expiresInMs * 2) / 3,
-      );
+      this._sessionChangeEmitter.fire({
+        added: finalSessions,
+        removed: [],
+        changed: [],
+      });
     }
   }
 
@@ -238,23 +235,30 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
     refreshToken: string;
     expiresInMs: number;
   }> {
-    const response = await fetch("https://d1d0s6p6u2lcdb.cloudfront.net/user/access-token", {
+    const response = await fetch("https://api-gateway.epico.ai/m2/v1/access-token", {
       method: "POST",
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${refreshToken}`,
       },
+      body: JSON.stringify({ refreshToken }),
     });
     if (!response.ok) {
       const text = await response.text();
       throw new Error("Error refreshing token: " + text);
     }
     const data = (await response.json()) as any;
+    
+    if (this.callRefreshTokenTimeout) clearInterval(this.callRefreshTokenTimeout);
+
+    this.callRefreshTokenTimeout = setTimeout(
+      () => this._refreshSessions(),
+      60*1000,
+    );
+
     return {
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      // expiresInMs: this.getExpirationTimeMs(data.accessToken),
-      expiresInMs: 24*60*60,
+      accessToken: data?.data?.accessToken,
+      refreshToken: data?.data?.refreshToken,
+      expiresInMs: this.createExpirationTimeMs(),
     };
   }
 
@@ -271,7 +275,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
    */
   public async createSession(): Promise<ContinueAuthenticationSession> {
     try {
-      const {access_token, refresh_token, name, email} = await this.login();
+      const { access_token, refresh_token, name, email } = await this.login();
       if (!access_token && !refresh_token) {
         throw new Error(`Continue login failure`);
       }
@@ -280,7 +284,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         id: uuidv4(),
         accessToken: access_token,
         refreshToken: refresh_token,
-        expiresInMs: 60*60*24,
+        expiresInMs: this.createExpirationTimeMs(),
         loginNeeded: false,
         account: {
           label: name,
@@ -297,12 +301,6 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         changed: [],
       });
 
-      // TODO: fix _refreshSessions as per google oAuth
-      // setTimeout(
-      //   () => this._refreshSessions(),
-      //   (expires_in * 2) / 3,
-      // );
-
       const devDataDir = devDataPath();
       const sessionPath = path.join(devDataDir, "session.jsonl");
 
@@ -310,6 +308,13 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
       fs.writeFileSync(
         sessionPath,
         JSON.stringify(session, null, 4),
+      );
+
+      if (this.callRefreshTokenTimeout) clearInterval(this.callRefreshTokenTimeout);
+
+      this.callRefreshTokenTimeout = setTimeout(
+        () => this._refreshSessions(),
+        60*1000,
       );
 
       return session;
@@ -328,6 +333,15 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         sessionPath,
         "utf8"
       ));
+
+      if (this.callRefreshTokenTimeout) clearInterval(this.callRefreshTokenTimeout);
+
+      if (session?.expiresInMs) {
+        this.callRefreshTokenTimeout = setTimeout(
+          () => this._refreshSessions(),
+          session?.expiresInMs - (new Date()).getTime(),
+        );
+      }
     } catch {
       console.log("Error:", "No session file found!");
     }

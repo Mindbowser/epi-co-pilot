@@ -19,13 +19,11 @@ import HeaderButtonWithToolTip from "./gui/HeaderButtonWithToolTip";
 function Footer() {
   const navigate = useNavigate();
   const onboardingCard = useOnboardingCard();
-  const { pathname } = useLocation();
-  const ideMessenger = useContext(IdeMessengerContext);
   const accountEmail = useSelector(
     (state: RootState) => state.config?.accountEmail,
   );
 
-  const handleAccountCLicked = () => {
+  const handleAccountClicked = () => {
     if (!accountEmail) {
       isNewUserOnboarding();
       onboardingCard.open("Quickstart");
@@ -47,7 +45,7 @@ function Footer() {
           </HeaderButtonWithToolTip>
           ) : 
           <div 
-            onClick={handleAccountCLicked} 
+            onClick={handleAccountClicked} 
             style={{ cursor: 'pointer' }}
           >
             Sign In to Epico - Pilot

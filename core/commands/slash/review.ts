@@ -65,6 +65,8 @@ function createReviewPrompt(): string {
     
     
     If you identify any issues or areas of improvement, clearly outline actionable steps for resolving them.
+
+    Kindly ignore irrelevant content.
   `;
 }
 
